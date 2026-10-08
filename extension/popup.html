@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Logia School Sync</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="top">
+    <img src="icons/icon-48.png" alt="" width="28" height="28">
+    <h1>Logia School Sync</h1>
+  </header>
+
+  <main>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <section id="connect" hidden aria-labelledby="connect-h">
+      <h2 id="connect-h">Connect to Logia</h2>
+      <form id="connect-form" novalidate>
+        <div class="field">
+          <label for="origin">Logia address</label>
+          <input id="origin" type="url" inputmode="url" autocomplete="off" spellcheck="false" aria-describedby="origin-hint" placeholder="https://your-logia-address">
+          <p id="origin-hint" class="hint">Shown in Logia under Settings, School sync. Defaults to http://localhost:3000 for local development.</p>
+        </div>
+        <div class="field">
+          <label for="school">Your school's learning site address</label>
+          <input id="school" type="text" inputmode="url" autocomplete="off" spellcheck="false" required aria-describedby="school-hint" placeholder="learn.myschool.edu">
+          <p id="school-hint" class="hint">The address you sign in at to see your courses. Must be https (added for you if left out). The extension only gets access to this one site.</p>
+        </div>
+        <div class="field">
+          <label for="platform">Learning platform</label>
+          <select id="platform" aria-describedby="platform-hint">
+            <option value="auto">Detect automatically</option>
+            <option value="brightspace">Brightspace (D2L)</option>
+            <option value="canvas">Canvas</option>
+            <option value="moodle">Moodle</option>
+            <option value="blackboard">Blackboard Learn (experimental)</option>
+          </select>
+          <p id="platform-hint" class="hint">Detection looks at your school's sign-in page. If it can't tell, it works it out from the page the first time you sync. Google Classroom isn't synced here; connect it in Logia under Settings, School sync.</p>
+        </div>
+        <div class="field">
+          <label for="code">Connection code</label>
+          <input id="code" type="password" autocomplete="off" spellcheck="false" required aria-describedby="code-hint">
+          <p id="code-hint" class="hint">In Logia, open Settings, School sync, and choose New connection code.</p>
+        </div>
+        <button type="submit" id="connect-btn" class="btn primary">Connect</button>
+      </form>
+    </section>
+
+    <section id="home" hidden aria-labelledby="home-h">
+      <h2 id="home-h" class="sr-only">Sync</h2>
+      <div class="card">
+        <p id="conn-line" class="line"></p>
+        <p id="last-line" class="line muted"></p>
+      </div>
+
+      <p id="tab-note" class="note" hidden></p>
+      <div class="row">
+        <button type="button" id="sync" class="btn primary">Sync now</button>
+        <button type="button" id="open-am" class="btn" hidden>Open my school site</button>
+      </div>
+
+      <section id="review" hidden aria-labelledby="review-h">
+        <h2 id="review-h">Review and send</h2>
+        <p id="method" class="hint"></p>
+        <label class="check select-all"><input type="checkbox" id="all"> <span id="all-label">Select all</span></label>
+        <ul id="list" class="items" aria-label="Items to send"></ul>
+        <div class="row">
+          <button type="button" id="send" class="btn primary">Send to Logia</button>
+          <button type="button" id="cancel" class="btn">Cancel</button>
+        </div>
+      </section>
+
+      <div class="switch-row">
+        <input type="checkbox" id="auto" role="switch" aria-describedby="auto-hint">
+        <label for="auto">Auto-sync on Work To Do</label>
+      </div>
+      <p id="auto-hint" class="hint">Off by default. When on, opening the Work To Do page sends your deadlines automatically, at most every 20 minutes, without the review step.</p>
+
+      <button type="button" id="disconnect" class="btn link">Disconnect from Logia</button>
+    </section>
+  </main>
+
+  <footer class="privacy">
+    <p><strong>Works with:</strong> Brightspace, Canvas, Moodle. <strong>Experimental:</strong> Blackboard.</p>
+    <p>Your school login stays in this browser. Only titles, courses, due dates and links are sent to Logia.</p>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

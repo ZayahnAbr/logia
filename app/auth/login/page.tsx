@@ -1,11 +1,8 @@
-import { LoginForm } from "@/components/login-form";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
-      <div className="w-full max-w-sm">
-        <LoginForm />
-      </div>
-    </div>
-  );
+// This route used to render a broken theme-carousel experiment with no actual
+// sign-in form. The real sign-in page lives at /auth/signin — every redirect("/auth/login")
+// across the app points here, so we forward rather than touching every call site.
+export default function LoginPage() {
+  redirect("/auth/signin");
 }

@@ -1,40 +1,55 @@
-import type { Metadata } from "next";
-import { Geist } from "next/font/google";
-import { ThemeProvider } from "next-themes";
+import type { Metadata, Viewport } from "next";
+import { Geist, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/Toaster";
+import { RoomProvider } from "@/components/RoomProvider";
+import { RoomDock } from "@/components/RoomDock";
+import { MusicProvider } from "@/components/MusicProvider";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
-
-export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
-  title: "Next.js and Supabase Starter Kit",
-  description: "The fastest way to build apps with Next.js and Supabase",
-};
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  display: "swap",
+// Self-hosted via next/font: fonts are fetched and inlined at build time (no runtime request
+// to Google Fonts, no render-blocking <link>, no extra round trip), with font-display: swap
+// and automatic fallback-metric matching to avoid layout shift while the font loads.
+const sans = Geist({
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  weight: "400",
+  variable: "--font-serif",
+  display: "swap",
 });
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f4f2f0" }, { media: "(prefers-color-scheme: dark)", color: "#141211" }],
+};
+
+export const metadata: Metadata = {
+  title: "Logia: notes, flashcards and study rooms",
+  description: "Notes, flashcards, lectures, mind maps and AI study tools in one private workspace.",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.className} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-        </ThemeProvider>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${sans.variable} ${instrumentSerif.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try{if(localStorage.getItem("logia.sidebar")==="hidden")document.documentElement.dataset.sidebar="hidden";if(localStorage.getItem("logia.theme")==="dark")document.documentElement.dataset.theme="dark"}catch(e){}` }} />
+      </head>
+      <body>
+        <a href="#main" className="skip-link">Skip to content</a>
+        <RoomProvider>
+          <MusicProvider>
+            {children}
+            <RoomDock />
+          </MusicProvider>
+        </RoomProvider>
+        <Toaster />
       </body>
     </html>
   );

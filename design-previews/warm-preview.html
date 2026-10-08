@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logia warm preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,0..100;1,9..144,300..600,0..100&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --page: #1d1612; --page-ink: #efe3d1; --page-muted: #b9a791;
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--page-ink); font-family: Geist, system-ui, sans-serif; line-height: 1.5; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 40px 20px 96px; }
+  h1, h2, h3 { margin: 0; font-weight: 500; }
+  .intro h1 { font-family: Fraunces, Georgia, serif; font-size: clamp(30px, 4vw, 44px); font-variation-settings: "SOFT" 60, "opsz" 72; letter-spacing: -.01em; }
+  .intro p { color: var(--page-muted); max-width: 62ch; margin: 10px 0 0; }
+  .sec { margin-top: 64px; }
+  .sec > .label { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted); }
+  .sec > h2 { font-family: Fraunces, Georgia, serif; font-size: 26px; margin: 6px 0 6px; font-variation-settings: "SOFT" 60, "opsz" 48; }
+  .sec > p { color: var(--page-muted); max-width: 70ch; margin: 0 0 22px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 860px) { .pair { grid-template-columns: 1fr; } }
+  .tag { display: inline-block; font-size: 12px; margin-bottom: 8px; color: var(--page-muted); }
+
+  /* ---------- Shared mini-app markup, themed by .now / .warm ---------- */
+  .app { border-radius: 12px; padding: 26px 24px 28px; background: var(--bg); color: var(--text); position: relative; overflow: hidden; font-family: Geist, system-ui, sans-serif; }
+  .app .eyebrow { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .app h3 { font-size: 30px; line-height: 1.1; margin: 6px 0 4px; }
+  .app .sub { color: var(--muted); font-size: 14.5px; margin: 0 0 20px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sp { border-radius: 10px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+  .sp .cv { height: 74px; }
+  .sp .tx { padding: 11px 13px 13px; }
+  .sp b { display: block; font-weight: 600; font-size: 14.5px; }
+  .sp span { font-size: 13px; color: var(--muted); }
+  .today { margin-top: 14px; border-radius: 10px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 14px 16px; }
+  .today h4 { margin: 0 0 8px; font-size: 14.5px; font-weight: 600; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 14px; }
+  .row:first-of-type { border-top: 0; }
+  .row time { margin-left: auto; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 6px; font-weight: 500; }
+  .btn { margin-top: 14px; display: inline-flex; align-items: center; height: 38px; padding: 0 16px; border-radius: 8px; border: 0; font: 500 14px Geist, sans-serif; background: var(--primary); color: var(--on-primary); }
+
+  .now {
+    --bg: #f7f4f1; --surface: #ffffff; --text: #111111; --muted: #555555; --border: #ece8e7;
+    --shadow: 0 1px 2px rgba(17,17,17,.04), 0 10px 30px rgba(17,17,17,.06);
+    --primary: #18181b; --on-primary: #fff;
+  }
+  .now h3 { font-weight: 600; letter-spacing: -.015em; background: linear-gradient(90deg, #e8835a, #f4a574); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .now .chip.hi { background: #fde8e5; color: #b4532d; } .now .chip.lo { background: #e8edf5; color: #2f4a77; }
+
+  .warm {
+    --bg: #f3eadc; --surface: #fbf6ec; --text: #2b211b; --muted: #685749; --border: #e1d3bd;
+    --shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 1px 2px rgba(74,44,24,.08), 0 8px 22px rgba(74,44,24,.07);
+    --primary: #2b211b; --on-primary: #fbf3e6;
+  }
+  .warm::after { content: ""; position: absolute; inset: 0; background-image: var(--grain); opacity: .07; mix-blend-mode: multiply; pointer-events: none; }
+  .warm h3 { font-weight: 600; letter-spacing: -.015em; background: linear-gradient(90deg, #e8835a, #f4a574); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .warm .sp, .warm .today { position: relative; }
+  .warm .chip.hi { background: #f2d8c3; color: #7e3414; } .warm .chip.lo { background: #dfe3cf; color: #3d4a26; }
+
+  /* ---------- Room mock ---------- */
+  .room { position: relative; aspect-ratio: 16 / 10; border-radius: 12px; overflow: hidden; background: #1a120d; isolation: isolate; }
+  .room video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: sepia(.2) saturate(.88) contrast(.94) brightness(.86); z-index: 0; }
+  .room::before { content: ""; position: absolute; inset: 0; z-index: 1; background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(18,10,6,.55) 100%); pointer-events: none; }
+  .room::after { content: ""; position: absolute; inset: 0; z-index: 2; background-image: var(--grain); opacity: .09; mix-blend-mode: overlay; pointer-events: none; }
+  .room .top { position: absolute; z-index: 3; left: 22px; top: 18px; right: 22px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; color: #f3e6d3; }
+  .room .hand { font-family: Caveat, cursive; font-weight: 600; font-size: 26px; line-height: 1; color: #f0cfa6; transform: rotate(-2deg); display: inline-block; }
+  .room h3 { font-family: Fraunces, Georgia, serif; font-style: italic; font-weight: 400; font-size: clamp(26px, 3.4vw, 38px); font-variation-settings: "SOFT" 100, "opsz" 96; margin-top: 2px; color: #f6ead8; text-shadow: 0 1px 12px rgba(0,0,0,.45); }
+  .room .status { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; background: rgba(26,17,12,.82); border: 1px solid rgba(243,230,211,.22); padding: 5px 10px; border-radius: 6px; color: #f3e6d3; white-space: nowrap; }
+  .room .timer { position: absolute; z-index: 3; right: 26px; bottom: 20px; text-align: right; color: #f6ead8; }
+  .room .timer .n { font-family: Fraunces, Georgia, serif; font-style: italic; font-weight: 300; font-size: clamp(54px, 8vw, 92px); line-height: .95; font-variation-settings: "SOFT" 100, "opsz" 144; font-variant-numeric: tabular-nums; text-shadow: 0 2px 18px rgba(0,0,0,.5); }
+  .room .timer .p { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #e5d3b9; margin-top: 4px; }
+  .room .goal { position: absolute; z-index: 3; left: 22px; bottom: 20px; max-width: 46%; background: rgba(26,17,12,.8); border: 1px solid rgba(243,230,211,.18); border-radius: 8px; padding: 10px 14px; color: #f3e6d3; font-size: 14px; }
+  .room .goal small { display: block; font-size: 12px; color: #d4c1a6; margin-bottom: 2px; }
+  .nowroom .timer .n { font-family: Geist, sans-serif; font-style: normal; font-weight: 600; font-variation-settings: normal; }
+  .nowroom h3 { font-family: Geist, sans-serif; font-style: normal; font-weight: 600; font-variation-settings: normal; }
+  .nowroom::before { background: radial-gradient(80% 60% at 50% 40%, transparent, rgba(0,0,0,.4)); }
+  .nowroom video { filter: none; } .nowroom::after { display: none; }
+  .nowroom .goal, .nowroom .status { background: rgba(0,0,0,.72); }
+
+  /* Type notes */
+  .specs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+  @media (max-width: 860px) { .specs { grid-template-columns: 1fr; } }
+  .spec { background: #2a201a; border: 1px solid #3d3027; border-radius: 10px; padding: 16px 18px; }
+  .spec .role { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--page-muted); }
+  .spec .big { margin: 6px 0 8px; font-size: 30px; line-height: 1.1; color: #f6ead8; }
+  .spec p { margin: 0; font-size: 14px; color: var(--page-muted); }
+  .f-serif { font-family: Fraunces, Georgia, serif; font-variation-settings: "SOFT" 70, "opsz" 72; font-weight: 500; }
+  .f-sans { font-family: Geist, sans-serif; font-weight: 500; }
+  .f-hand { font-family: Caveat, cursive; font-weight: 600; color: #f0cfa6; font-size: 34px; }
+  ul.notes { margin: 18px 0 0; padding-left: 18px; color: var(--page-muted); max-width: 74ch; }
+  ul.notes li { margin: 4px 0; }
+  @media (prefers-reduced-motion: reduce) { video { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="intro">
+    <h1>Warm preview</h1>
+    <p>Static mock-ups of suggestions 8 and 6. Nothing in the Logia app has changed. Left is how it looks now, right is the warm version. Fonts load from Google Fonts, so you need to be online.</p>
+  </header>
+
+  <section class="sec" aria-labelledby="s8">
+    <div class="label">Suggestion 8</div>
+    <h2 id="s8">Warm paper, brown shadows, a little grain</h2>
+    <p>Same layout, same coral. The page goes from cool white to paper, borders and shadows turn brown instead of grey, and covers use earthier colours. Coral stays the accent, and the coral gradient headings and dark button are kept exactly as they are now.</p>
+    <div class="pair">
+      <div><span class="tag">Now</span><div class="app now" id="a-now"></div></div>
+      <div><span class="tag">Warm</span><div class="app warm" id="a-warm"></div></div>
+    </div>
+    <ul class="notes">
+      <li>Page #f3eadc, cards #fbf6ec, text #2b211b (about 13:1), muted text #685749 (about 6:1), button cream on dark brown. The gradient heading is large text, same as today.</li>
+      <li>Grain is a 7 percent multiply layer on the page background only, never over text containers that scroll.</li>
+      <li>Shadows lose the big soft blur. A 1px light top edge plus two tight brown shadows reads as paper, not glass.</li>
+      <li>Dark mode would use deep brown (#1c1512) with cream text instead of near-black.</li>
+    </ul>
+  </section>
+
+  <section class="sec" aria-labelledby="s6">
+    <div class="label">Suggestion 6</div>
+    <h2 id="s6">A warmer type pairing</h2>
+    <p>Fraunces (a soft, slightly wonky serif) for room names and headings, Geist for everything functional, and one handwritten face used in two or three places only. The timer becomes a large quiet numeral with no ring. The video here is your lofi desk loop with a warm grade, vignette and grain on top.</p>
+    <div class="pair">
+      <div><span class="tag">Now</span>
+        <div class="room nowroom">
+          <video src="../public/loops/lofi-desk.mp4" autoplay muted loop playsinline></video>
+          <div class="top"><div><h3>Lofi desk</h3></div><span class="status">Focus</span></div>
+          <div class="goal"><small>Goal</small>Finish chapter 4 notes</div>
+          <div class="timer"><div class="n">18:42</div></div>
+        </div>
+      </div>
+      <div><span class="tag">Warm</span>
+        <div class="room">
+          <video src="../public/loops/lofi-desk.mp4" autoplay muted loop playsinline></video>
+          <div class="top"><div><span class="hand">welcome to study club</span><h3>Lofi desk</h3></div><span class="status">Focus</span></div>
+          <div class="goal"><small>Goal</small>Finish chapter 4 notes</div>
+          <div class="timer"><div class="n">18:42</div><div class="p">Break at 50:00</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="specs">
+      <div class="spec"><div class="role">Display, room names, page headings</div><div class="big f-serif">Rainy café</div><p>Fraunces, soft axis up, medium weight. Italic only for room titles and the timer.</p></div>
+      <div class="spec"><div class="role">Interface, buttons, labels, chat</div><div class="big f-sans">Start session</div><p>Geist, as now. Nothing functional is ever set in the serif or the handwriting.</p></div>
+      <div class="spec"><div class="role">Accent, at most twice per screen</div><div class="big f-hand">welcome to study club</div><p>Caveat, only on a room's tagline or an empty state. It is decoration, so it never carries information on its own.</p></div>
+    </div>
+    <ul class="notes">
+      <li>Timer text is cream on a darkened, vignetted frame. Pause controls and goal panels use solid dark brown at 80 percent so text stays readable on bright frames.</li>
+      <li>The handwritten line is the same colour family as the lamp light (#f0cfa6), and it is aria-hidden in the real build if it repeats the title.</li>
+      <li>The video is darkened with sepia, lower saturation and a slight brightness drop. A real grade baked into the file would look better than this live CSS version.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+  const cards = [["Biology 201", "12 notes", "#b4573c", "#fbf3e6"], ["Calculus", "8 papers", "#6f7f5b", "#fbf3e6"], ["History", "5 files", "#d6a24f", "#2b211b"]];
+  const nowCovers = ["#e8835a", "#7aa6c9", "#f1c76a"];
+  const tpl = (covers) => `
+    <div class="eyebrow">My spaces</div>
+    <h3>Good evening</h3>
+    <p class="sub">Two things due this week.</p>
+    <div class="cards">${cards.map((c, i) => `<div class="sp"><div class="cv" style="background:${covers[i]}"></div><div class="tx"><b>${c[0]}</b><span>${c[1]}</span></div></div>`).join("")}</div>
+    <div class="today"><h4>Today</h4>
+      <div class="row"><span>Calculus test</span><span class="chip hi">High</span><time>09:00</time></div>
+      <div class="row"><span>History essay draft</span><span class="chip lo">Low</span><time>17:30</time></div>
+    </div>
+    <button class="btn" type="button">New space</button>`;
+  document.getElementById("a-now").innerHTML = tpl(nowCovers);
+  document.getElementById("a-warm").innerHTML = tpl(cards.map((c) => c[2]));
+</script>
+</body>
+</html>
