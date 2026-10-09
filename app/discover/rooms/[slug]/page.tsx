@@ -1,4 +1,5 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
+import { isSceneId } from "@/lib/loopScenes";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
@@ -26,7 +27,8 @@ export default async function CafeRoomPage({ params }: { params: Promise<{ slug:
       </main>
     );
   }
-  if (!room) notFound();
+  // Old or unknown rooms (the retired Rainy café, Night library and so on) go back to Discover.
+  if (!room || !isSceneId(room.scene)) redirect("/discover");
 
   const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
   const { data: msgs } = await supabase.from("cafe_messages")

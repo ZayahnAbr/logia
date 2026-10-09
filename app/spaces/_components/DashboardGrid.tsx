@@ -29,11 +29,15 @@ function normalise(saved: Entry[] | null, ids: string[], defaultOrder: string[],
 export function DashboardGrid({
   widgets, saved = null, syncSupported = false, storageKey = "logia.dashboard.layout",
   defaultOrder = DASHBOARD_ORDER, defaultVisible = DASHBOARD_VISIBLE, syncToAccount = true, dialogTitle = "Customise dashboard", defaultHalf = NO_HALF,
-  toolbarExtra, colorSpaceId, colors: savedColors,
+  toolbarExtra, colorSpaceId, colors: savedColors, seed = null, onLayoutSaved,
 }: {
   widgets: Widget[]; saved?: Entry[] | null; syncSupported?: boolean; storageKey?: string;
   defaultOrder?: string[]; defaultVisible?: string[]; syncToAccount?: boolean; dialogTitle?: string; defaultHalf?: string[];
   toolbarExtra?: ReactNode; colorSpaceId?: string; colors?: Record<string, string>;
+  // A default layout used only while this device has no saved layout (a copied space starts from its source's design).
+  seed?: Entry[] | null;
+  // Called after the layout is saved on this device (a public space's creator keeps a copy in the database).
+  onLayoutSaved?: (layout: Entry[]) => void | Promise<unknown>;
 }) {
   const ids = useMemo(() => widgets.map((w) => w.id), [widgets]);
   const visibleSet = useMemo(() => new Set(defaultVisible), [defaultVisible]);
@@ -71,8 +75,9 @@ export function DashboardGrid({
     try {
       const local = window.localStorage.getItem(STORAGE_KEY);
       if (local) { setLayout(normalise(JSON.parse(local), ids, defaultOrder, visibleSet, defaultHalf)); setCustomised(true); }
+      else if (Array.isArray(seed) && seed.length) { setLayout(normalise(seed, ids, defaultOrder, visibleSet, defaultHalf)); setCustomised(true); }
     } catch { /* storage unavailable — keep defaults */ }
-  }, [saved, ids, STORAGE_KEY, defaultOrder, visibleSet, defaultHalf]);
+  }, [saved, seed, ids, STORAGE_KEY, defaultOrder, visibleSet, defaultHalf]);
 
   const byId = Object.fromEntries(widgets.map((w) => [w.id, w]));
   // Until someone customises, sections with nothing in them stay out of the way.
@@ -91,6 +96,7 @@ export function DashboardGrid({
     setLayout(next);
     setCustomised(true);
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+    if (onLayoutSaved) { try { await onLayoutSaved(next); } catch { /* best effort */ } }
     const res = !syncToAccount ? {} : syncSupported ? await saveDashboardLayout(next) : { error: "not-synced" };
     if (quiet && !(res && "error" in res && res.error && syncToAccount)) return;
     setNotice(res && "error" in res && res.error

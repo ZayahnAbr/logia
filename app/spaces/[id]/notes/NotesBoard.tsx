@@ -379,6 +379,7 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
             <RichEditor
               key={active.id}
               noteId={active.id}
+              noteTitle={title}
               value={body}
               onChange={onBodyChange}
               spaceId={spaceId}

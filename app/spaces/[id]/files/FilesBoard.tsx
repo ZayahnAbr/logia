@@ -263,7 +263,7 @@ export function FilesBoard({
                   </select>
                 </label>
                 <button aria-label={`Download ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => download(f.path, f.name)} disabled={downloading === f.path}><Download size={14} /></button>
-                <ShareButton iconOnly label={`Share ${f.name}`} className="btn btn-ghost btn-icon btn-sm" note="Anyone with this link can download the file for 7 days."
+                <ShareButton iconOnly label={`Share ${f.name}`} className="btn btn-ghost btn-icon btn-sm" note="Anyone with this link can download the file for the next hour. Only share files you have the right to share, not lecture slides, past papers or textbooks from your university."
                   get={() => shareFileLink(spaceId, f.id)} />
                 <button aria-label={`Delete ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => remove(f.id, f.path)}><Trash2 size={14} /></button>
               </div>

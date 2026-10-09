@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Layers, FileCheck2, Users, Workflow, MessageSquare, Mic, Check, X as XIcon, Timer, Flame, BookOpen, LayoutDashboard } from "lucide-react";
+import { LogoMark } from "@/components/LogoMark";
 
 // A faithful, miniature Logia window that switches between real screens.
 // Auto-advances every 5s; pauses on hover/focus or after the visitor picks a tab.
@@ -53,7 +54,7 @@ export function ProductTour() {
         <div className="pt-chrome" aria-hidden="true"><i /><i /><i /><span>logia.app/spaces/psych-2</span></div>
         <div className="pt-app" aria-hidden="true">
           <aside className="pt-side">
-            <span className="pt-logo">✳ logia</span>
+            <span className="pt-logo"><LogoMark size={14} style={{ display: "inline-block", verticalAlign: "-2px", marginRight: 6 }} />logia</span>
             <span className="pt-nav"><LayoutDashboard size={12} /> Dashboard</span>
             <span className="pt-nav"><BookOpen size={12} /> Library</span>
             <span className="pt-group">Psych 2</span>

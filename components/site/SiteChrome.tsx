@@ -1,15 +1,21 @@
 import Link from "next/link";
+import { LogoMark } from "@/components/LogoMark";
 
 // Public-site chrome shared by the landing page and the marketing pages.
-export const Logo = ({ size = 28 }: { size?: number }) => (
-  <span aria-hidden="true" style={{ width: size, height: size, borderRadius: size * 0.32, display: "grid", placeItems: "center", background: "linear-gradient(145deg, var(--coral), var(--accent-strong))", color: "#fff", fontSize: size * 0.54, flexShrink: 0 }}>✳</span>
-);
+export const Logo = ({ size = 28 }: { size?: number }) => <LogoMark size={size} />;
 
 const LINKS = [
   { href: "/features", label: "Capabilities" },
   { href: "/pricing", label: "Pricing" },
   { href: "/invite", label: "Invite friends" },
   { href: "/donate", label: "Donate" },
+];
+
+const LEGAL_LINKS = [
+  { href: "/legal/terms", label: "Terms" },
+  { href: "/legal/acceptable-use", label: "Acceptable use" },
+  { href: "/legal/privacy", label: "Privacy" },
+  { href: "/legal/takedown", label: "Report content" },
 ];
 
 export function SiteNav({ current }: { current?: string }) {
@@ -38,6 +44,9 @@ export function SiteFooter() {
         <span className="l-footer-logo"><Logo size={22} /> logia</span>
         <nav aria-label="Footer" className="l-footer-links">
           {LINKS.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
+        </nav>
+        <nav aria-label="Legal" className="l-footer-links">
+          {LEGAL_LINKS.map((l) => <Link key={l.href} href={l.href}>{l.label}</Link>)}
         </nav>
         <span>© 2026 Logia · Made in South Africa</span>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
+import { nextFromLocation } from "@/lib/safeNext";
 
 function GoogleIcon() {
   return (
@@ -25,7 +26,7 @@ export function GoogleSignInButton({ label = "Continue with Google" }: { label?:
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/spaces` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextFromLocation() ?? "/spaces")}` },
     });
     if (error) {
       setErr(

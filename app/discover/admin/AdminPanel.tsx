@@ -4,23 +4,34 @@ import { useState } from "react";
 import { Check, EyeOff, Plus, Trash2, X } from "lucide-react";
 import { setCafeStatus } from "@/app/cafe-actions";
 import { PlansSection } from "./PlansSection";
+import { UploadsSection } from "./UploadsSection";
 import { toEmbed } from "@/lib/musicEmbed";
 import { Avatar } from "@/components/Avatar";
 import type { PendingCafe } from "@/lib/userCafes";
 import { toast } from "@/components/Toaster";
-import { addStream, deleteStream, resolveReport, setStreamActive, type OpenReport, type Stream } from "@/app/discover-actions";
+import { addStream, deleteStream, resolveReport, reviewSpace, setStreamActive, type OpenReport, type PendingSpace, type Stream } from "@/app/discover-actions";
 import { parseYouTubeId } from "@/lib/youtube";
 
 const KIND_LABEL = { cafe_message: "Café message", space: "Public space", stream: "Stream", user_cafe: "Hosted room" } as const;
 const HIDE_LABEL = { cafe_message: "Hide message", space: "Hide space", stream: "Turn off stream", user_cafe: "Hide room" } as const;
 
-export function AdminPanel({ reports: initialReports, reportsError, streams: initialStreams, streamsError, pending: initialPending, pendingError }: {
-  reports: OpenReport[]; reportsError: string; streams: Stream[]; streamsError: string; pending: PendingCafe[]; pendingError: string;
+export function AdminPanel({ reports: initialReports, reportsError, streams: initialStreams, streamsError, pending: initialPending, pendingError, spaces: initialSpaces, spacesError }: {
+  reports: OpenReport[]; reportsError: string; streams: Stream[]; streamsError: string; pending: PendingCafe[]; pendingError: string; spaces: PendingSpace[]; spacesError: string;
 }) {
   const [pending, setPending] = useState(initialPending);
   const [reports, setReports] = useState(initialReports);
   const [streams, setStreams] = useState(initialStreams);
+  const [spaces, setSpaces] = useState(initialSpaces);
   const [busy, setBusy] = useState<string | null>(null);
+
+  const review = async (sp: PendingSpace, approve: boolean) => {
+    setBusy(sp.space_id);
+    const res = await reviewSpace(sp.space_id, approve);
+    setBusy(null);
+    if (res.error) { toast(res.error, "error"); return; }
+    setSpaces((cur) => cur.filter((x) => x.space_id !== sp.space_id));
+    toast(approve ? "Space approved and listed." : "Space kept private.");
+  };
 
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
@@ -72,7 +83,40 @@ export function AdminPanel({ reports: initialReports, reportsError, streams: ini
 
   return (
     <div style={{ display: "grid", gap: 32 }}>
+      <UploadsSection />
       <PlansSection />
+      <section aria-labelledby="adm-spaces">
+        <h2 id="adm-spaces" className="dc-h2">Spaces awaiting review ({spaces.length})</h2>
+        {spacesError && <div className="notice notice-error" role="alert">{spacesError}</div>}
+        {!spacesError && spaces.length === 0 && <div className="empty card" style={{ padding: "24px 20px" }}>No spaces are waiting.</div>}
+        <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
+          {spaces.map((sp) => (
+            <li key={sp.space_id} className="card" style={{ padding: 16, display: "grid", gap: 10 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16 }}>{sp.name}</h3>
+                <div style={{ fontSize: 13.5, color: "var(--muted)", marginTop: 4 }}>By {sp.owner_name} · asked {new Date(sp.requested_at).toLocaleString()}</div>
+                {sp.public_description && <p style={{ margin: "6px 0 0", overflowWrap: "anywhere" }}>{sp.public_description}</p>}
+                {sp.tags.length > 0 && <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "var(--muted)" }}>Tags: {sp.tags.join(", ")}</p>}
+              </div>
+              <div>
+                <div className="field-label">Flagged items</div>
+                {sp.reports.length === 0 ? <p className="field-hint">Nothing specific was recorded.</p> : (
+                  <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 6 }}>
+                    {sp.reports.map((r) => (
+                      <li key={r.id} style={{ overflowWrap: "anywhere" }}><strong>{r.kind === "image" ? "Picture" : r.kind === "text" ? "Text" : "Check"}:</strong> {r.ref}<br /><span style={{ color: "var(--muted)", fontSize: 13.5 }}>{r.reason}</span></li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" className="btn btn-sm btn-primary" disabled={busy === sp.space_id} onClick={() => review(sp, true)}><Check size={14} aria-hidden="true" /> Approve</button>
+                <button type="button" className="btn btn-sm" disabled={busy === sp.space_id} onClick={() => review(sp, false)}><X size={14} aria-hidden="true" /> Keep private</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <section aria-labelledby="adm-rooms">
         <h2 id="adm-rooms" className="dc-h2">Rooms awaiting review ({pending.length})</h2>
         {pendingError && <div className="notice notice-error" role="alert">{pendingError}</div>}
@@ -108,6 +152,13 @@ export function AdminPanel({ reports: initialReports, reportsError, streams: ini
                     {c.loop_kind === "preset" && <p className="field-hint">{`Preset: ${c.loop_preset}`}</p>}
                     {(c.loop_kind === "upload" || c.loop_kind === "image") && !p.loopUrl && <p className="field-hint">{c.loop_kind === "image" ? "The picture could not be loaded." : "The video could not be loaded."}</p>}
                   </div>
+                  {p.coverUrl && (
+                    <div>
+                      <div className="field-label">Cover</div>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL */}
+                      <img src={p.coverUrl} alt={`Cover picture made for ${c.name}`} style={{ width: "100%", maxHeight: 260, objectFit: "contain", borderRadius: 12, background: "#000" }} />
+                    </div>
+                  )}
                   <div>
                     <div className="field-label">Music</div>
                     {c.music_kind === "upload" && p.audioUrl && <audio src={p.audioUrl} controls preload="metadata" aria-label={`Track for ${c.name}`} style={{ width: "100%" }} />}

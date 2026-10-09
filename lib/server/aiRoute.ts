@@ -17,6 +17,22 @@ type Db = Awaited<ReturnType<typeof createClient>>;
 type Served = { provider: string; tokens: number; tier: "free" | "paid" };
 type Caller = { supabase?: Db; userId?: string; unmetered?: boolean; plan?: Plan };
 
+/** Thrown by callChat({ safety: true }) when no enabled provider lists a safety model on its account. */
+export const NO_SAFETY_MODEL = "no-safety-model";
+const safetyListed = new Map<string, { ok: boolean; at: number }>();
+/** True when the provider's account lists its configured safety model (checked through /models, cached for an hour). */
+async function safetyModelListed(p: Provider): Promise<boolean> {
+  const hit = safetyListed.get(p.id);
+  if (hit && Date.now() - hit.at < 3600_000) return hit.ok;
+  let ok = false;
+  try {
+    const res = await fetch(`${p.baseUrl}/models`, { headers: { Authorization: `Bearer ${providerKey(p)}` } });
+    if (res.ok) { const data = await res.json() as { data?: { id?: string }[] }; ok = !!data.data?.some((m) => m.id === p.models.safety); }
+  } catch { ok = false; }
+  safetyListed.set(p.id, { ok, at: Date.now() });
+  return ok;
+}
+
 export const BUSY_MESSAGE = "Logia's AI is busy right now. Try again in a few minutes.";
 
 const MAX_RETRY_AFTER_MS = 5000;
@@ -115,6 +131,8 @@ export async function callChat(opts: {
   unmetered?: boolean;
   /** The caller's plan when known; otherwise it is looked up. Pro and admin use paid providers first and skip free-pool pacing. */
   plan?: Plan;
+  /** Use the provider's safety classifier model instead of its chat model (throws NO_SAFETY_MODEL when none is available). */
+  safety?: boolean;
 }): Promise<{ content: string; provider: string; tokens: number; tier: "free" | "paid" }> {
   const { db, uid, plan, paid } = await resolveCaller(opts);
 
@@ -127,14 +145,20 @@ export async function callChat(opts: {
 
   await paceGate(db, est, opts.purpose, !!opts.unmetered || paid);
 
-  const candidates = candidatesFor("chat", opts.json ? ["chat", "json"] : ["chat"], opts.purpose, paid);
+  let candidates = candidatesFor("chat", opts.json ? ["chat", "json"] : ["chat"], opts.purpose, paid);
+  if (opts.safety) {
+    const listed: Provider[] = [];
+    for (const p of candidates) if (p.models.safety && await safetyModelListed(p)) listed.push(p);
+    if (!listed.length) throw new Error(NO_SAFETY_MODEL);
+    candidates = listed;
+  }
 
   for (const p of candidates) {
     const slot = await takeSlot(db, p, est);
     if (!slot.ok) { console.info(`[ai] ${p.id} skipped (${slot.reason ?? "no headroom"})`); continue; }
 
     const body = JSON.stringify({
-      model: p.models.chat, temperature: opts.temperature ?? 0.2, max_tokens: opts.maxTokens, ...(p.chatExtras ?? {}),
+      model: opts.safety ? p.models.safety : p.models.chat, temperature: opts.safety ? 0 : opts.temperature ?? 0.2, max_tokens: opts.maxTokens, ...(opts.safety ? {} : p.chatExtras ?? {}),
       ...(opts.json ? { response_format: { type: "json_object" } } : {}),
       messages,
     });

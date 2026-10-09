@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
+import { nextFromLocation, withNext } from "@/lib/safeNext";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -21,7 +22,8 @@ export default function SignInPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { setErr(error.message); setLoading(false); return; }
-    router.push("/spaces");
+    router.push(nextFromLocation() ?? "/spaces");
+    router.refresh();
   };
 
   return (
@@ -58,7 +60,7 @@ export default function SignInPage() {
 
         <div className="auth-alt">
           Don&apos;t have an account?{" "}
-          <Link href="/auth/sign-up" style={{ color: "var(--accent-text)", fontWeight: 600 }}>Create one</Link>
+          <Link href="/auth/sign-up" onClick={(e) => { const n = nextFromLocation(); if (n) { e.preventDefault(); router.push(withNext("/auth/sign-up", n)); } }} style={{ color: "var(--accent-text)", fontWeight: 600 }}>Create one</Link>
         </div>
       </div>
     </AuthShell>

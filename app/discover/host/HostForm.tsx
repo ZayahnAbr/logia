@@ -3,21 +3,21 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, Clapperboard, Image as ImageIcon, Link2, Loader2, Music, Upload, VolumeX, X } from "lucide-react";
+import dynamic from "next/dynamic";
+import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
+import { Brush, Check, Clapperboard, Image as ImageIcon, Link2, Loader2, Music, Upload, VolumeX, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/Toaster";
-import { LOOP_SRC } from "@/components/LoopVideo";
+import { LOOP_SRC, POSTER, SCENE_IDS, SCENE_LABEL } from "@/lib/loopScenes";
 import { toEmbed } from "@/lib/musicEmbed";
 import { createUserCafe, updateUserCafe } from "@/app/cafe-actions";
+import { parseCoverDoc, type CoverDoc } from "@/lib/coverDoc";
 import { BG_SWATCHES, DEFAULT_BG, IMAGE_MAX_BYTES, colorVeil, type LoopKind, type SceneId } from "@/lib/userCafes";
 
+// Loaded only when opened, so the handwriting fonts and editor code stay out of the rest of the form.
+const CoverEditor = dynamic(() => import("./CoverEditor"), { ssr: false });
 const MAX_BYTES = 60 * 1024 * 1024;
-const PRESETS: { id: SceneId; label: string }[] = [
-  { id: "rain-cafe", label: "Rainy café" },
-  { id: "night-library", label: "Night library" },
-  { id: "forest-cabin", label: "Forest cabin" },
-  { id: "lofi-desk", label: "Lo-fi desk" },
-];
+const PRESETS: { id: SceneId; label: string }[] = SCENE_IDS.map((id) => ({ id, label: SCENE_LABEL[id] }));
 const LENGTHS = [{ f: 25, b: 5 }, { f: 50, b: 10 }, { f: 45, b: 15 }];
 const IMAGE_EXT_BY_TYPE: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 const KINDS: { k: LoopKind; label: string }[] = [
@@ -31,8 +31,10 @@ export type HostInitial = {
   loopKind: LoopKind; preset: SceneId; loopPath: string | null; loopUrl: string | null; bgColor: string | null;
   musicKind: "none" | "link" | "upload"; musicUrl: string; musicPath: string | null; audioUrl: string | null;
   focus: number; brk: number; listing: "unlisted" | "pending";
+  coverPath: string | null; coverUrl: string | null; coverDoc: unknown;
 };
 
+type Cover = { path: string; preview: string; doc: CoverDoc | null };
 type Uploaded = { path: string; preview: string; name: string };
 
 // Upload straight from the browser to the private bucket, with progress.
@@ -62,19 +64,16 @@ async function uploadWithProgress(file: File, path: string, onProgress: (pct: nu
   });
 }
 
-function PresetThumb({ src, reduced }: { src: string; reduced: boolean }) {
-  const ref = useRef<HTMLVideoElement>(null);
-  useEffect(() => { const v = ref.current; if (!v) return; if (reduced) v.pause(); else v.play().catch(() => { /* still frame */ }); }, [reduced]);
-  return <video ref={ref} src={src} muted loop playsInline preload="metadata" autoPlay={!reduced} aria-hidden="true" tabIndex={-1} />;
-}
-
 export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial }) {
+  // Reduced motion: show the still instead of playing the loop.
+  const [stillOnly, setStillOnly] = useState(false);
+  useEffect(() => { setStillOnly(window.matchMedia("(prefers-reduced-motion: reduce)").matches); }, []);
   const router = useRouter();
   const uidFor = useId();
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [loopKind, setLoopKind] = useState<LoopKind>(initial?.loopKind ?? "preset");
-  const [preset, setPreset] = useState<SceneId>(initial?.preset ?? "rain-cafe");
+  const [preset, setPreset] = useState<SceneId>(initial?.preset ?? "rain-roof");
   const [loop, setLoop] = useState<Uploaded | null>(initial?.loopKind === "upload" && initial.loopPath && initial.loopUrl ? { path: initial.loopPath, preview: initial.loopUrl, name: "Current loop" } : null);
   const [image, setImage] = useState<Uploaded | null>(initial?.loopKind === "image" && initial.loopPath && initial.loopUrl ? { path: initial.loopPath, preview: initial.loopUrl, name: "Current picture" } : null);
   const [bgColor, setBgColor] = useState(initial?.bgColor ?? DEFAULT_BG);
@@ -85,13 +84,14 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
   const [brk, setBrk] = useState(initial?.brk ?? 5);
   const [custom, setCustom] = useState(initial ? !LENGTHS.some((l) => l.f === initial.focus && l.b === initial.brk) : false);
   const [listing, setListing] = useState<"unlisted" | "pending">(initial?.listing ?? "unlisted");
-  const [progress, setProgress] = useState<{ loop?: number; image?: number; track?: number }>({});
+  const [cover, setCover] = useState<Cover | null>(initial?.coverPath && initial.coverUrl ? { path: initial.coverPath, preview: initial.coverUrl, doc: parseCoverDoc(initial.coverDoc) } : null);
+  const [coverTouched, setCoverTouched] = useState(false);
+  const [coverOpen, setCoverOpen] = useState(false);
+  const [progress, setProgress] = useState<{ loop?: number; image?: number; track?: number; cover?: number }>({});
   const [busy, setBusy] = useState(false);
-  const [reduced, setReduced] = useState(false);
   // Files uploaded in this session that were never saved; removed if replaced or dropped.
   const fresh = useRef<Set<string>>(new Set());
 
-  useEffect(() => { setReduced(window.matchMedia("(prefers-reduced-motion: reduce)").matches); }, []);
   const embed = useMemo(() => (musicKind === "link" && musicUrl.trim() ? toEmbed(musicUrl) : null), [musicKind, musicUrl]);
 
   const discard = (path: string | undefined) => {
@@ -103,15 +103,35 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
     const ext = (kind === "loop" ? VIDEO_EXT : kind === "image" ? IMAGE_EXT_BY_TYPE : AUDIO_EXT)[file.type];
     if (!ext) { toast(kind === "loop" ? "Choose an mp4 or webm video." : kind === "image" ? "Choose a JPG, PNG or WebP picture." : "Choose an mp3, m4a, ogg or wav track.", "error"); return; }
     if (file.size > (kind === "image" ? IMAGE_MAX_BYTES : MAX_BYTES)) { toast(kind === "image" ? "That picture is over 10 MB. Pick a smaller one." : "That file is over 60 MB. Pick a smaller one.", "error"); return; }
+    const media = kind === "loop" ? "video" : kind === "image" ? "image" : null;
+    if (media) { const blocked = await uploadBlocked(media); if (blocked) { toast(blocked, "error"); return; } }
     const path = `${uid}/${crypto.randomUUID()}.${ext}`;
     setProgress((p) => ({ ...p, [kind]: 0 }));
     const err = await uploadWithProgress(file, path, (pct) => setProgress((p) => ({ ...p, [kind]: pct })));
     setProgress((p) => ({ ...p, [kind]: undefined }));
     if (err) { toast(err, "error"); return; }
     fresh.current.add(path);
+    if (media) { const c = await checkUploaded("cafe-media", path, media, file); if (c.message) toast(c.message, c.state === "unsafe" ? "error" : undefined); }
     const next = { path, preview: URL.createObjectURL(file), name: file.name };
     if (kind === "loop") { discard(loop?.path); setLoop(next); } else if (kind === "image") { discard(image?.path); setImage(next); } else { discard(track?.path); setTrack(next); }
   };
+
+  const finishCover = async ({ blob, doc }: { blob: Blob; doc: CoverDoc }) => {
+    const blocked = await uploadBlocked("image");
+    if (blocked) { toast(blocked, "error"); return; }
+    const path = `${uid}/${crypto.randomUUID()}.jpg`;
+    setProgress((p) => ({ ...p, cover: 0 }));
+    const err = await uploadWithProgress(new File([blob], "cover.jpg", { type: "image/jpeg" }), path, (pct) => setProgress((p) => ({ ...p, cover: pct })));
+    setProgress((p) => ({ ...p, cover: undefined }));
+    if (err) { toast(err, "error"); return; }
+    fresh.current.add(path);
+    const cc = await checkUploaded("cafe-media", path, "image");
+    discard(cover?.path);
+    setCover({ path, preview: URL.createObjectURL(blob), doc });
+    setCoverTouched(true); setCoverOpen(false);
+    toast(cc.message ?? "Cover ready. It is saved with the room.", cc.state === "unsafe" ? "error" : undefined);
+  };
+  const removeCover = () => { discard(cover?.path); setCover(null); setCoverTouched(true); };
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +145,7 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
       bg_color: loopKind === "color" ? bgColor : null,
       music_kind: musicKind, music_url: musicKind === "link" ? musicUrl.trim() : null, music_path: musicKind === "upload" ? track!.path : null,
       focus_minutes: focus, break_minutes: brk, listing,
+      ...(coverTouched ? { cover_path: cover?.path ?? null, cover_doc: cover?.doc ?? null } : {}),
     };
     const res = initial ? await updateUserCafe(initial.id, input) : await createUserCafe(input);
     if ("error" in res) { setBusy(false); toast(res.error, "error"); return; }
@@ -137,7 +158,7 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
     router.push(`/discover/c/${res.id}`);
   };
 
-  const uploading = progress.loop !== undefined || progress.image !== undefined || progress.track !== undefined;
+  const uploading = progress.cover !== undefined || progress.loop !== undefined || progress.image !== undefined || progress.track !== undefined;
 
   return (
     <form onSubmit={save} className="host-form" noValidate>
@@ -170,7 +191,7 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
             {PRESETS.map((p) => (
               <label key={p.id} className={`host-preset${preset === p.id ? " on" : ""}`}>
                 <input type="radio" name="loop-preset" className="sr-only" checked={preset === p.id} onChange={() => setPreset(p.id)} />
-                <span className="host-thumb"><PresetThumb src={LOOP_SRC[p.id]} reduced={reduced} /></span>
+                <span className="host-thumb">{stillOnly ? <img src={POSTER[p.id]} alt="" loading="lazy" /> : <video src={LOOP_SRC[p.id]} poster={POSTER[p.id]} muted loop playsInline autoPlay preload="metadata" aria-hidden="true" tabIndex={-1} />}</span>
                 <span className="host-preset-name">{preset === p.id && <Check size={14} aria-hidden="true" />} {p.label}</span>
               </label>
             ))}
@@ -236,6 +257,25 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
               <span style={{ background: `rgba(0,0,0,${colorVeil(bgColor)})` }}><b>25:00</b> Focus</span>
             </div>
           </div>
+        )}
+      </section>
+
+      <section className="card host-sec" aria-labelledby={`${uidFor}-cover`}>
+        <h2 id={`${uidFor}-cover`} className="dc-h2">Cover <span className="field-hint" style={{ display: "inline" }}>(optional)</span></h2>
+        <p className="field-hint">A thumbnail for Discover, like a study-with-me video cover: a photo with handwritten words and doodles. You make it here, on your device. Without one, the playing loop is the thumbnail.</p>
+        {cover && (
+          <figure className="host-preview">
+            {/* eslint-disable-next-line @next/next/no-img-element -- local or signed preview */}
+            <img src={cover.preview} alt="Your cover" className="host-img" />
+          </figure>
+        )}
+        {progress.cover !== undefined && <Progress label="Uploading cover" pct={progress.cover} />}
+        <div className="ce-actions">
+          <button type="button" className="btn" onClick={() => setCoverOpen(true)} disabled={progress.cover !== undefined}><Brush size={15} aria-hidden="true" /> {cover ? "Edit cover" : "Make a cover"}</button>
+          {cover && <button type="button" className="btn btn-ghost" onClick={removeCover}>Remove cover</button>}
+        </div>
+        {coverOpen && (
+          <CoverEditor scene={preset} focus={focus} brk={brk} initialDoc={cover?.doc ?? null} onClose={() => setCoverOpen(false)} onDone={(r) => void finishCover(r)} />
         )}
       </section>
 

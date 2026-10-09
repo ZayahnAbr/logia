@@ -8,8 +8,6 @@ import {
   Loader2, Trash2, Highlighter, AlertCircle, AArrowDown, AArrowUp, List,
 } from "lucide-react";
 import { RenameableTitle } from "@/components/RenameableTitle";
-import { ShareButton } from "@/components/ShareSheet";
-import { shareBookLink } from "@/app/share-actions";
 import { toast } from "@/components/Toaster";
 import {
   getBookFileUrl, saveEpubPosition, addHighlight, updateHighlight, deleteHighlight, toggleBookmark, getBookAnnotations, renameLibraryBook,
@@ -197,8 +195,6 @@ export function EpubReader({ bookId, title, initialCfi, initialHighlights, initi
         </div>
 
         <div className="reader-group">
-          <ShareButton iconOnly label="Share book" className="btn btn-ghost btn-icon btn-sm" note="Anyone with this link can download the EPUB for 7 days."
-            get={() => shareBookLink(bookId)} />
           <button type="button" className="btn btn-sm" aria-pressed={isBookmarked} onClick={onToggleBookmark} disabled={!ready}
             style={isBookmarked ? { background: "var(--accent-soft)", color: "var(--accent-text)" } : undefined}>
             {isBookmarked ? <BookmarkCheck size={15} aria-hidden="true" /> : <Bookmark size={15} aria-hidden="true" />}

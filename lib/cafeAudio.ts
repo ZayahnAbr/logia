@@ -1,4 +1,6 @@
 // Ambient sound and the phase chime, both synthesised with the Web Audio API (no audio files).
+import type { LoopSceneId } from "@/lib/loopScenes";
+
 let ctx: AudioContext | null = null;
 
 export function audioCtx(): AudioContext | null {
@@ -25,17 +27,25 @@ function noiseBuffer(c: AudioContext, kind: "white" | "brown") {
   return buf;
 }
 
-export type SceneId = "rain-cafe" | "night-library" | "forest-cabin" | "lofi-desk";
+export type SceneId = LoopSceneId;
 
-// Rain for the café, soft room tone for the rest. Returns a handle to set volume (0..1) or stop.
+// Synthesised ambience per scene (no audio files):
+//   rain-roof: steady rain on a roof; rainforest: softer, wider rain with a low rumble
+//   fireside: low fire hum plus random crackle pops
+//   seaside: filtered noise that swells and fades like waves (a slow volume cycle, not recorded surf)
+//   snowy-forest and morning-mist: quiet wind (slowly moving band of noise)
+// Returns a handle to set volume (0..1) or stop.
 export function startAmbient(scene: SceneId, volume: number) {
   const c = audioCtx();
   if (!c) return null;
   const master = c.createGain();
   master.gain.value = 0;
   master.connect(c.destination);
-  const sources: AudioBufferSourceNode[] = [];
-  const layer = (kind: "white" | "brown", filters: BiquadFilterNode[], gain: number) => {
+  const sources: AudioScheduledSourceNode[] = [];
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  let stopped = false;
+  // lfo: slow volume cycle (Hz and depth as a fraction of the base gain)
+  const layer = (kind: "white" | "brown", filters: BiquadFilterNode[], gain: number, lfo?: { hz: number; depth: number }) => {
     const src = c.createBufferSource();
     src.buffer = noiseBuffer(c, kind);
     src.loop = true;
@@ -47,22 +57,57 @@ export function startAmbient(scene: SceneId, volume: number) {
     g.connect(master);
     src.start();
     sources.push(src);
+    if (lfo) {
+      const o = c.createOscillator();
+      o.frequency.value = lfo.hz;
+      const d = c.createGain();
+      d.gain.value = gain * lfo.depth;
+      o.connect(d); d.connect(g.gain);
+      o.start();
+      sources.push(o);
+    }
   };
   const filt = (type: BiquadFilterType, freq: number, q = 0.7) => { const f = c.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q; return f; };
 
-  if (scene === "rain-cafe") {
+  if (scene === "rain-roof") {
     layer("white", [filt("highpass", 900), filt("lowpass", 7000)], 0.35);
     layer("brown", [filt("lowpass", 500)], 0.5);
-  } else if (scene === "forest-cabin") {
-    layer("brown", [filt("lowpass", 700)], 0.45);
-    layer("white", [filt("bandpass", 1800, 0.5)], 0.06);
+  } else if (scene === "rainforest") {
+    layer("white", [filt("highpass", 600), filt("lowpass", 5000)], 0.3, { hz: 0.07, depth: 0.25 });
+    layer("brown", [filt("lowpass", 400)], 0.45);
+  } else if (scene === "fireside") {
+    layer("brown", [filt("lowpass", 260)], 0.5, { hz: 0.23, depth: 0.2 });
+    const pops = noiseBuffer(c, "white");
+    const crackle = () => {
+      if (stopped) return;
+      const s = c.createBufferSource();
+      s.buffer = pops;
+      const hp = filt("highpass", 1200 + Math.random() * 2500);
+      const g = c.createGain();
+      const t = c.currentTime;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.12 + Math.random() * 0.2, t + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.03 + Math.random() * 0.06);
+      s.connect(hp); hp.connect(g); g.connect(master);
+      s.start(t, Math.random() * 2, 0.12);
+      timers.push(setTimeout(crackle, 60 + Math.random() * 520));
+    };
+    crackle();
+  } else if (scene === "seaside") {
+    // Two swells at slightly different speeds so the pattern does not repeat exactly.
+    layer("white", [filt("lowpass", 1400), filt("highpass", 120)], 0.3, { hz: 0.11, depth: 0.9 });
+    layer("brown", [filt("lowpass", 500)], 0.3, { hz: 0.083, depth: 0.8 });
   } else {
-    layer("brown", [filt("lowpass", scene === "night-library" ? 300 : 420)], 0.55);
+    // snowy-forest and morning-mist: quiet wind
+    layer("white", [filt("bandpass", scene === "snowy-forest" ? 450 : 650, 0.6)], 0.22, { hz: 0.06, depth: 0.5 });
+    layer("brown", [filt("lowpass", 220)], 0.35);
   }
   master.gain.linearRampToValueAtTime(volume, c.currentTime + 1.2);
   return {
     setVolume: (v: number) => master.gain.setTargetAtTime(v, c.currentTime, 0.1),
     stop: () => {
+      stopped = true;
+      timers.forEach(clearTimeout);
       master.gain.setTargetAtTime(0, c.currentTime, 0.2);
       setTimeout(() => { sources.forEach((s) => { try { s.stop(); } catch { /* already stopped */ } }); master.disconnect(); }, 800);
     },

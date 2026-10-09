@@ -134,6 +134,7 @@ export async function placeSavedSticker(spaceId: string, savedId: string): Promi
   const dest = `${user.id}/${spaceId}/${crypto.randomUUID()}.png`;
   const cp = await supabase.storage.from(WIDGET_BUCKET).copy(row.path as string, dest);
   if (cp.error) return { error: "That sticker could not be placed. Try again." };
+  await supabase.rpc("inherit_media_review", { p_bucket: WIDGET_BUCKET, p_src: row.path as string, p_dest: dest }); // stays hidden if the saved sticker is not cleared
   const r = await insertWidget(spaceId, "image", { source: "upload", path: dest, alt: clean(row.alt, 200), caption: "", animated: false });
   if (r.error) await supabase.storage.from(WIDGET_BUCKET).remove([dest]);
   return r;

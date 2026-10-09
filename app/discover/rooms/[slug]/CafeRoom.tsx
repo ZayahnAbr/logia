@@ -11,10 +11,9 @@ import { useRoom } from "@/components/RoomProvider";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { CafeScene, type CafeSceneId } from "@/components/CafeScene";
-import { BASE_VEIL, IMAGE_VEIL, colorVeil } from "@/lib/userCafes";
 import { getPhase, formatClock, clockTime } from "@/lib/cafeClock";
 import { startAmbient, chime, audioCtx } from "@/lib/cafeAudio";
-import { cleanChatMessage, MAX_CHAT } from "@/lib/moderation";
+import { cleanChatMessage, hasBlockedWord, safeRemoteText, NOT_SENT_NOTE, MAX_CHAT } from "@/lib/moderation";
 import { postCafeMessage, postUserCafeMessage } from "@/app/discover-actions";
 import { ReportDialog } from "../../ReportDialog";
 
@@ -39,7 +38,6 @@ export type CafeConfig = {
 type Entry = { id: string; name: string; color: string | null; icon: string | null; goal: string; doneCycle: number | null };
 
 const MUTE_KEY = "logia.cafe.muted";
-const RING = 2 * Math.PI * 118;
 
 export function CafeRoom({ room, initialMessages }: { room: PublicRoom; initialMessages: CafeMessage[] }) {
   const config: CafeConfig = {
@@ -106,14 +104,14 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
   const chan = useRef<RealtimeChannel | null>(null);
   const joined = useRef(false);
   const entry = useRef<Entry | null>(null);
-  entry.current = me ? { id: me.id, name: me.name, color: me.color, icon: me.icon, goal, doneCycle } : null;
+  entry.current = me ? { id: me.id, name: me.name, color: me.color, icon: me.icon, goal: hasBlockedWord(goal) ? "" : goal, doneCycle } : null;
 
   useEffect(() => {
     if (!me?.id) return;
     const ch = supabase.channel(room.channel, { config: { presence: { key: me.id } } });
     ch.on("presence", { event: "sync" }, () => {
       const st = ch.presenceState() as Record<string, Entry[]>;
-      setPeople(Object.values(st).map((arr) => arr[arr.length - 1]).filter(Boolean));
+      setPeople(Object.values(st).map((arr) => arr[arr.length - 1]).filter(Boolean).map((e) => ({ ...e, name: safeRemoteText(e.name, "Student"), goal: safeRemoteText(e.goal, "") })));
     }).subscribe((status) => {
       if (status === "SUBSCRIBED") { joined.current = true; if (entry.current) void ch.track(entry.current); }
     });
@@ -128,7 +126,8 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
   const isDone = ph !== null && doneCycle === ph.cycleIndex;
 
   // ── Chat ──
-  const [messages, setMessages] = useState<CafeMessage[]>(initialMessages);
+  const [messages, setMessages] = useState<CafeMessage[]>(() => initialMessages.filter((m) => !hasBlockedWord(m.body)));
+  const [notSent, setNotSent] = useState(false);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -136,6 +135,13 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
   const [reporting, setReporting] = useState<string | null>(null);
   const [muted, setMuted] = useState<string[]>([]);
   const logRef = useRef<HTMLDivElement>(null);
+
+  // Chat rests as a small pill during focus. It opens by itself at the break on wide screens
+  // (on phones it would cover the timer, so there it opens on tap) and folds away again for focus.
+  useEffect(() => {
+    if (phase === "break") setChatOpen(window.matchMedia("(min-width: 761px)").matches);
+    else setChatOpen(false);
+  }, [phase]);
 
   useEffect(() => { try { setMuted(JSON.parse(localStorage.getItem(MUTE_KEY) ?? "[]")); } catch { /* storage blocked */ } }, []);
   const mute = (id: string, name: string) => {
@@ -146,7 +152,7 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
     toast(`${name} is muted on this device.`);
   };
 
-  const addMessage = useCallback((m: CafeMessage) => setMessages((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m].slice(-100))), []);
+  const addMessage = useCallback((m: CafeMessage) => hasBlockedWord(m.body) ? undefined : setMessages((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m].slice(-100))), []);
   useEffect(() => {
     const ch = supabase.channel(`cafe-chat:${room.kind}:${room.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "cafe_messages", filter: `${room.kind === "user" ? "cafe_id" : "room_id"}=eq.${room.id}` }, (p) => addMessage(p.new as CafeMessage))
@@ -167,11 +173,11 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
     e.preventDefault();
     if (phase !== "break" || sending) return;
     const check = cleanChatMessage(draft);
-    if (!check.ok) { toast(check.error, "error"); return; }
+    if (!check.ok) { if (check.blocked) setNotSent(true); else toast(check.error, "error"); return; }
     setSending(true);
     const res = room.kind === "user" ? await postUserCafeMessage(room.id, draft) : await postCafeMessage(room.id, draft);
     setSending(false);
-    if ("error" in res) { toast(res.error, "error"); return; }
+    if ("error" in res) { if (res.blocked) setNotSent(true); else toast(res.error, "error"); return; }
     setDraft("");
     if (me) addMessage({ id: res.id, user_id: me.id, author: me.name, author_color: me.color, author_icon: me.icon, body: res.body, created_at: new Date().toISOString() });
   };
@@ -181,20 +187,22 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
   const shown = people.slice(0, 14);
   const nextAt = ph ? clockTime(ph.endsAtMs) : "";
   const timeText = ph ? formatClock(ph.remainingSec) : "--:--";
-  const count = people.length;
+  // Presence includes the viewer, but it can lag behind the first render, so never show fewer than one.
+  const count = Math.max(people.length, 1);
+  const frac = ph ? Math.min(1, Math.max(0, ph.remainingSec / totalSec)) : 1;
 
   return (
     <div className={`cafe-room${room.extra ? " has-extra" : ""}`} data-phase={phase}>
       <CafeScene scene={room.loop.preset} src={room.loop.src} image={room.loop.image} color={room.loop.color} />
-      <div className="cafe-veil" aria-hidden="true"
-        style={room.loop.color ? { background: `rgba(0,0,0,${colorVeil(room.loop.color)})` } : room.loop.image ? { background: `rgba(0,0,0,${IMAGE_VEIL})` } : { background: `rgba(0,0,0,${BASE_VEIL})` }} />
 
       <header className="cafe-top">
-        <Link href={room.backHref} className="cafe-btn"><ArrowLeft size={16} aria-hidden="true" /> Leave</Link>
-        <h1 className="cafe-title">{room.name}</h1>
-        <div className="cafe-tools">
+        <div className="cafe-pill cafe-pill-title">
+          <Link href={room.backHref} className="btn btn-sm"><ArrowLeft size={16} aria-hidden="true" /> Leave</Link>
+          <h1 className="cafe-title">{room.name}</h1>
+        </div>
+        <div className="cafe-pill cafe-tools">
           {room.ambient && (
-            <button type="button" className="cafe-btn cafe-icon" aria-pressed={sound} onClick={() => setSound((s) => !s)} aria-label={sound ? "Turn ambient sound off" : "Turn ambient sound on"}>
+            <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-pressed={sound} onClick={() => setSound((s) => !s)} aria-label={sound ? "Turn ambient sound off" : "Turn ambient sound on"}>
               {sound ? <Volume2 size={16} aria-hidden="true" /> : <VolumeX size={16} aria-hidden="true" />}
             </button>
           )}
@@ -204,11 +212,8 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
               <input type="range" min={0} max={1} step={0.05} value={volume} onChange={(e) => setVolume(Number(e.target.value))} />
             </label>
           )}
-          <button type="button" className="cafe-btn cafe-icon" aria-pressed={chimeOn} onClick={() => setChimeOn((c) => !c)} aria-label={chimeOn ? "Mute the phase chime" : "Unmute the phase chime"}>
+          <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-pressed={chimeOn} onClick={() => setChimeOn((c) => !c)} aria-label={chimeOn ? "Mute the phase chime" : "Unmute the phase chime"}>
             {chimeOn ? <Bell size={16} aria-hidden="true" /> : <BellOff size={16} aria-hidden="true" />}
-          </button>
-          <button type="button" className="cafe-btn cafe-icon cafe-chat-toggle" onClick={() => setChatOpen(true)} aria-label="Open chat" aria-expanded={chatOpen}>
-            <MessageCircle size={16} aria-hidden="true" />
           </button>
         </div>
       </header>
@@ -216,99 +221,108 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
       {room.extra && <div className="cafe-extra">{room.extra}</div>}
       {room.music && (room.music.embed || room.music.audioSrc) && <CafeMusic music={room.music} />}
 
-      <main id="main" className="cafe-main">
-        <div className="cafe-timer">
-          <svg viewBox="0 0 260 260" className="cafe-ring" aria-hidden="true">
-            <circle cx="130" cy="130" r="118" className="track" />
-            <circle cx="130" cy="130" r="118" className="bar" strokeDasharray={RING} strokeDashoffset={ph ? RING * (1 - ph.remainingSec / totalSec) : RING} transform="rotate(-90 130 130)" />
-          </svg>
-          <div className="cafe-timer-in">
+      <main id="main" className="cafe-dock">
+        <section className="cafe-card cafe-timer" aria-label="Timer">
+          <div className="cafe-timer-row">
             <div className="cafe-phase">{phase === "focus" ? "Focus" : "Break"}</div>
             <div className="cafe-time" role="timer" aria-label={ph ? `${formatClock(ph.remainingSec)} left in ${phase}` : "Loading timer"}>{timeText}</div>
-            <div className="cafe-next">{ph ? (phase === "focus" ? `Next: ${room.break_minutes} min break at ${nextAt}` : `Next: ${room.focus_minutes} min focus at ${nextAt}`) : " "}</div>
           </div>
-        </div>
+          <div className="cafe-bar" aria-hidden="true"><i style={{ transform: `scaleX(${frac})` }} /></div>
+          <div className="cafe-next">{ph ? (phase === "focus" ? `Next: ${room.break_minutes} min break at ${nextAt}` : `Next: ${room.focus_minutes} min focus at ${nextAt}`) : " "}</div>
+        </section>
         <p className="sr-only" role="status">{announce}</p>
 
-        <div className="cafe-people">
-          <div className="cafe-count"><span className="live-dot" aria-hidden="true" /> {count === 1 ? "1 person studying" : `${count} people studying`}</div>
-          {shown.length > 0 && (
-            <div className="cafe-dots" aria-hidden="true">
-              {shown.map((p) => <Avatar key={p.id} name={p.name} color={p.color} icon={p.icon} size={26} title={p.name} />)}
-              {count > shown.length && <span className="cafe-more">+{count - shown.length}</span>}
-            </div>
-          )}
-        </div>
-
-        <form className="cafe-goal" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); }}>
-          <label htmlFor="cafe-goal" className="cafe-goal-label">What are you working on?</label>
-          <div className="cafe-goal-row">
-            <input id="cafe-goal" className="cafe-input" value={goal} maxLength={80} placeholder="One line, shown to others in the room" onChange={(e) => setGoal(e.target.value)} />
-            {phase === "break" && goal.trim() && (
-              <button type="button" className="cafe-btn" aria-pressed={isDone} onClick={() => ph && setDoneCycle(isDone ? null : ph.cycleIndex)}>
-                <Check size={16} aria-hidden="true" /> {isDone ? "Done" : "Mark done"}
-              </button>
+        <section className="cafe-card cafe-goal-card" aria-label="Your goal">
+          <div className="cafe-people">
+            <div className="cafe-count"><span className="live-dot" aria-hidden="true" /> {count <= 1 ? "Just you so far" : `${count} people studying`}</div>
+            {shown.length > 1 && (
+              <div className="cafe-dots" aria-hidden="true">
+                {shown.map((p) => <Avatar key={p.id} name={p.name} color={p.color} icon={p.icon} size={24} title={p.name} />)}
+                {count > shown.length && <span className="cafe-more">+{count - shown.length}</span>}
+              </div>
             )}
           </div>
-        </form>
 
-        {phase === "break" && breakGoals.length > 0 && (
-          <section className="cafe-goals" aria-label="What others are working on">
-            <h2>What others are working on</h2>
-            <ul>
-              {breakGoals.slice(0, 6).map((p) => (
-                <li key={p.id}><Avatar name={p.name} color={p.color} icon={p.icon} size={20} /> <span className="truncate"><b>{p.name}</b> {p.goal}</span>{p.doneCycle === ph?.cycleIndex && <span className="cafe-done"><Check size={12} aria-hidden="true" /> done</span>}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+          <form className="cafe-goal" onSubmit={(e) => { e.preventDefault(); (document.activeElement as HTMLElement | null)?.blur(); }}>
+            <label htmlFor="cafe-goal" className="cafe-goal-label">What are you working on?</label>
+            <div className="cafe-goal-row">
+              <input id="cafe-goal" className="input" value={goal} maxLength={80} placeholder="One line, shown to others in the room" onChange={(e) => setGoal(e.target.value)} aria-describedby="cafe-goal-note" />
+              {phase === "break" && goal.trim() && (
+                <button type="button" className="btn" aria-pressed={isDone} onClick={() => ph && setDoneCycle(isDone ? null : ph.cycleIndex)}>
+                  <Check size={16} aria-hidden="true" /> {isDone ? "Done" : "Mark done"}
+                </button>
+              )}
+            </div>
+            <p id="cafe-goal-note" className="quiet-note" role="status" aria-live="polite">{hasBlockedWord(goal) ? "That wasn't shared." : ""}</p>
+          </form>
+
+          {phase === "break" && breakGoals.length > 0 && (
+            <section className="cafe-goals" aria-label="What others are working on">
+              <h2>What others are working on</h2>
+              <ul>
+                {breakGoals.slice(0, 6).map((p) => (
+                  <li key={p.id}><Avatar name={p.name} color={p.color} icon={p.icon} size={20} /> <span className="truncate"><b>{p.name}</b> {p.goal}</span>{p.doneCycle === ph?.cycleIndex && <span className="cafe-done"><Check size={12} aria-hidden="true" /> done</span>}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </section>
       </main>
 
-      <aside className={`cafe-chat${chatOpen ? " open" : ""}`} aria-label="Room chat">
-        <div className="cafe-chat-head">
-          <h2>Chat</h2>
-          <button type="button" className="cafe-btn cafe-icon cafe-chat-close" onClick={() => setChatOpen(false)} aria-label="Close chat"><X size={16} aria-hidden="true" /></button>
-        </div>
+      {!chatOpen && (
+        <button type="button" className="btn cafe-chat-pill" onClick={() => setChatOpen(true)} aria-expanded="false">
+          <MessageCircle size={16} aria-hidden="true" /> {phase === "focus" ? `Chat opens at ${nextAt || "the break"}` : "Open chat"}
+        </button>
+      )}
 
-        {phase === "focus" ? (
-          <div className="cafe-rest">
-            <Coffee size={28} aria-hidden="true" />
-            <p>Chat is resting until the break{ph ? ` at ${nextAt}` : ""}.</p>
-            <span>Stay with it. You can say hello in a few minutes.</span>
+      {chatOpen && (
+        <aside className="cafe-chat open" aria-label="Room chat">
+          <div className="cafe-chat-head">
+            <h2>Chat</h2>
+            <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setChatOpen(false)} aria-label="Close chat"><X size={16} aria-hidden="true" /></button>
           </div>
-        ) : (
-          <div className="cafe-log" ref={logRef} role="log" aria-label="Messages">
-            {visible.length === 0 && <p className="cafe-empty">Quiet so far. Say hello.</p>}
-            {visible.map((m) => (
-              <div key={m.id} className="cafe-msg">
-                <Avatar name={m.author} color={m.author_color} icon={m.author_icon} size={24} />
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div className="cafe-msg-by">{m.author}{m.user_id === me?.id ? " (you)" : ""}</div>
-                  <div className="cafe-msg-body">{m.body}</div>
-                  {menuFor === m.id && (
-                    <div className="cafe-menu">
-                      <button type="button" onClick={() => { setReporting(m.id); setMenuFor(null); }}><Flag size={13} aria-hidden="true" /> Report</button>
-                      <button type="button" onClick={() => mute(m.user_id, m.author)}><UserX size={13} aria-hidden="true" /> Mute this person</button>
-                    </div>
+
+          {phase === "focus" ? (
+            <div className="cafe-rest">
+              <Coffee size={24} aria-hidden="true" />
+              <p>Chat is resting until the break{ph ? ` at ${nextAt}` : ""}.</p>
+              <span>Stay with it. You can say hello in a few minutes.</span>
+            </div>
+          ) : (
+            <div className="cafe-log" ref={logRef} role="log" aria-label="Messages">
+              {visible.length === 0 && <p className="cafe-empty">Quiet so far. Say hello.</p>}
+              {visible.map((m) => (
+                <div key={m.id} className={`cafe-msg${m.user_id === me?.id ? " mine" : ""}`}>
+                  <Avatar name={m.author} color={m.author_color} icon={m.author_icon} size={24} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div className="cafe-msg-by">{m.author}{m.user_id === me?.id ? " (you)" : ""}</div>
+                    <div className="cafe-msg-body">{m.body}</div>
+                    {menuFor === m.id && (
+                      <div className="cafe-menu">
+                        <button type="button" className="btn btn-sm" onClick={() => { setReporting(m.id); setMenuFor(null); }}><Flag size={13} aria-hidden="true" /> Report</button>
+                        <button type="button" className="btn btn-sm" onClick={() => mute(m.user_id, m.author)}><UserX size={13} aria-hidden="true" /> Mute this person</button>
+                      </div>
+                    )}
+                  </div>
+                  {m.user_id !== me?.id && (
+                    <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label={`Options for ${m.author}'s message`} aria-expanded={menuFor === m.id} onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}>
+                      <MoreHorizontal size={16} aria-hidden="true" />
+                    </button>
                   )}
                 </div>
-                {m.user_id !== me?.id && (
-                  <button type="button" className="cafe-more-btn" aria-label={`Options for ${m.author}'s message`} aria-expanded={menuFor === m.id} onClick={() => setMenuFor(menuFor === m.id ? null : m.id)}>
-                    <MoreHorizontal size={16} aria-hidden="true" />
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
 
-        <form className="cafe-compose" onSubmit={send}>
-          <label htmlFor="cafe-msg" className="sr-only">Message</label>
-          <input id="cafe-msg" className="cafe-input" value={draft} maxLength={MAX_CHAT} disabled={phase !== "break"} autoComplete="off"
-            placeholder={phase === "break" ? "Say something kind" : "Chat opens on the break"} onChange={(e) => setDraft(e.target.value)} />
-          <button type="submit" className="cafe-btn cafe-icon" disabled={phase !== "break" || sending || !draft.trim()} aria-label="Send message"><Send size={16} aria-hidden="true" /></button>
-        </form>
-      </aside>
+          <form className="cafe-compose" onSubmit={send}>
+            <label htmlFor="cafe-msg" className="sr-only">Message</label>
+            <input id="cafe-msg" className="input" value={draft} maxLength={MAX_CHAT} disabled={phase !== "break"} autoComplete="off"
+              placeholder={phase === "break" ? "Say something kind" : "Chat opens on the break"} onChange={(e) => { setDraft(e.target.value); setNotSent(false); }} aria-describedby="cafe-msg-note" />
+            <button type="submit" className="btn btn-primary btn-icon" disabled={phase !== "break" || sending || !draft.trim()} aria-label="Send message"><Send size={16} aria-hidden="true" /></button>
+          </form>
+          <p id="cafe-msg-note" className="quiet-note" role="status" aria-live="polite">{notSent ? NOT_SENT_NOTE : ""}</p>
+        </aside>
+      )}
 
       {reporting && <ReportDialog kind="cafe_message" targetId={reporting} onClose={() => setReporting(null)} />}
     </div>
@@ -331,9 +345,9 @@ function CafeMusic({ music }: { music: NonNullable<CafeConfig["music"]> }) {
 
   if (music.audioSrc) {
     return (
-      <div className="cafe-music" role="group" aria-label="Room music">
+      <div className="cafe-pill cafe-music" role="group" aria-label="Room music">
         <audio ref={audio} src={music.audioSrc} loop preload="none" onPause={() => setPlaying(false)} onPlay={() => setPlaying(true)} />
-        <button type="button" className="cafe-btn cafe-icon" onClick={toggle} aria-pressed={playing} aria-label={playing ? "Pause the room music" : "Play the room music"}>
+        <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={toggle} aria-pressed={playing} aria-label={playing ? "Pause the room music" : "Play the room music"}>
           {playing ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
         </button>
         <span className="cafe-music-label"><Music size={14} aria-hidden="true" /> Room music</span>
@@ -347,8 +361,8 @@ function CafeMusic({ music }: { music: NonNullable<CafeConfig["music"]> }) {
   const embed = music.embed!;
   return (
     <div className="cafe-music cafe-music-embed">
-      <button type="button" className="cafe-btn" aria-expanded={open} aria-controls="cafe-embed" onClick={() => setOpen((o) => !o)}>
-        <Music size={16} aria-hidden="true" /> {embed.label} music {open ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronUp size={14} aria-hidden="true" />}
+      <button type="button" className="btn btn-sm" aria-expanded={open} aria-controls="cafe-embed" onClick={() => setOpen((o) => !o)}>
+        <Music size={16} aria-hidden="true" /> {embed.label} music {open ? <ChevronUp size={14} aria-hidden="true" /> : <ChevronDown size={14} aria-hidden="true" />}
       </button>
       {open && (
         <div id="cafe-embed" className="cafe-embed">

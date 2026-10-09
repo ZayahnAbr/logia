@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { signCafeMedia } from "@/app/cafe-actions";
+import { mediaStates } from "@/app/upload-safety-actions";
+import { isAdmin } from "@/lib/server/admin";
 import { toEmbed } from "@/lib/musicEmbed";
 import type { UserCafe } from "@/lib/userCafes";
 import { CafeRoomView, type CafeConfig, type CafeMessage } from "../../rooms/[slug]/CafeRoom";
@@ -35,6 +37,22 @@ export default async function UserCafePage({ params }: { params: Promise<{ id: s
   // Hidden rooms are only visible to their host.
   if (!cafe || (cafe.status === "hidden" && cafe.owner_id !== user.id)) notFound();
 
+  // A loop or cover that has not passed the picture check holds the room back from everyone but its host and admins.
+  if (cafe.owner_id !== user.id && !isAdmin(user.email)) {
+    const held = await mediaStates("cafe-media", [cafe.loop_path, (cafe as { cover_path?: string | null }).cover_path].filter((p): p is string => !!p));
+    if (Object.values(held).some((s) => s !== "clean")) {
+      return (
+        <main id="main" style={{ padding: 32, maxWidth: 520, margin: "0 auto" }}>
+          <div className="card" style={{ padding: 24 }}>
+            <h1 style={{ fontSize: 20, margin: "0 0 8px" }}>This room isn&apos;t ready yet</h1>
+            <p style={{ color: "var(--muted)" }}>It will open once it has been checked. Try again a little later.</p>
+            <Link href="/discover" className="btn" style={{ marginTop: 12 }}>Back to Discover</Link>
+          </div>
+        </main>
+      );
+    }
+  }
+
   const [loopUrl, audioUrl] = await signCafeMedia([cafe.loop_path, cafe.music_path]);
   const embed = cafe.music_kind === "link" && cafe.music_url ? toEmbed(cafe.music_url) : null;
   const owner = cafe.owner_id === user.id;
@@ -48,7 +66,7 @@ export default async function UserCafePage({ params }: { params: Promise<{ id: s
   const config: CafeConfig = {
     kind: "user", id: cafe.id, name: cafe.name, focus_minutes: cafe.focus_minutes, break_minutes: cafe.break_minutes, anchor: cafe.anchor,
     channel: `ucafe:${cafe.id}`,
-    loop: { preset: cafe.loop_preset ?? "lofi-desk", src: cafe.loop_kind === "upload" ? loopUrl ?? undefined : undefined,
+    loop: { preset: cafe.loop_preset ?? "rainforest", src: cafe.loop_kind === "upload" ? loopUrl ?? undefined : undefined,
       image: cafe.loop_kind === "image" ? loopUrl ?? undefined : undefined, color: cafe.loop_kind === "color" ? cafe.bg_color ?? undefined : undefined },
     ambient: cafe.loop_kind === "preset" ? cafe.loop_preset : null,
     music: embed || audioSrc ? { embed, audioSrc } : undefined,

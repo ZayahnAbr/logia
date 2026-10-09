@@ -1,5 +1,6 @@
 "use client";
 
+import { hasBlockedWord, safeRemoteText } from "@/lib/moderation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useRouter } from "next/navigation";
@@ -29,7 +30,7 @@ type Ctx = {
   chatVisible: (v: boolean) => void;
   join: (room: Room, messages?: Message[]) => void;
   leave: () => Promise<void>;
-  send: (body: string, mentions?: string[]) => Promise<boolean>;
+  send: (body: string, mentions?: string[]) => Promise<boolean | "blocked">;
   pokesMuted: boolean;
   setPokesMuted: (v: boolean) => void;
   setTimer: (running: boolean) => Promise<void>;
@@ -206,7 +207,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       const state = ch.presenceState<{ name: string; color: string | null; icon: string | null; voice: boolean; muted: boolean }>();
       const list: Person[] = Object.entries(state).map(([id, metas]) => {
         const m = metas[metas.length - 1];
-        return { id, name: m?.name ?? "Student", color: m?.color ?? null, icon: m?.icon ?? null, voice: !!m?.voice, muted: !!m?.muted };
+        return { id, name: safeRemoteText(m?.name, "Student") || "Student", color: m?.color ?? null, icon: m?.icon ?? null, voice: !!m?.voice, muted: !!m?.muted };
       });
       list.sort((a, b) => (a.id === me.id ? -1 : b.id === me.id ? 1 : a.name.localeCompare(b.name)));
       setPeople(list);
@@ -218,6 +219,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "room_messages", filter: `room_id=eq.${room.id}` },
         (p) => {
           const m = p.new as Message;
+          if (hasBlockedWord(m.body)) return; // a modified sender cannot get a blocked message shown here
           setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, m]));
           if (!chatOpen.current && m.user_id !== me.id) setUnread((u) => u + 1);
         })
@@ -268,7 +270,9 @@ export function RoomProvider({ children }: { children: ReactNode }) {
 
   const send = useCallback(async (body: string, mentions: string[] = []) => {
     if (!room || !me) return false;
+    if (hasBlockedWord(body)) return "blocked";
     const res = await sendRoomMessage(room.id, { name: me.name, color: me.color, icon: me.icon }, body, mentions);
+    if ("blocked" in res && res.blocked) return "blocked";
     if ("error" in res && res.error) { toast(res.error, "error"); return false; }
     // Poke everyone mentioned, wherever they are in Logia.
     const excerpt = body.replace(/\s+/g, " ").slice(0, 90);
@@ -327,7 +331,7 @@ export function RoomProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => stopVoice(), [stopVoice]);
 
   const value: Ctx = {
-    me, setMe, room, people, messages, unread,
+    me, setMe, room, people, messages: messages.filter((m) => !hasBlockedWord(m.body)), unread,
     markRead: () => setUnread(0),
     chatVisible: (v) => { chatOpen.current = v; if (v) setUnread(0); },
     join, leave, send, setTimer, remaining, pokesMuted, setPokesMuted,

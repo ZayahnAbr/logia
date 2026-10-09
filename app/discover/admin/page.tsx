@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { isAdmin } from "@/lib/server/admin";
-import { listOpenReports, listAllStreams } from "@/app/discover-actions";
+import { listOpenReports, listAllStreams, listPendingSpaces } from "@/app/discover-actions";
 import { listPendingCafes } from "@/app/cafe-actions";
 import { AdminPanel } from "./AdminPanel";
 
@@ -17,7 +17,7 @@ export default async function DiscoverAdminPage() {
   if (!user) redirect("/auth/signin");
   if (!isAdmin(user.email)) redirect("/discover");
 
-  const [reports, streams, pending] = await Promise.all([listOpenReports(), listAllStreams(), listPendingCafes()]);
+  const [reports, streams, pending, pendingSpaces] = await Promise.all([listOpenReports(), listAllStreams(), listPendingCafes(), listPendingSpaces()]);
 
   return (
     <AppShell>
@@ -34,6 +34,8 @@ export default async function DiscoverAdminPage() {
         streamsError={"error" in streams ? streams.error : ""}
         pending={"cafes" in pending ? pending.cafes : []}
         pendingError={"error" in pending ? pending.error : ""}
+        spaces={"spaces" in pendingSpaces ? pendingSpaces.spaces : []}
+        spacesError={"error" in pendingSpaces ? pendingSpaces.error : ""}
       />
     </AppShell>
   );

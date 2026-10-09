@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop shortlist</title>
+<style>
+  :root { --bg: #15110f; --card: #211a17; --ink: #f6ece2; --muted: #c9b8a8; --coral: #f2a37a; --ok: #8fd19e; --no: #f08a8a; --line: #3a2e28; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 32px 20px 64px; }
+  h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.01em; }
+  .lead { color: var(--muted); margin: 0 0 28px; max-width: 72ch; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 36px 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 16px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  video { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #000; }
+  .body { padding: 12px 14px 14px; }
+  .title { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .title strong { font-size: 16px; }
+  .id { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .role { color: var(--coral); font-size: 13px; font-weight: 600; margin: 2px 0 8px; }
+  .note { color: var(--muted); font-size: 13.5px; margin: 0 0 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+  .tag.ok { color: var(--ok); border-color: rgba(143,209,158,.35); }
+  .tag.no { color: var(--no); border-color: rgba(240,138,138,.35); }
+  a { color: var(--coral); }
+  a:focus-visible, video:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+  .card.out { opacity: .55; }
+  .gap { background: var(--card); border: 1px dashed var(--line); border-radius: 12px; padding: 16px 18px; color: var(--muted); }
+  .gap strong { color: var(--ink); }
+  @media (prefers-reduced-motion: reduce) { video { display: none; } .card .body { padding-top: 14px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Loop shortlist</h1>
+  <p class="lead">
+    Real filmed footage from Mixkit, picked to replace the 3D and black-and-white loops.
+    Every clip below was checked on its own Mixkit page for the <strong>Mixkit Stock Video Free License</strong>,
+    which allows commercial use with no attribution. The category pages label everything "Mixkit License", which hides
+    the clips that are personal use only, so those are listed at the bottom.
+    All previews are low resolution; Logia would use the 720p or 1080p download.
+  </p>
+
+  <h2>Recommended: replace the current four</h2>
+  <div class="grid" id="top"></div>
+
+  <h2>Also good</h2>
+  <div class="grid" id="also"></div>
+
+  <h2>The gap: rain</h2>
+  <div class="gap">
+    <strong>No warm, cozy rain clip on Mixkit is on the free licence.</strong>
+    The two best ones (heavy rain from an open window, and the airplane window you linked) are both Restricted, so they
+    cannot be used in a paid product. Rain-on-a-window with a lamp behind it is also the easiest loop to film yourself:
+    a phone on a tripod, a window at night, a lamp on, 2 minutes. Otherwise, search Pexels for "rain window lamp night"
+    and check that clip's licence before using it.
+  </div>
+
+  <h2>Ruled out</h2>
+  <div class="grid" id="out"></div>
+</div>
+
+<script>
+{
+  const MK = (id) => `https://assets.mixkit.co/videos/${id}/${id}-360.mp4`;
+  const PAGE = (slug) => `https://mixkit.co/free-stock-video/${slug}/`;
+  const picks = [
+    { id: 808, title: "Steaming mug", role: "New room: coffee by the window", len: 11, src: MK(808), page: PAGE("steaming-mug-808"),
+      note: "Warm window light, a bookshelf softly out of focus behind. Camera locked off and only the steam moves, so it loops with no visible seam.", tags: ["Perfect loop", "No people"] },
+    { id: 2709, title: "Fireplace close up", role: "Replaces Forest cabin (3D)", len: 14, src: MK(2709), page: PAGE("closeup-view-of-a-fireplace-2709"),
+      note: "Real logs and flame, camera locked off. Fire never repeats, so the loop point is invisible.", tags: ["Perfect loop", "No people"] },
+    { id: 50133, title: "Studying at night by a desk lamp", role: "Replaces Night library (3D)", len: 13, src: MK(50133), page: PAGE("a-young-man-wearing-a-hoodie-studying-at-night-in-50133"),
+      note: "The closest thing to a real study-with-me shot: desk lamp, bookshelves, someone working. He looks up partway, so the loop shows a small jump in his pose. A crossfade at the loop point hides it.", tags: ["Needs a crossfade", "Person in shot"] },
+    { id: 223, title: "Reading in a café", role: "Replaces Rainy café (black and white)", len: 11, src: MK(223), page: PAGE("woman-drinking-coffee-in-a-cafe-223"),
+      note: "A real café with warm pendant lamps, someone reading and sipping coffee. Starts and ends with her head down reading, so the seam is small, and a crossfade finishes it.", tags: ["Needs a crossfade", "Person in shot"] },
+  ];
+  const also = [
+    { id: 2846, title: "Rain on a window", role: "Only free rain option", len: 22, src: MK(2846), page: PAGE("window-on-a-rainy-day-2846"),
+      note: "Locked off and loops well, but grey and cold, with a red traffic light through the glass. Usable for a 'rainy afternoon' room if the colour is warmed up.", tags: ["Loops well", "Cold colour"] },
+    { id: 1242, title: "Wood burning in a fireplace", role: "Second fire option", len: 9, src: MK(1242), page: PAGE("wood-burning-in-a-fireplace-1242"),
+      note: "Bright flames over a log. Short, and softer focus than the close-up above.", tags: ["Loops well", "Short"] },
+    { id: 101565, title: "Candlelit autumn table", role: "Seasonal room: autumn", len: 10.5, src: "https://assets.mixkit.co/7zwq074yk5x8p230lb1b0i46vsvj", page: PAGE("candlelit-autumn-table-in-chiaroscuro-101565"),
+      note: "Moody still life with flickering candles, camera locked off. Beautiful but very dark, and a dinner table rather than a study spot.", tags: ["Perfect loop", "Very dark"] },
+  ];
+  const out = [
+    { id: 28085, title: "Heavy rain from an open window", role: "You linked this", src: MK(28085), page: PAGE("heavy-rain-from-an-open-window-28085"),
+      note: "Restricted licence: personal use only, not allowed in a paid product. It also has a focus pull that would snap back on every loop.", tags: ["Restricted licence"] },
+    { id: 6909, title: "View through an airplane window", role: "You linked this", src: MK(6909), page: PAGE("beautiful-view-through-airplane-window-6909"),
+      note: "Restricted licence, and the view moves, so it cannot loop cleanly.", tags: ["Restricted licence"] },
+    { id: 11145, title: "Cabin in the woods and a river", role: "You linked this", src: MK(11145), page: PAGE("cabin-in-the-woods-and-a-river-11145"),
+      note: "Static camera, so it would loop well, but Restricted licence.", tags: ["Restricted licence"] },
+    { id: 30252, title: "Firewood burning in the fireplace", role: "", src: MK(30252), page: PAGE("firewood-burning-in-the-fireplace-30252"),
+      note: "Lovely footage, but Restricted licence.", tags: ["Restricted licence"] },
+    { id: 17426, title: "Candles in the dark", role: "", src: MK(17426), page: PAGE("candles-in-the-dark-17426"),
+      note: "Restricted licence.", tags: ["Restricted licence"] },
+    { id: 21612, title: "Map lit by candlelight", role: "", src: MK(21612), page: PAGE("ancient-map-of-the-world-in-the-dark-lit-by-21612"),
+      note: "Free licence, but the camera moves across the map, so the loop would jump.", tags: ["Camera moves"] },
+  ];
+
+  function card(c, faded) {
+    const el = document.createElement("article");
+    el.className = "card" + (faded ? " out" : "");
+    const good = (t) => /Perfect|Loops well/.test(t);
+    const bad = (t) => /Restricted|Camera moves|Cold|dark|Short|crossfade|Person/.test(t);
+    el.innerHTML = `
+      <video src="${c.src}" muted loop playsinline autoplay preload="metadata" aria-label="Preview of ${c.title}"></video>
+      <div class="body">
+        <div class="title"><strong>${c.title}</strong><span class="id">#${c.id}${c.len ? ` · ${c.len} s` : ""}</span></div>
+        ${c.role ? `<div class="role">${c.role}</div>` : ""}
+        <p class="note">${c.note}</p>
+        <div class="tags">
+          ${faded ? "" : '<span class="tag ok">Free licence, verified</span>'}
+          ${c.tags.map((t) => `<span class="tag ${good(t) ? "ok" : bad(t) ? "no" : ""}">${t}</span>`).join("")}
+        </div>
+        <a href="${c.page}" target="_blank" rel="noopener">Open on Mixkit</a>
+      </div>`;
+    return el;
+  }
+  picks.forEach((c) => document.getElementById("top").append(card(c)));
+  also.forEach((c) => document.getElementById("also").append(card(c)));
+  out.forEach((c) => document.getElementById("out").append(card(c, true)));
+}
+</script>
+</body>
+</html>

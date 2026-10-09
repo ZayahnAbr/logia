@@ -38,6 +38,7 @@ import { SidebarUser } from "@/components/SidebarUser";
 import { SidebarUsage } from "@/components/SidebarUsage";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { SpaceSwitcher } from "@/components/SpaceSwitcher";
+import { LogoMark } from "@/components/LogoMark";
 
 type NavItem = { label: string; icon: LucideIcon; href: string };
 
@@ -120,7 +121,7 @@ function Sidebar({
       {/* Logo */}
       <Link href="/spaces" onClick={onClose}
         style={{ display: "flex", alignItems: "center", gap: 9, fontWeight: 700, fontSize: 16, letterSpacing: "-.02em", color: "inherit", textDecoration: "none", padding: "0 8px" }}>
-        <span aria-hidden="true" style={{ width: 28, height: 28, borderRadius: 9, display: "grid", placeItems: "center", background: "linear-gradient(145deg, var(--coral), var(--accent-strong))", color: "#fff", fontSize: 15 }}>✳</span>
+        <LogoMark size={28} />
         logia
       </Link>
       <button type="button" className="sidebar-hide btn btn-ghost btn-icon btn-sm" onClick={() => setSidebar(false)} aria-label="Hide sidebar" title="Hide sidebar (Ctrl+\)">

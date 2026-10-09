@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -16,9 +16,43 @@ function Meta({ ph, n }: { ph: Phase; n: number }) {
   return (
     <div className="dc-meta">
       <span className={`dc-phase ${ph?.phase ?? ""}`}>{ph ? `${ph.phase === "focus" ? "Focus" : "Break"} · ${formatClock(ph.remainingSec)} left` : "Loading"}</span>
-      <span className="dc-count"><Users size={14} aria-hidden="true" /> {n} here</span>
+      {n > 0 ? <span className="dc-count"><Users size={14} aria-hidden="true" /> {n} here</span> : <span className="dc-count">Be the first in</span>}
     </div>
   );
+}
+
+// The loop itself is the thumbnail: a card plays whenever it is on screen, and pauses off screen
+// to save battery and data. Phone feed (under 761px): only the card filling the screen plays.
+// Never under reduced motion (poster only).
+function useCardPlay() {
+  const ref = useRef<HTMLLIElement>(null);
+  const [visible, setVisible] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia("(max-width: 760px)"), r = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => { setMobile(m.matches); setReduced(r.matches); };
+    sync();
+    m.addEventListener("change", sync); r.addEventListener("change", sync);
+    return () => { m.removeEventListener("change", sync); r.removeEventListener("change", sync); };
+  }, []);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { setVisible(true); return; }
+    const need = mobile ? 0.6 : 0.2;
+    const io = new IntersectionObserver(([e]) => setVisible(e.isIntersecting && e.intersectionRatio >= need), { threshold: [0, 0.2, 0.6, 1] });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [mobile]);
+  const play = !reduced && visible;
+  const handlers = {};
+  return { ref, play, handlers };
+}
+
+function Card({ children }: { children: (play: boolean) => React.ReactNode }) {
+  const { ref, play, handlers } = useCardPlay();
+  return <li ref={ref} className="card dc-card" {...handlers}>{children(play)}</li>;
 }
 
 export function RoomsTab({ rooms, hosted: allHosted, mine }: { rooms: PublicRoom[]; hosted: UserCafeCard[]; mine: UserCafeCard[] }) {
@@ -54,8 +88,11 @@ export function RoomsTab({ rooms, hosted: allHosted, mine }: { rooms: PublicRoom
     const ph = now === null ? null : getPhase(c, now);
     const hostName = c.host?.display_name || "A student";
     return (
-      <li key={`${own ? "m" : "h"}-${c.id}`} className="card dc-card">
-        <div className="dc-preview"><CafeScene scene={c.loop_preset ?? "lofi-desk"} src={c.loop_kind === "upload" ? c.loopUrl ?? undefined : undefined} image={c.loop_kind === "image" ? c.loopUrl ?? undefined : undefined} color={c.loop_kind === "color" ? c.bg_color ?? undefined : undefined} /></div>
+      <Card key={`${own ? "m" : "h"}-${c.id}`}>{(play) => (<>
+        <div className="dc-preview">{c.coverUrl
+          // eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL
+          ? <img className="ce-cardimg" src={c.coverUrl} alt={`Cover picture for ${c.name}`} loading="lazy" />
+          : <CafeScene play={play} scene={c.loop_preset ?? "rainforest"} src={c.loop_kind === "upload" ? c.loopUrl ?? undefined : undefined} image={c.loop_kind === "image" ? c.loopUrl ?? undefined : undefined} color={c.loop_kind === "color" ? c.bg_color ?? undefined : undefined} />}</div>
         <div className="dc-body">
           {own && <span className={`dc-status st-${c.status}`}>{STATUS_LABEL[c.status]}</span>}
           <Name className="dc-name">{c.name}</Name>
@@ -68,7 +105,7 @@ export function RoomsTab({ rooms, hosted: allHosted, mine }: { rooms: PublicRoom
           <div className="dc-sub">{c.focus_minutes} min focus, {c.break_minutes} min break</div>
           <Link href={`/discover/c/${c.id}`} className="btn btn-primary" style={{ marginTop: 12 }} aria-label={`${own ? "Open" : "Join"} ${c.name}`}>{own ? "Open" : "Join"}</Link>
         </div>
-      </li>
+      </>)}</Card>
     );
   };
 
@@ -80,15 +117,15 @@ export function RoomsTab({ rooms, hosted: allHosted, mine }: { rooms: PublicRoom
       {rooms.map((r) => {
         const ph = now === null ? null : getPhase(r, now);
         return (
-          <li key={r.id} className="card dc-card">
-            <div className="dc-preview"><CafeScene scene={r.scene} /></div>
+          <Card key={r.id}>{(play) => (<>
+            <div className="dc-preview"><CafeScene scene={r.scene} play={play} /></div>
             <div className="dc-body">
               <Name className="dc-name">{r.name}</Name>
               <Meta ph={ph} n={counts[`cafe:${r.slug}`] ?? 0} />
               <div className="dc-sub">{r.focus_minutes} min focus, {r.break_minutes} min break</div>
               <Link href={`/discover/rooms/${r.slug}`} className="btn btn-primary" style={{ marginTop: 12 }} aria-label={`Join ${r.name}`}>Join</Link>
             </div>
-          </li>
+          </>)}</Card>
         );
       })}
       {hosted.length > 0 && <li className="dc-section"><h2 className="dc-h2">Hosted by students</h2></li>}

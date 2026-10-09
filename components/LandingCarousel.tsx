@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ThemeColors } from "./GradientBackground";
+import { LogoMark } from "@/components/LogoMark";
 
 export interface ThemeOption {
   id: string;
@@ -133,7 +134,7 @@ export function LandingCarousel({ selectedThemeId, onSelectTheme }: LandingCarou
           <div style={panelStyle}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff" }}>
-                <span style={{ fontSize: 16 }}>✳</span>
+                <LogoMark size={18} color="#fff" />
                 <span style={{ fontSize: 14, fontWeight: 500 }}>logia</span>
               </div>
               <span style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.12em", textTransform: "uppercase", color: "rgba(255,255,255,0.5)" }}>

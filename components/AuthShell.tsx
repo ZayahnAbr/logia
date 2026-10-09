@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { LogoMark } from "@/components/LogoMark";
 
 // Shared split layout for every auth page: coral gradient panel + white form panel.
 export function AuthShell({ kicker, tagline, children }: { kicker: string; tagline: string; children: ReactNode }) {
@@ -8,7 +9,7 @@ export function AuthShell({ kicker, tagline, children }: { kicker: string; tagli
       <div className="auth-frame">
         <aside className="auth-panel mesh-brand" aria-hidden="true">
           <Link href="/" className="auth-logo" tabIndex={-1}>
-            <span className="auth-logo-mark">✳</span> logia
+            <LogoMark size={28} color="#fff" /> logia
           </Link>
           <div>
             <p className="auth-kicker">{kicker}</p>
@@ -16,7 +17,7 @@ export function AuthShell({ kicker, tagline, children }: { kicker: string; tagli
           </div>
         </aside>
         <section className="auth-form">
-          <span className="auth-asterisk" aria-hidden="true">✳</span>
+          <LogoMark size={36} className="auth-asterisk" />
           {children}
         </section>
       </div>

@@ -6,6 +6,8 @@ import { Plus, Upload, Link2, Type, Trash2, Play, Pause, Loader2, ImageIcon, Hea
 import { dropProps } from "@/lib/dropProps";
 import { Dialog } from "@/components/Dialog";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/Toaster";
+import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_TEXT, WIDGET_BUCKET, STICKY_COLORS, STICKY_MAX_TEXT, type GifData, type ImageData, type TextData, type StickyData } from "@/lib/customWidgets";
 import { addStickyNote, saveStickyNote, addImageLink, addTextWidget, addUploadedImage, removeCustomWidget, saveTextWidget } from "../widget-actions";
 
@@ -255,6 +257,8 @@ function ImageForm({ spaceId, busy, setBusy, done, setError }: { spaceId: string
     if (!ext) { setError("Only JPG, PNG, WebP or GIF images can be added."); return; }
     if (file.size > MAX_IMAGE_BYTES) { setError("That image is larger than 10 MB."); return; }
     setBusy(true);
+    const blocked = await uploadBlocked("image");
+    if (blocked) { setBusy(false); setError(blocked); return; }
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setError("Please sign in again."); return; }
@@ -265,6 +269,8 @@ function ImageForm({ spaceId, busy, setBusy, done, setError }: { spaceId: string
       setError(/bucket not found/i.test(up.error.message) ? "Uploads need a database update. Run supabase/migration-25-space-widgets.sql." : "The upload failed. Try again.");
       return;
     }
+    const checked = await checkUploaded(WIDGET_BUCKET, path, "image");
+    if (checked.message) toast(checked.message, checked.state === "unsafe" ? "error" : "success");
     const r = await addUploadedImage(spaceId, path, alt, caption);
     if (r.error) await supabase.storage.from(WIDGET_BUCKET).remove([path]);
     done(r);

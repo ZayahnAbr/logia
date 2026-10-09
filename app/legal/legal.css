@@ -1,0 +1,15 @@
+.legal-wrap { padding-top: clamp(32px, 5vw, 64px); padding-bottom: 64px; max-width: 800px; }
+.legal-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.legal-nav a { padding: 8px 14px; min-height: 40px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--line, rgba(0,0,0,.15)); color: var(--ink); text-decoration: none; font-size: .9rem; }
+.legal-nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-text); border-color: var(--accent-text); font-weight: 600; }
+.legal-nav a:hover { text-decoration: underline; }
+.legal-doc { color: var(--ink); line-height: 1.7; font-size: 1rem; }
+.legal-doc h1 { font-size: clamp(1.9rem, 4vw, 2.6rem); letter-spacing: -.03em; line-height: 1.1; margin: 20px 0 16px; }
+.legal-doc h2 { font-size: 1.3rem; margin: 32px 0 8px; }
+.legal-doc p, .legal-doc li { margin: 8px 0; }
+.legal-doc ul, .legal-doc ol { padding-left: 1.4em; }
+.legal-doc a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 2px; }
+.legal-doc blockquote { margin: 0 0 20px; padding: 12px 16px; border-left: 4px solid var(--accent-text); background: var(--accent-soft); border-radius: 8px; color: var(--ink); }
+.legal-doc table { border-collapse: collapse; width: 100%; display: block; overflow-x: auto; margin: 12px 0; }
+.legal-doc th, .legal-doc td { border: 1px solid var(--line, rgba(0,0,0,.18)); padding: 8px 10px; text-align: left; vertical-align: top; }
+.legal-doc th { background: var(--accent-soft); }

@@ -1,5 +1,6 @@
 "use client";
 
+import { hasBlockedWord, NOT_SENT_NOTE } from "@/lib/moderation";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Send, ArrowDown, AtSign } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -58,9 +59,10 @@ export function RoomChat({ compact = false }: { compact?: boolean }) {
   };
   const toLatest = () => { const el = listRef.current; if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" }); setUnseen(0); };
 
+  const [notSent, setNotSent] = useState(false);
   const grow = () => { const el = boxRef.current; if (el) { el.style.height = "auto"; el.style.height = `${Math.min(el.scrollHeight, 160)}px`; } };
   const onChange = (v: string, caret: number) => {
-    setDraft(v); grow();
+    setDraft(v); setNotSent(false); grow();
     const m = /(^|\s)@([\p{L}\w-]{0,20})$/u.exec(v.slice(0, caret));
     setQuery(m ? { text: m[2], start: caret - m[2].length - 1 } : null);
     setHi(0);
@@ -79,8 +81,11 @@ export function RoomChat({ compact = false }: { compact?: boolean }) {
     const body = draft.trim();
     if (!body) return;
     const mentionIds = picked.filter((w) => body.includes(`@${first(w.name)}`)).map((w) => w.id);
+    if (hasBlockedWord(body)) { setNotSent(true); return; } // nothing is sent and the text stays in the box
     setDraft(""); setPicked([]); requestAnimationFrame(grow);
-    if (!(await send(body, mentionIds))) setDraft(body);
+    const ok = await send(body, mentionIds);
+    if (ok === "blocked") { setNotSent(true); setDraft(body); }
+    else if (!ok) setDraft(body);
   };
   const onKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (query && matches.length) {
@@ -151,9 +156,10 @@ export function RoomChat({ compact = false }: { compact?: boolean }) {
         <textarea ref={boxRef} id={compact ? "dock-msg" : "room-msg"} className="chat-input" rows={1} maxLength={1000}
           placeholder="Message the room, @ to poke someone" value={draft}
           onChange={(e) => onChange(e.target.value, e.target.selectionStart)} onKeyDown={onKey}
-          aria-autocomplete="list" aria-expanded={!!query && matches.length > 0} />
+          aria-autocomplete="list" aria-expanded={!!query && matches.length > 0} aria-describedby={`${compact ? "dock" : "room"}-msg-note`} />
         <button className="btn btn-primary chat-send" aria-label="Send message" disabled={!draft.trim()}><Send size={15} aria-hidden="true" /></button>
       </form>
+      <p id={`${compact ? "dock" : "room"}-msg-note`} className="quiet-note" role="status" aria-live="polite">{notSent ? NOT_SENT_NOTE : ""}</p>
     </div>
   );
 }

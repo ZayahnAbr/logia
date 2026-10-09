@@ -8,6 +8,7 @@ import { DiscoverTabs, type Tab } from "./DiscoverTabs";
 import type { PublicRoom } from "./rooms/[slug]/CafeRoom";
 import type { Stream } from "@/app/discover-actions";
 import { loadUserCafes } from "@/app/cafe-actions";
+import { isSceneId } from "@/lib/loopScenes";
 
 export const metadata: Metadata = { title: "Discover · Logia" };
 
@@ -41,7 +42,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       )}
       <DiscoverTabs
         initialTab={TABS.includes(tab as Tab) ? (tab as Tab) : "rooms"}
-        rooms={(roomsRes.data ?? []) as PublicRoom[]}
+        rooms={((roomsRes.data ?? []) as PublicRoom[]).filter((r) => isSceneId(r.scene))}
         streams={(streamsRes.data ?? []) as Stream[]}
         hosted={cafes.listed}
         mine={cafes.mine}

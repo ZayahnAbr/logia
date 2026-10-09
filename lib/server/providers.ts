@@ -13,7 +13,7 @@ export type Provider = {
   label: string;
   baseUrl: string;
   apiKeyEnv: string;
-  models: { chat?: string; vision?: string; audio?: string };
+  models: { chat?: string; vision?: string; audio?: string; /** Optional safety classifier (for example Llama Guard). Used only if the account lists it. */ safety?: string };
   limits: { rpm: number; tpm: number; tpd: number; rpd: number };
   capabilities: Capability[];
   /** Lower number is tried first within the same purpose ordering. */
@@ -45,7 +45,7 @@ export const PROVIDERS: Provider[] = [
     label: "Groq (paid)",
     baseUrl: "https://api.groq.com/openai/v1",
     apiKeyEnv: "GROQ_PAID_API_KEY",
-    models: { chat: "openai/gpt-oss-120b", vision: "qwen/qwen3.8-27b", audio: "whisper-large-v3-turbo" },
+    models: { chat: "openai/gpt-oss-120b", vision: "qwen/qwen3.8-27b", audio: "whisper-large-v3-turbo", safety: process.env.GROQ_SAFETY_MODEL || "meta-llama/llama-guard-4-12b" },
     limits: { rpm: 0, tpm: 0, tpd: 0, rpd: 0 },
     capabilities: ["chat", "json", "vision", "audio"],
     priority: 0,
@@ -60,7 +60,7 @@ export const PROVIDERS: Provider[] = [
     label: "Groq",
     baseUrl: "https://api.groq.com/openai/v1",
     apiKeyEnv: "GROQ_API_KEY",
-    models: { chat: "openai/gpt-oss-120b", vision: "qwen/qwen3.8-27b", audio: "whisper-large-v3-turbo" },
+    models: { chat: "openai/gpt-oss-120b", vision: "qwen/qwen3.8-27b", audio: "whisper-large-v3-turbo", safety: process.env.GROQ_SAFETY_MODEL || "meta-llama/llama-guard-4-12b" },
     limits: { rpm: 30, tpm: 0, tpd: 200000, rpd: 0 },
     capabilities: ["chat", "json", "vision", "audio"],
     priority: 1,

@@ -1,5 +1,7 @@
 // Shared types and small helpers for user-hosted study-with-me rooms (migrations 23 and 24).
-export type SceneId = "rain-cafe" | "night-library" | "forest-cabin" | "lofi-desk";
+import type { LoopSceneId } from "@/lib/loopScenes";
+import type { CoverDoc } from "@/lib/coverDoc";
+export type SceneId = LoopSceneId;
 export type CafeStatus = "unlisted" | "pending" | "public" | "hidden";
 export type LoopKind = "preset" | "upload" | "image" | "color";
 export type UserCafe = {
@@ -7,15 +9,18 @@ export type UserCafe = {
   loop_kind: LoopKind; loop_preset: SceneId | null; loop_path: string | null; bg_color: string | null;
   music_kind: "none" | "link" | "upload"; music_url: string | null; music_path: string | null;
   focus_minutes: number; break_minutes: number; anchor: string; status: CafeStatus; created_at: string;
+  cover_path?: string | null; cover_doc?: CoverDoc | null; // migration 42
 };
 export type Host = { id: string; display_name: string | null; avatar_color: string | null; avatar_icon: string | null };
-export type UserCafeCard = UserCafe & { host: Host | null; loopUrl: string | null };
-export type PendingCafe = { cafe: UserCafe; host: Host | null; loopUrl: string | null; audioUrl: string | null };
+export type UserCafeCard = UserCafe & { host: Host | null; loopUrl: string | null; coverUrl?: string | null };
+export type PendingCafe = { cafe: UserCafe; host: Host | null; loopUrl: string | null; audioUrl: string | null; coverUrl?: string | null };
 export type CafeInput = {
   name: string; description: string;
   loop_kind: LoopKind; loop_preset: SceneId | null; loop_path: string | null; bg_color: string | null;
   music_kind: "none" | "link" | "upload"; music_url: string | null; music_path: string | null;
   focus_minutes: number; break_minutes: number; listing: "unlisted" | "pending";
+  // Only sent when the cover changed: a path (or null to remove it) with its editable layers.
+  cover_path?: string | null; cover_doc?: CoverDoc | null;
 };
 
 export const STATUS_LABEL: Record<CafeStatus, string> = { unlisted: "Link only", pending: "Awaiting review", public: "Listed", hidden: "Hidden" };

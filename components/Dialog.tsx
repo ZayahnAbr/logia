@@ -13,14 +13,22 @@ export function Dialog({ title, onClose, children, width = 420, hideTitle = fals
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const titleId = useId();
+  // Callers usually pass a new onClose function on every render (an inline arrow). Keeping the
+  // latest one in a ref lets the effect below run once when the dialog opens. Before, it re-ran
+  // on every keystroke and pulled focus back to the first button (the close X) mid-typing.
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>(FOCUSABLE);
+    // Focus the first form field if there is one, otherwise the first control.
+    const field = ref.current?.querySelector<HTMLElement>("input:not([disabled]):not([type=hidden]), textarea:not([disabled]), select:not([disabled])");
+    const first = field ?? ref.current?.querySelector<HTMLElement>(FOCUSABLE);
     (first ?? ref.current)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && onClose) { e.preventDefault(); onClose(); return; }
+      const close = closeRef.current;
+      if (e.key === "Escape" && close) { e.preventDefault(); close(); return; }
       if (e.key !== "Tab" || !ref.current) return;
       const items = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
       if (items.length === 0) return;
@@ -36,7 +44,7 @@ export function Dialog({ title, onClose, children, width = 420, hideTitle = fals
       document.body.style.overflow = prevOverflow;
       previous?.focus?.();
     };
-  }, [onClose]);
+  }, []);
 
   // Portalled to <body> so a transformed ancestor (e.g. page-enter animation) can't offset it.
   if (typeof document === "undefined") return null;

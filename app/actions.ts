@@ -1,6 +1,7 @@
 "use server";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { hasBlockedWord } from "@/lib/moderation";
 import { nextSchedule } from "@/lib/scheduler";
 import type { Card, Rating, SpaceType } from "@/lib/types";
 import { notebookIdForName } from "@/lib/server/notebooks";
@@ -12,6 +13,7 @@ import type { Plan } from "@/lib/server/plans";
 
 export async function createSpace(name: string, subject: string, type: SpaceType) {
   const { supabase, user } = await authed();
+  if (hasBlockedWord(`${name} ${subject}`)) return { error: "That name can't be used. Please choose a different one." };
   const { error } = await supabase.from("spaces").insert({ name, subject: subject || null, type, created_by: user.id });
   if (error) return { error: error.message };
   const { data } = await supabase.from("spaces").select("id").eq("created_by", user.id).order("created_at", { ascending: false }).limit(1).single();

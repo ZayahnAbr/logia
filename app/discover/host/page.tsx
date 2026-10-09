@@ -21,11 +21,12 @@ export default async function HostPage({ searchParams }: { searchParams: Promise
     const { data } = await supabase.from("user_cafes").select("*").eq("id", edit).eq("owner_id", user.id).maybeSingle();
     if (!data) redirect("/discover/host");
     const c = data as UserCafe;
-    const [loopUrl, audioUrl] = await signCafeMedia([c.loop_path, c.music_path]);
+    const [loopUrl, audioUrl, coverUrl] = await signCafeMedia([c.loop_path, c.music_path, c.cover_path ?? null]);
     initial = {
-      id: c.id, name: c.name, description: c.description, loopKind: c.loop_kind, preset: c.loop_preset ?? "rain-cafe", loopPath: c.loop_path, loopUrl, bgColor: c.bg_color,
+      id: c.id, name: c.name, description: c.description, loopKind: c.loop_kind, preset: c.loop_preset ?? "rain-roof", loopPath: c.loop_path, loopUrl, bgColor: c.bg_color,
       musicKind: c.music_kind, musicUrl: c.music_url ?? "", musicPath: c.music_path, audioUrl,
       focus: c.focus_minutes, brk: c.break_minutes, listing: c.status === "pending" ? "pending" : "unlisted",
+      coverPath: c.cover_path ?? null, coverUrl, coverDoc: c.cover_doc ?? null,
     };
   }
 

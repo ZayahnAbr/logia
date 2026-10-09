@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { User, Palette, Sparkles, LifeBuoy, LogOut, Plug } from "lucide-react";
+import { User, Palette, Sparkles, LifeBuoy, LogOut, Plug, Scale, Link2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AppShell } from "@/components/AppShell";
 import { RetakeTourButton } from "./RetakeTourButton";
@@ -9,19 +9,23 @@ import { AiAllowance } from "@/components/AiAllowance";
 import "../../workspace-layout.css";
 import { ProfileRow, ThemeSwitch } from "./ProfileRow";
 import { LmsSection } from "./LmsSection";
+import { GoogleDocsCard } from "./GoogleDocsCard";
 
 const SECTIONS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "ai", label: "AI and plan", icon: Sparkles },
   { id: "school-sync", label: "School sync", icon: Plug },
+  { id: "connections", label: "Connected apps", icon: Link2 },
   { id: "help", label: "Help", icon: LifeBuoy },
+  { id: "legal", label: "Legal", icon: Scale },
   { id: "account", label: "Account", icon: LogOut },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ classroom?: string; n?: string; msg?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ classroom?: string; n?: string; msg?: string; gdocs?: string }> }) {
   const sp = await searchParams;
   const notice = sp.classroom === "ok" ? { kind: "ok" as const, text: `Google Classroom connected. Synced ${Number(sp.n) || 0} item${Number(sp.n) === 1 ? "" : "s"}.` } : sp.classroom === "error" ? { kind: "error" as const, text: (sp.msg ?? "Couldn't connect Google Classroom.").slice(0, 200) } : undefined;
+  const gdocsNotice = sp.gdocs === "ok" ? { kind: "ok" as const, text: "Google Docs connected. You can now link notes from their Google Docs menu." } : sp.gdocs === "error" ? { kind: "error" as const, text: (sp.msg ?? "Couldn't connect Google Docs.").slice(0, 200) } : undefined;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/signin");
@@ -78,6 +82,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <LmsSection notice={notice} />
           </section>
 
+          <section id="connections" className="st-sec" aria-labelledby="h-connections">
+            <h2 id="h-connections">Connected apps</h2>
+            <GoogleDocsCard notice={gdocsNotice} />
+          </section>
+
           <section id="help" className="st-sec" aria-labelledby="h-help">
             <h2 id="h-help">Help</h2>
             <div className="card st-card">
@@ -88,6 +97,21 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <div className="st-row">
                 <div><strong>Everything Logia can do</strong><span>Every tool, with its limits.</span></div>
                 <Link href="/features" className="btn">Capabilities</Link>
+              </div>
+            </div>
+          </section>
+
+          <section id="legal" className="st-sec" aria-labelledby="h-legal">
+            <h2 id="h-legal">Legal</h2>
+            <div className="card st-card">
+              <div className="st-row">
+                <div><strong>Terms and policies</strong><span>Draft documents, under legal review.</span></div>
+                <nav aria-label="Legal documents" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Link href="/legal/terms" className="btn">Terms</Link>
+                  <Link href="/legal/acceptable-use" className="btn">Acceptable use</Link>
+                  <Link href="/legal/privacy" className="btn">Privacy</Link>
+                  <Link href="/legal/takedown" className="btn">Report content</Link>
+                </nav>
               </div>
             </div>
           </section>

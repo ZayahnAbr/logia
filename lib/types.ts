@@ -13,6 +13,8 @@ export interface Space {
   // Added by migration 22 (absent until it has been run).
   is_public?: boolean;
   public_description?: string | null;
+  // Added by migration 39: set when the space was copied from a public space.
+  copied_from_name?: string | null;
 }
 
 // A card's shared *content* (lives in active_recall_decks.cards_json). No answer field, by design —

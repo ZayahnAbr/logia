@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Scissors, Crosshair, Upload, ImageIcon, Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/Toaster";
+import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
 import { MAX_IMAGE_BYTES, WIDGET_BUCKET } from "@/lib/customWidgets";
 import { saveStickerToLibrary, placeSavedSticker } from "../widget-actions";
 import { dropProps } from "@/lib/dropProps";
@@ -349,6 +351,8 @@ export default function StickerMaker({ spaceId, busy, setBusy, done, setError }:
       out = s; blob = await toPngBlob(out);
     }
     if (!blob || blob.size > MAX_IMAGE_BYTES) { setBusy(false); setError("The sticker is larger than 10 MB. Try a smaller photo."); return; }
+    const blocked = await uploadBlocked("image");
+    if (blocked) { setBusy(false); setError(blocked); return; }
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setBusy(false); setError("Please sign in again."); return; }
@@ -360,6 +364,8 @@ export default function StickerMaker({ spaceId, busy, setBusy, done, setError }:
       setError(/bucket not found/i.test(up.error.message) ? "Uploads need a database update. Run supabase/migration-25-space-widgets.sql." : "The upload failed. Try again.");
       return;
     }
+    const checked = await checkUploaded(WIDGET_BUCKET, path, "image");
+    if (checked.message) toast(checked.message, checked.state === "unsafe" ? "error" : "success");
     const saved = await saveStickerToLibrary(path, alt, out.width, out.height);
     if (saved.error || !saved.id) {
       await supabase.storage.from(WIDGET_BUCKET).remove([path]);

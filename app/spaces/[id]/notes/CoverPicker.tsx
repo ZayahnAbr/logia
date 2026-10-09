@@ -3,6 +3,8 @@
 import { useState, useId } from "react";
 import { Loader2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "@/components/Toaster";
+import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
 import { CoverArt } from "@/components/NotebookCover";
 import {
   COVER_COLORS, COVER_PATTERNS, COVER_EMOJIS, COVER_BUCKET, COVER_MAX_BYTES, COVER_TYPES,
@@ -43,10 +45,14 @@ export function CoverPicker({ spaceId, userId, value, urls, onChange, onUploaded
     if (file.size > COVER_MAX_BYTES) { setErr("That picture is over 5 MB. Choose a smaller one."); return; }
     setBusy(true);
     try {
+      const blocked = await uploadBlocked("image");
+      if (blocked) { setErr(blocked); return; }
       const sb = createClient();
       const path = `${userId}/${spaceId}/${crypto.randomUUID()}.${ext}`;
       const up = await sb.storage.from(COVER_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
       if (up.error) { setErr(/bucket/i.test(up.error.message) ? "Cover uploads aren't set up yet. Run migration 26." : "The upload didn't work. Try again."); return; }
+      const checked = await checkUploaded(COVER_BUCKET, path, "image");
+      if (checked.message) toast(checked.message, checked.state === "unsafe" ? "error" : "success");
       const signed = await sb.storage.from(COVER_BUCKET).createSignedUrl(path, 3600);
       if (signed.data?.signedUrl) onUploaded(path, signed.data.signedUrl);
       onChange({ kind: "image", value: path });

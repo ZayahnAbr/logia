@@ -72,9 +72,11 @@ export function StreamsTab({ streams }: { streams: Stream[] }) {
               <iframe title={open.title} src={`https://www.youtube-nocookie.com/embed/${open.youtube_id}?rel=0&autoplay=1`}
                 allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
             </div>
-            <h2 className="dc-name" style={{ marginTop: 12 }}>{open.title}</h2>
-            <div className="dc-sub">{open.channel}</div>
-            <button type="button" className="btn btn-ghost btn-sm" style={{ marginTop: 8 }} onClick={() => setReporting(true)}><Flag size={14} aria-hidden="true" /> Report a problem</button>
+            <div className="card dc-about">
+              <h2 className="dc-name">{open.title}</h2>
+              <div className="dc-sub">{open.channel}</div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setReporting(true)}><Flag size={14} aria-hidden="true" /> Report a problem</button>
+            </div>
           </div>
           <MiniTimer />
         </div>
@@ -96,7 +98,7 @@ export function StreamsTab({ streams }: { streams: Stream[] }) {
   }
 
   return (
-    <ul className="dc-grid" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+    <ul className="dc-grid dc-streams" style={{ listStyle: "none", margin: 0, padding: 0 }}>
       {streams.map((s) => (
         <li key={s.id}>
           <button type="button" className="card dc-card dc-stream" onClick={() => setOpen(s)} aria-label={`Watch ${s.title}${s.kind === "live" ? " (live)" : ""}`}>

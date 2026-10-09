@@ -12,10 +12,16 @@ import { MusicWidget } from "@/components/MusicWidget";
 import { StickyNotes } from "@/components/StickyNotes";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { TimetableWidget } from "@/components/TimetableWidget";
+import { SpaceHeaderEditor } from "./_components/SpaceHeaderEditor";
+import { HEADER_BUCKET, headerLook, type HeaderKind } from "@/lib/spaceHeader";
 import "../../workspace-layout.css";
 import { SpaceDashboard } from "./_components/SpaceDashboard";
 import { DashboardGrid, type Widget } from "../_components/DashboardGrid";
 import { AddWidgetButton } from "./_components/CustomWidgets";
+import { SharedItemsWidget } from "./_components/SharedItemsWidget";
+import { ViewLinkButton } from "@/components/ViewLinkButton";
+import { CloneSpaceButton } from "@/components/CloneSpaceButton";
+import { loadSharedItems, saveDesignLayout } from "@/app/shared-items-actions";
 import { StickerLayer, type Sticker } from "./_components/StickerLayer";
 import { WIDGET_BUCKET, type ImageData, type TextData, type StickyData } from "@/lib/customWidgets";
 import { FileText, Files, Mic, Workflow, MessageSquare, FileCheck2, Flame, Sigma, ScanLine, Users, type LucideIcon } from "lucide-react";
@@ -45,13 +51,21 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const { decks, due, perDeck } = study;
 
   // Custom widgets and colours (migration 25). Missing tables just mean none yet.
-  const [{ data: cwRows }, { data: colorRow }, { data: stickyFlag }] = await Promise.all([
+  const [{ data: cwRows }, { data: colorRow }, { data: stickyFlag }, { data: viewFlag }] = await Promise.all([
     supabase.from("space_widgets").select("id, kind, data").eq("user_id", user.id).eq("space_id", id).order("created_at"),
     supabase.from("space_widget_colors").select("colors").eq("user_id", user.id).eq("space_id", id).maybeSingle(),
     // Set by migration 28. If it has not been run, the old sticky-notes widget stays.
     supabase.from("migrations_applied").select("name").eq("name", "migration-28-sticky-stickers").maybeSingle(),
+    // Set by migration 40. Until then the Share view link button stays hidden.
+    supabase.from("migrations_applied").select("name").eq("name", "migration-40-view-links").maybeSingle(),
   ]);
+  const viewLinksReady = !!viewFlag;
   const stickyReady = !!stickyFlag;
+  // Copy options and the saved design layout (migration 39).
+  const cloneFlags = space as unknown as { allow_design_clone?: boolean; allow_content_clone?: boolean; design_layout?: { id: string; visible: boolean; half?: boolean }[] | null };
+  const cloneReady = "allow_design_clone" in cloneFlags;
+  // Shared notebooks and decks (migration 39). null = not run, so the widget is hidden.
+  const sharedItems = await loadSharedItems(id);
   // Course outline data (migration 30). Missing tables just mean nothing set up yet.
   const [{ courses }, outlineFiles] = await Promise.all([loadCourses(supabase, user.id, id), getFiles(id)]);
   const withAss = courses.filter((c) => c.assessments.length > 0);
@@ -140,6 +154,10 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
           decks={decks.map((d) => ({ deckId: d.deck_id, title: d.title, subject: d.subject, preview: ((d.cards_json as { question?: string }[] | null)?.[0]?.question) ?? null, ...perDeck[d.deck_id] }))} />
       ),
     },
+    ...(sharedItems ? [{
+      id: "shared", title: "Shared notebooks and flashcards", description: "Notebooks and decks members chose to show here, which you can preview and copy",
+      node: <SharedItemsWidget spaceId={id} items={sharedItems} />,
+    } satisfies Widget] : []),
     {
       id: "stats", title: "At a glance", description: "Decks, cards, notes and what is due", empty: decks.length === 0 && notes.length === 0,
       node: (
@@ -263,16 +281,38 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const widgets = stickyReady ? allWidgets.filter((w) => w.id !== "stickies") : allWidgets;
   const noStickies = (ids: string[]) => (stickyReady ? ids.filter((x) => x !== "stickies") : ids);
 
+  // Custom header (migration 38). Without the columns the header stays the default and the button is hidden.
+  const sp = space as unknown as { header_kind?: HeaderKind | null; header_color?: string | null; header_image_path?: string | null };
+  const headerReady = "header_kind" in sp;
+  const headerKind: HeaderKind = sp.header_kind ?? "default";
+  const headerColor = sp.header_color ?? null;
+  let headerUrl: string | null = null;
+  if (headerReady && headerKind === "image" && sp.header_image_path) {
+    const { data: signed } = await supabase.storage.from(HEADER_BUCKET).createSignedUrl(sp.header_image_path, 6 * 3600);
+    headerUrl = signed?.signedUrl ?? null;
+  }
+  const look = headerLook(headerReady ? headerKind : "default", headerColor, headerUrl);
+  // Peer spaces: any member. Class hubs: only the creator (same rule as set_space_header).
+  const canEditHeader = space.type === "teacher_hub" ? space.created_by === user.id : true;
+  const heroTexts = {
+    eyebrow: `${space.type === "peer" ? "Peer space" : "Class hub"}${space.subject ? ` · ${space.subject}` : ""}`,
+    sub: `${due.length ? `${due.length} card${due.length === 1 ? "" : "s"} due today` : "You're up to date"}${openPains.length ? ` · ${openPains.length} weak spot${openPains.length === 1 ? "" : "s"} to fix` : ""}`,
+  };
+
   return (
     <div className="wk-home">
-      <header className="space-hero mesh-warm">
+      <header className={`space-hero ${look.mesh ? "mesh-warm" : look.className}`} style={look.style} data-sh-header="">
         <div>
-        <p className="eyebrow" style={{ color: "rgba(17,17,17,.66)", margin: 0 }}>{space.type === "peer" ? "Peer space" : "Class hub"}{space.subject ? ` · ${space.subject}` : ""}</p>
+        <p className="eyebrow" style={{ color: "rgba(17,17,17,.66)", margin: 0 }}>{heroTexts.eyebrow}</p>
         <h1 className="space-hero-h">{space.name}</h1>
-        <p className="space-hero-p">{due.length ? `${due.length} card${due.length === 1 ? "" : "s"} due today` : "You're up to date"}{openPains.length ? ` · ${openPains.length} weak spot${openPains.length === 1 ? "" : "s"} to fix` : ""}</p>
+        <p className="space-hero-p">{heroTexts.sub}</p>
+        {space.copied_from_name && <p className="shr-credit">Copied from {space.copied_from_name}</p>}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-          {space.created_by === user.id && <MakePublicButton spaceId={id} isPublic={!!space.is_public} description={space.public_description ?? ""} />}
+          {headerReady && canEditHeader && <SpaceHeaderEditor spaceId={id} kind={headerKind} color={headerColor} imageUrl={headerUrl} texts={{ ...heroTexts, name: space.name }} />}
+          {space.created_by === user.id && <MakePublicButton spaceId={id} isPublic={!!space.is_public} description={space.public_description ?? ""} cloneReady={cloneReady} allowDesign={cloneFlags.allow_design_clone ?? true} allowContent={cloneFlags.allow_content_clone ?? false} />}
+          {viewLinksReady && (space.created_by === user.id || canEditHeader) && <ViewLinkButton spaceId={id} />}
+          {space.is_public && space.created_by !== user.id && <CloneSpaceButton spaceId={id} spaceName={space.name} className="btn btn-sm" />}
           {space.invite_code && <InviteButton code={space.invite_code} />}
         </div>
       </header>
@@ -280,12 +320,14 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
         <DashboardGrid
           widgets={widgets}
           storageKey={`logia.space.${id}.layout`}
-          defaultOrder={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "papers", "stickies", "library", "music"])}
-          defaultVisible={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "papers", "stickies", "library"])}
+          defaultOrder={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library", "music"])}
+          defaultVisible={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library"])}
           defaultHalf={noStickies(["marks", "checklist", "calendar", "notes", "pain", "papers", "stickies", "music"])}
           syncToAccount={false}
           toolbarExtra={<AddWidgetButton key="add-widget" spaceId={id} stickyReady={stickyReady} />}
           colorSpaceId={id}
+          seed={space.copied_from_name ? cloneFlags.design_layout ?? null : null}
+          onLayoutSaved={space.created_by === user.id && space.is_public && cloneReady ? saveDesignLayout.bind(null, id) : undefined}
           colors={colors}
           dialogTitle="Customise space home"
         />

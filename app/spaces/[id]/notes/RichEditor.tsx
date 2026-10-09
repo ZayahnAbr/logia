@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Strikethrough, ImageIcon, Film, Loader2, Layers, Baseline, Highlighter, ChevronDown, Sigma } from "lucide-react";
 import { getNoteMediaSignedUrl } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
+import { GoogleDocsMenu } from "./GoogleDocsMenu";
 
 const FONTS = [
   { label: "Default", value: "" },
@@ -59,7 +60,9 @@ export function RichEditor({
   onMakeFlashcard,
   makingFlashcard,
   noteId,
+  noteTitle,
 }: {
+  noteTitle?: string;
   value: string;
   onChange: (html: string) => void;
   spaceId: string;
@@ -268,6 +271,12 @@ export function RichEditor({
         <Btn label="Math dictionary" active={dict} on={() => setDict(true)}><Sigma size={15} /></Btn>
         <Btn label="Insert video link" active={false} on={() => { setVideoErr(null); setVideoOpen(true); }}><Film size={15} /></Btn>
         <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) insertImage(f); e.target.value = ""; }} />
+        {noteId && (
+          <>
+            <div style={{ width: 1, background: "var(--border-soft)", margin: "4px 4px" }} />
+            <GoogleDocsMenu editor={editor} noteId={noteId} noteTitle={noteTitle ?? ""} isReady={() => ready.current} />
+          </>
+        )}
         {onMakeFlashcard && (
           <>
             <div style={{ width: 1, background: "var(--border-soft)", margin: "4px 4px" }} />

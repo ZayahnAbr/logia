@@ -51,6 +51,8 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname !== "/" &&
     !["/features", "/pricing", "/invite", "/donate"].includes(request.nextUrl.pathname) &&
     !user &&
+    !request.nextUrl.pathname.startsWith("/legal") && // terms, privacy etc: public
+    !request.nextUrl.pathname.startsWith("/s/") && // view links: readable without an account (migration 40)
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/auth")
   ) {
@@ -58,6 +60,20 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/auth/login";
     return NextResponse.redirect(url);
+  }
+
+  // Banned accounts (migration 43) only see the suspended page. Fails open if the function does not exist yet.
+  const path = request.nextUrl.pathname;
+  if (user && path !== "/suspended" && !path.startsWith("/auth") && !path.startsWith("/api")) {
+    try {
+      const { data: state } = await supabase.rpc("my_account_state");
+      if ((state as { banned?: boolean } | null)?.banned) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/suspended";
+        url.search = "";
+        return NextResponse.redirect(url);
+      }
+    } catch { /* keep going */ }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is.

@@ -2,30 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 
-// Looping ambient video for a café. Muted (autoplay-safe), fades in once playable,
-// and stays as a still frame for people who prefer reduced motion.
-export const LOOP_SRC: Record<string, string> = {
-  "rain-cafe": "/loops/rain-cafe.mp4",
-  "night-library": "/loops/night-library.mp4",
-  "forest-cabin": "/loops/forest-cabin.mp4",
-  "lofi-desk": "/loops/lofi-desk.mp4",
-};
+import { LOOP_SRC, POSTER, isSceneId } from "@/lib/loopScenes";
 
-export function LoopVideo({ scene, src: custom }: { scene: string; src?: string }) {
+// Muted loop, autoplay-safe. `play` lets a card start and stop it (hover, focus, scroll position).
+// When `play` is omitted it plays whenever motion is allowed.
+export function LoopVideo({ scene, src: custom, play }: { scene: string; src?: string; play?: boolean }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [ready, setReady] = useState(false);
-  const src = custom ?? LOOP_SRC[scene];
+  const [failed, setFailed] = useState(false);
+  const src = custom ?? (isSceneId(scene) ? LOOP_SRC[scene] : undefined);
+  const poster = custom ? undefined : isSceneId(scene) ? POSTER[scene] : undefined;
+  const want = play ?? true;
   useEffect(() => {
     const v = ref.current; if (!v) return;
     // loadeddata can fire before hydration attaches the handler
     if (v.readyState >= 2) setReady(true);
     v.muted = true;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.pause(); return; }
-    v.play().catch(() => { /* autoplay blocked: first frame still shows */ });
-  }, [src]);
+    if (!want || window.matchMedia("(prefers-reduced-motion: reduce)").matches) { v.pause(); return; }
+    v.play().catch(() => { /* autoplay blocked: poster still shows */ });
+  }, [src, want]);
   if (!src) return null;
   return (
-    <video ref={ref} className={`cafe-loop${ready ? " on" : ""}`} src={src} muted loop playsInline autoPlay preload="auto"
-      onLoadedData={() => setReady(true)} aria-hidden="true" tabIndex={-1} />
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- local poster still, decorative */}
+      {poster && <img className="cafe-poster" src={poster} alt="" />}
+      {!failed && (
+        <video ref={ref} className={`cafe-loop${ready ? " on" : ""}`} src={src} poster={poster} muted loop playsInline autoPlay={want} preload={play === undefined ? "auto" : "metadata"}
+          onLoadedData={() => setReady(true)} onError={() => setFailed(true)} aria-hidden="true" tabIndex={-1} />
+      )}
+    </>
   );
 }

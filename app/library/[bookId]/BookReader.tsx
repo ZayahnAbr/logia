@@ -1,7 +1,5 @@
 "use client";
 
-import { ShareButton } from "@/components/ShareSheet";
-import { shareBookLink } from "@/app/share-actions";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { RenameableTitle } from "@/components/RenameableTitle";
@@ -240,8 +238,6 @@ export function BookReader({ bookId, title, initialPage, initialHighlights, init
         </div>
 
         <div className="reader-group">
-          <ShareButton iconOnly label="Share textbook" className="btn btn-ghost btn-icon btn-sm" note="Anyone with this link can open the PDF for 7 days."
-            get={() => shareBookLink(bookId)} />
           <button type="button" className="btn btn-sm" aria-pressed={isBookmarked} onClick={onToggleBookmark} disabled={!numPages}
             style={isBookmarked ? { background: "var(--accent-soft)", color: "var(--accent-text)" } : undefined}>
             {isBookmarked ? <BookmarkCheck size={15} aria-hidden="true" /> : <Bookmark size={15} aria-hidden="true" />}
