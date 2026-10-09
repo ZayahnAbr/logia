@@ -33,7 +33,7 @@ async function safetyModelListed(p: Provider): Promise<boolean> {
   return ok;
 }
 
-export const BUSY_MESSAGE = "Logia's AI is busy right now. Try again in a few minutes.";
+export const BUSY_MESSAGE = "Logia is busy right now. Try again in a few minutes.";
 
 const MAX_RETRY_AFTER_MS = 5000;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -153,7 +153,10 @@ export async function callChat(opts: {
     candidates = listed;
   }
 
+  // Someone is waiting on an interactive answer, so stop trying further providers after ~40 seconds.
+  const t0 = Date.now();
   for (const p of candidates) {
+    if (opts.purpose === "interactive" && Date.now() - t0 > 40_000) break;
     const slot = await takeSlot(db, p, est);
     if (!slot.ok) { console.info(`[ai] ${p.id} skipped (${slot.reason ?? "no headroom"})`); continue; }
 
@@ -164,6 +167,8 @@ export async function callChat(opts: {
     });
     const res = await sendWithRetry(p, () => fetch(`${p.baseUrl}/chat/completions`, {
       method: "POST", headers: { Authorization: `Bearer ${providerKey(p)}`, "Content-Type": "application/json" }, body,
+      // A stuck provider must not hold the student up: give up and try the next one.
+      signal: AbortSignal.timeout(opts.purpose === "interactive" ? 25_000 : 90_000),
     }));
     if (!res) continue;
     if (!res.ok) { console.warn(`[ai] ${p.id} failed with ${res.status}`); continue; }
@@ -212,6 +217,8 @@ export async function callVision(opts: {
     });
     const res = await sendWithRetry(p, () => fetch(`${p.baseUrl}/chat/completions`, {
       method: "POST", headers: { Authorization: `Bearer ${providerKey(p)}`, "Content-Type": "application/json" }, body,
+      // A stuck provider must not hold the student up: give up and try the next one.
+      signal: AbortSignal.timeout(opts.purpose === "interactive" ? 25_000 : 90_000),
     }));
     if (!res) continue;
     if (!res.ok) { console.warn(`[ai] ${p.id} vision failed with ${res.status}`); continue; }

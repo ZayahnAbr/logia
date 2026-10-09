@@ -8,7 +8,7 @@ import { signCafeMedia } from "@/app/cafe-actions";
 import type { UserCafe } from "@/lib/userCafes";
 import { HostForm, type HostInitial } from "./HostForm";
 
-export const metadata: Metadata = { title: "Host a study-with-me · Logia" };
+export const metadata: Metadata = { title: "Create a live room · Logia" };
 
 export default async function HostPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit } = await searchParams;
@@ -34,10 +34,10 @@ export default async function HostPage({ searchParams }: { searchParams: Promise
     <AppShell>
       <div className="phead mesh-warm">
         <div className="eyebrow">Discover</div>
-        <h1>{initial ? "Edit your room" : "Host a study-with-me"}</h1>
+        <h1>{initial ? "Edit your room" : "Create your own live room"}</h1>
         <div className="sub">Set the scene, the music and the timer, then invite people to focus alongside you.</div>
       </div>
-      <Link href="/discover?tab=streams" className="btn btn-sm" style={{ marginBottom: 16 }}><ArrowLeft size={14} aria-hidden="true" /> Back to Discover</Link>
+      <Link href="/discover?tab=rooms" className="btn btn-sm" style={{ marginBottom: 16, width: "fit-content" }}><ArrowLeft size={14} aria-hidden="true" /> Back to Discover</Link>
       <HostForm uid={user.id} initial={initial} />
     </AppShell>
   );

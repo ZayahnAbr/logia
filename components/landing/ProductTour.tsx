@@ -11,7 +11,7 @@ const TABS = [
   { id: "rooms", label: "Study rooms", icon: Users, blurb: "A shared goal, a shared timer, and chat or voice when you need it." },
   { id: "papers", label: "Past papers", icon: FileCheck2, blurb: "Upload a marked paper and see exactly where the marks went." },
   { id: "maps", label: "Mind maps", icon: Workflow, blurb: "Turn a chapter into a map you can edit, colour and rearrange." },
-  { id: "ai", label: "Ask AI", icon: MessageSquare, blurb: "Ask about your notes and files. Every answer shows where it came from." },
+  { id: "ai", label: "Ask Logia", icon: MessageSquare, blurb: "Ask about your notes and files. Every answer shows where it came from." },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
 
@@ -155,7 +155,7 @@ function MapsScreen() {
 function AiScreen() {
   return (
     <>
-      <Head eyebrow="Ask AI" title="Grounded in your notes" />
+      <Head eyebrow="Ask Logia" title="Grounded in your notes" />
       <div className="pt-ai">
         <span className="q">What’s the difference between the phonological loop and the visuospatial sketchpad?</span>
         <span className="a">The <b>phonological loop</b> holds sound and speech, like repeating a number to yourself. The <b>visuospatial sketchpad</b> holds images and layout, like picturing a route.

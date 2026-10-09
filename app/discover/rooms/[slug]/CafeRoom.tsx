@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { RealtimeChannel } from "@supabase/supabase-js";
-import { ArrowLeft, Bell, BellOff, Check, ChevronDown, ChevronUp, Coffee, Flag, MessageCircle, Music, MoreHorizontal, Pause, Play, Send, UserX, Volume2, VolumeX, X } from "lucide-react";
+import { PanelRightClose, ArrowLeft, Bell, BellOff, Check, ChevronDown, ChevronUp, Coffee, Flag, MessageCircle, Music, MoreHorizontal, Pause, Play, Send, UserX, Volume2, VolumeX, X } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Embed } from "@/lib/musicEmbed";
 import { createClient } from "@/lib/supabase/client";
@@ -279,7 +279,7 @@ export function CafeRoomView({ room, initialMessages }: { room: CafeConfig; init
         <aside className="cafe-chat open" aria-label="Room chat">
           <div className="cafe-chat-head">
             <h2>Chat</h2>
-            <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setChatOpen(false)} aria-label="Close chat"><X size={16} aria-hidden="true" /></button>
+            <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setChatOpen(false)} aria-label="Hide chat" title="Hide chat"><PanelRightClose size={17} aria-hidden="true" /></button>
           </div>
 
           {phase === "focus" ? (

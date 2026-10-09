@@ -16,7 +16,7 @@ export function InviteLink({ url }: { url: string }) {
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <button type="button" className="btn btn-primary" onClick={copy}>{copied ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />} {copied ? "Copied" : "Copy link"}</button>
         <ShareButton label="Share" className="btn l-btn-soft"
-          data={{ title: "Join me on Logia", text: "I'm using Logia to turn my notes into flashcards that test me. Join with my link and we both get bonus AI time.", url }} />
+          data={{ title: "Join me on Logia", text: "I'm using Logia to turn my notes into flashcards that test me. Join with my link and we both get bonus study time.", url }} />
       </div>
     </div>
   );

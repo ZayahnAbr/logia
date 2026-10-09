@@ -13,7 +13,7 @@ import { LmsSection } from "./LmsSection";
 const SECTIONS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "ai", label: "AI and plan", icon: Sparkles },
+  { id: "ai", label: "Plan and usage", icon: Sparkles },
   { id: "school-sync", label: "School sync", icon: Plug },
   { id: "help", label: "Help", icon: LifeBuoy },
   { id: "legal", label: "Legal", icon: Scale },
@@ -33,7 +33,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <div className="phead mesh-warm">
         <div className="eyebrow">Settings</div>
         <h1>Settings</h1>
-        <div className="sub">Your profile, how Logia looks, and your AI allowance.</div>
+        <div className="sub">Your profile, how Logia looks, and your study allowance.</div>
       </div>
 
       <div className="st wk-settings">
@@ -58,12 +58,12 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           </section>
 
           <section id="ai" className="st-sec" aria-labelledby="h-ai">
-            <h2 id="h-ai">AI and plan</h2>
+            <h2 id="h-ai">Plan and usage</h2>
             <AiAllowance />
             {plan.plan === "free" && (
               <div className="card st-card">
                 <div className="st-row">
-                  <div><strong>Bonus AI time</strong><span>Invite a friend and you both get extra.</span></div>
+                  <div><strong>Bonus study time</strong><span>Invite a friend and you both get extra.</span></div>
                   <Link href="/invite" className="btn">Invite friends</Link>
                 </div>
                 <div className="st-row">
@@ -97,7 +97,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             <h2 id="h-legal">Legal</h2>
             <div className="card st-card">
               <div className="st-row">
-                <div><strong>Terms and policies</strong><span>Draft documents, under legal review.</span></div>
+                <div><strong>Terms and policies</strong><span>How Logia works, what you can share, and your privacy.</span></div>
                 <nav aria-label="Legal documents" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   <Link href="/legal/terms" className="btn">Terms</Link>
                   <Link href="/legal/acceptable-use" className="btn">Acceptable use</Link>

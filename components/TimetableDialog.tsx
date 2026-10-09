@@ -119,7 +119,7 @@ export function TimetableDialog({ spaceId, onClose, onSaved }: { spaceId?: strin
         </div>
       ) : (
         <div className="tt-form">
-          <p className="tt-warn" role="note">AI reads the image and can misread it, so check every day and time. Nothing is saved until you press Save.</p>
+          <p className="tt-warn" role="note">Logia reads the image and can misread it, so check every day and time. Nothing is saved until you press Save.</p>
           {rows.length === 0 && <p className="tt-note">No classes were found. This may not be a timetable, or the photo was too unclear. Add classes by hand or go back and try a sharper photo.</p>}
           <ul className="tt-rows">
             {rows.map((r, i) => (

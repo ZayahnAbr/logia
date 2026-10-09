@@ -47,7 +47,7 @@ export async function getInviteInfo() {
 }
 
 const CLAIM_MESSAGES: Record<string, string> = {
-  ok: "Invite accepted. You and your friend each got bonus AI time.",
+  ok: "Invite accepted. You and your friend each got bonus study time.",
   invalid: "That invite link isn't valid any more.",
   own_code: "That's your own invite link. Share it with a friend instead.",
   already_claimed: "You've already used an invite link.",

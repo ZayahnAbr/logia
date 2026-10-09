@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Send, Loader2, BookOpen, FileText, Mic, ShieldCheck, RefreshCw, Copy, Check, Sparkles, Globe, Search, Trash2 } from "lucide-react";
+import { ThinkingSteps } from "@/components/ThinkingSteps";
 import { chatWithSpace, reindexSpace, getAskSuggestions, type AskSource } from "@/app/actions";
 import { loadChat, appendChat, clearChat } from "@/app/chat-history-actions";
 
@@ -172,7 +173,7 @@ export function ChatBoard({ spaceId, indexedCount }: { spaceId: string; indexedC
             </div>
           </div>
         ))}
-        {pending && <div className="ai-a ai-thinking"><Loader2 size={15} className="spin" aria-hidden="true" /> Reading your materials…</div>}
+        {pending && <ThinkingSteps steps={["Searching your notes and files", "Reading the parts that match", "Writing your answer", "Checking it against your notes", "Nearly there"]} />}
       </div>
 
       <form className="ai-compose" onSubmit={(e) => { e.preventDefault(); send(); }}>

@@ -28,7 +28,7 @@ export function ImportLink({ spaceId, folder, onClose }: { spaceId: string; fold
     const r = res as { id: string; name: string; path: string; mime: string };
     setDone({ id: r.id, name: r.name }); setStage("done");
     router.refresh();
-    // Index for Ask AI, best-effort, same as an upload.
+    // Index for Ask Logia, best-effort, same as an upload.
     try {
       const signed = (await getFileUrl(r.path)).url;
       if (signed) {

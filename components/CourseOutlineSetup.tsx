@@ -96,7 +96,7 @@ function OutlineDialog({ spaceId, files, courseId, onClose }: { spaceId: string;
     <Dialog title="Set up from your course outline" onClose={onClose} width={820}>
       {(stage === "pick" || stage === "reading") && (
         <div className="co-pick">
-          <p className="co-note">{courseId ? "This replaces the assessments and topics of this course only. Marks you entered for it will be cleared. " : ""}Pick the document that lists your topics and assessments. AI reads it, and it can get things wrong, so you will review everything before anything is saved.</p>
+          <p className="co-note">{courseId ? "This replaces the assessments and topics of this course only. Marks you entered for it will be cleared. " : ""}Pick the document that lists your topics and assessments. Logia reads it, and it can get things wrong, so you will review everything before anything is saved.</p>
           {stage === "reading" ? (
             <div className="co-wait" role="status"><Loader2 size={20} className="spin" aria-hidden="true" /><span>Reading {fileName}. This can take up to a minute.</span></div>
           ) : (
@@ -122,7 +122,7 @@ function OutlineDialog({ spaceId, files, courseId, onClose }: { spaceId: string;
 
       {(stage === "review" || busy) && (
         <div className="co-review">
-          <p className="co-warn" role="note"><AlertTriangle size={15} aria-hidden="true" /> <span>AI read <strong>{fileName}</strong> and can get things wrong. Check every item, date and weight before saving. Nothing is saved until you press Create.{truncated ? " This document is very long, so the later pages were not read." : ""}</span></p>
+          <p className="co-warn" role="note"><AlertTriangle size={15} aria-hidden="true" /> <span>Logia read <strong>{fileName}</strong> and can get things wrong. Check every item, date and weight before saving. Nothing is saved until you press Create.{truncated ? " This document is very long, so the later pages were not read." : ""}</span></p>
 
           <section aria-labelledby={`${uid}-c`}>
             <h3 className="co-h" id={`${uid}-c`}>Course</h3>

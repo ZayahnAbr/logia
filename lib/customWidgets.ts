@@ -31,6 +31,9 @@ export const STICKY_COLORS = [
 export const STICKY_COLOR_IDS: string[] = STICKY_COLORS.map((c) => c.id);
 export const STICKY_MAX_TEXT = 1500;
 export const STICKER_DEFAULT_STICKY_W = 200;
+export const STICKER_DEFAULT_ROOM_W = 360;
+/** A live room placed on a space home: one of Logia's rooms (slug) or a hosted room (id). */
+export type RoomData = { ref: "official" | "hosted"; slug?: string; id?: string } & StickerPos;
 export type StickyData = { text: string; color: string; legacyId?: string } & StickerPos;
 
 // Widget colour swatches. Only the surface is tinted (lightly in light mode, deeply in dark mode),

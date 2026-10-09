@@ -42,7 +42,7 @@ export default async function SpacesPage() {
   // One state-aware "next step" so the dashboard always answers "what should I do now?"
   const first = spaces[0];
   const nextStep = !first
-    ? { title: "Create your first space", body: "A space holds one module: its notes, flashcards, papers and AI help. Start one below, or join a classmate's with their invite code.", href: "#create-space", cta: "Create a space" }
+    ? { title: "Create your first space", body: "A space holds one module: its notes, flashcards, papers and study help. Start one below, or join a classmate's with their invite code.", href: "#create-space", cta: "Create a space" }
     : dash.pains[0]
     ? { title: `Fix a weak spot: ${dash.pains[0].title}`, body: "You've slipped on this more than once. A few minutes on it now pays off in the exam.", href: `/spaces/${dash.pains[0].space_id}/pain-points`, cta: "Review pain points" }
     : dash.books[0]

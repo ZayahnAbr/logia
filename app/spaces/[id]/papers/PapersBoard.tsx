@@ -5,7 +5,8 @@ import { renameUpload } from "@/app/actions";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Upload, Loader2, FileCheck2, Trash2, ChevronRight, FileText, ClipboardCheck, SearchCheck, Sparkles, Camera } from "lucide-react";
+import { ThinkingSteps } from "@/components/ThinkingSteps";
+import { Search, Upload, FileCheck2, Trash2, ChevronRight, FileText, ClipboardCheck, SearchCheck, Sparkles, Camera } from "lucide-react";
 import { extractFileText } from "@/lib/extractText";
 import { generatePastPaper, deletePastPaper } from "@/app/actions";
 import type { PastPaper } from "@/lib/types";
@@ -117,13 +118,12 @@ export function PapersBoard({ spaceId, papers }: { spaceId: string; papers: Past
             ))}
           </ol>
           {pending ? (
-            <div className="pp-progress" role="status">
-              <Loader2 size={18} className="spin" aria-hidden="true" />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <strong>{stage === "reading" ? "Step 1 of 2: reading your paper and memo" : "Step 2 of 2: marking every question"}</strong>
-                <span className="pp-bar"><i style={{ width: stage === "reading" ? "35%" : "80%" }} /></span>
-                <small>This can take up to a minute. Keep this tab open.</small>
-              </div>
+            <div className="pp-progress-steps">
+              <p className="pp-stage">{stage === "reading" ? "Step 1 of 2" : "Step 2 of 2"}</p>
+              {stage === "reading"
+                ? <ThinkingSteps key="reading" every={4500} steps={["Opening your paper and memo", "Reading each page", "Matching your answers to the memo"]} />
+                : <ThinkingSteps key="marking" every={5000} steps={["Marking every question", "Adding up your marks", "Finding the topics to work on", "Writing your feedback"]} />}
+              <small className="pp-keep">Keep this tab open. Most papers take under a minute.</small>
             </div>
           ) : (
             <button type="button" className="btn btn-primary btn-lg pp-go" onClick={submit}>Mark my paper</button>

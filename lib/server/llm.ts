@@ -25,12 +25,12 @@ export const HOURLY_TOKEN_CAP = AI_LIMITS.hour.tokens;
 // Messages we throw ourselves are already user-facing and pass straight through.
 export function friendlyError(e: unknown, action: string): string {
   const msg = e instanceof Error ? e.message : String(e ?? "");
-  if (/Groq error 429|rate.?limit/i.test(msg)) return `Couldn't ${action}: the AI service is busy right now. Wait a minute and try again.`;
-  if (/Groq error 40[13]/.test(msg)) return `Couldn't ${action}: the AI service rejected the app's API key. Ask the site admin to check GROQ_API_KEY.`;
-  if (/Groq error 413|too large|context length/i.test(msg)) return `Couldn't ${action}: the content is too long for the AI. Try a shorter file or split it into parts.`;
-  if (/Groq error 5\d\d/.test(msg)) return `Couldn't ${action}: the AI service is having problems. Try again in a few minutes.`;
-  if (e instanceof SyntaxError || /JSON/i.test(msg)) return `Couldn't ${action}: the AI sent back an unreadable answer. Please try again.`;
-  if (/fetch failed|network|ECONN|ETIMEDOUT/i.test(msg)) return `Couldn't ${action}: couldn't reach the AI service. Check your internet connection and try again.`;
+  if (/Groq error 429|rate.?limit/i.test(msg)) return `Couldn't ${action}: Logia is busy right now. Wait a minute and try again.`;
+  if (/Groq error 40[13]/.test(msg)) return `Couldn't ${action} just now. Please try again in a moment.`;
+  if (/Groq error 413|too large|context length/i.test(msg)) return `Couldn't ${action}: that is too long to handle in one go. Try a shorter file or split it into parts.`;
+  if (/Groq error 5\d\d/.test(msg)) return `Couldn't ${action}: something went wrong on our side. Try again in a few minutes.`;
+  if (e instanceof SyntaxError || /JSON/i.test(msg)) return `Couldn't ${action} this time. Please try again.`;
+  if (/fetch failed|network|ECONN|ETIMEDOUT/i.test(msg)) return `Couldn't ${action}: the connection dropped. Check your internet and try again.`;
   if (/violates row-level security|permission denied/i.test(msg)) return `Couldn't ${action}: you don't have permission to change this.`;
   if (/relation .* does not exist|column .* does not exist|schema cache/i.test(msg)) return `Couldn't ${action}: the database is missing a recent update. Ask the site admin to run the latest Supabase migration.`;
   if (/Not authenticated/i.test(msg)) return "Your session has expired. Please sign in again.";
@@ -111,11 +111,11 @@ export async function enforceRateLimit(supabase: Db, user: UserLite, opts?: { es
     // Plain language only: no numbers, no mechanics. Short waits say seconds, longer ones a clock time.
     const back = w.name === "day" ? "tomorrow morning" : secs < 120 ? `in about ${secs} seconds` : `at ${when}`;
     const fits = est > 0 && w.usedTokens < w.limitTokens && !reqFull;
-    if (fits) throw new Error(`There isn't enough AI time left to ${opts?.task ?? "finish that"} right now. It's back ${back}.${nudge}`);
+    if (fits) throw new Error(`There isn't enough study-assistant time left to ${opts?.task ?? "finish that"} right now. It's back ${back}.${nudge}`);
     const span = w.name === "day" ? "today" : w.name === "hour" ? "this hour" : "just now";
     throw new Error((w.name === "day"
-      ? "You've done a lot of AI work today. It's back tomorrow morning."
-      : secs < 120 ? `You've done a lot of AI work ${span}. Try again in about ${secs} seconds.` : `You've done a lot of AI work ${span}. It's back at ${when}.`) + nudge);
+      ? "You've done a lot of work today. It's back tomorrow morning."
+      : secs < 120 ? `You've done a lot of work ${span}. Try again in about ${secs} seconds.` : `You've done a lot of work ${span}. It's back at ${when}.`) + nudge);
   }
   return plan;
 }
@@ -145,6 +145,26 @@ export async function logUsage(supabase: Awaited<ReturnType<typeof createClient>
 export async function groqChat(system: string, user: string, maxTokens = 700, purpose: "interactive" | "batch" = "batch", task?: string) {
   const { supabase, user: authUser } = await authed();
   const plan = (await enforceRateLimit(supabase, authUser, { purpose, task, estimate: Math.ceil((system.length + user.length) / 4) + maxTokens })) ?? "free";
-  const { content } = await callChat({ purpose, system, user, maxTokens, json: true, supabase, userId: authUser.id, unmetered: isUnmetered(authUser.email), plan });
-  return JSON.parse(content || "{}");
+  const ask = (tokens: number) => callChat({ purpose, system, user, maxTokens: tokens, json: true, supabase, userId: authUser.id, unmetered: isUnmetered(authUser.email), plan });
+  const first = parseLooseJson((await ask(maxTokens)).content);
+  if (first !== null) return first;
+  // A cut-off or wrapped reply: ask once more with more room before giving up.
+  const second = parseLooseJson((await ask(Math.round(maxTokens * 1.6))).content);
+  if (second !== null) return second;
+  throw new SyntaxError("unreadable JSON");
+}
+
+/** Reads JSON even when a model wraps it in code fences or adds text around it. Null when it really is not JSON. */
+export function parseLooseJson(raw: string | null | undefined): any {
+  const text = (raw ?? "").trim();
+  if (!text) return null;
+  const tries = [text, text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "")];
+  const start = text.search(/[\[{]/), end = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
+  if (start >= 0 && end > start) tries.push(text.slice(start, end + 1));
+  for (const t of tries) {
+    for (const candidate of [t, t.replace(/,\s*([}\]])/g, "$1")]) {
+      try { return JSON.parse(candidate); } catch { /* try the next shape */ }
+    }
+  }
+  return null;
 }

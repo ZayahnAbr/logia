@@ -7,5 +7,5 @@ export type AgeChoice = "" | "18+" | "13-17" | "under13";
 export const looksLikeEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 // Shown in the legal pages. Set NEXT_PUBLIC_CONTACT_EMAIL to a public support address before launch.
-export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "zayahnabrahams1@gmail.com";
+export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "adminlogia@gmail.com";
 export const EFFECTIVE_DATE = "9 October 2026";

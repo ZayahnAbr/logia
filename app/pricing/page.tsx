@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description: "Logia is free during the beta. Join the waitlist to lock in the R99 early-member price for Logia Pro.",
 };
 
-const FREE = ["Every tool, in every space", "Fair-use AI that refills every hour", "Bonus AI time for each friend you invite", "Study rooms with chat and voice"];
+const FREE = ["Every tool, in every space", "Fair-use limits that refill every hour", "Bonus study time for each friend you invite", "Study rooms with chat and voice"];
 const EARLY = ["Everything in the beta", "No waiting at busy times", "Big jobs like marking papers and reading course outlines are always available", "Priority when the app is busy", "The R99 early-member price, kept for as long as you stay subscribed", "First access to new features"];
 
 export default function PricingPage() {
@@ -20,7 +20,7 @@ export default function PricingPage() {
         <section className="l-wrap site-head">
           <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Pricing</p>
           <h1 className="site-h1">Free while Logia is in beta</h1>
-          <p className="l-body">Use everything at no cost. AI features have a fair-use limit that refills every hour. Want no waiting? Join the waitlist for Logia Pro.</p>
+          <p className="l-body">Use everything at no cost. Smart features have a fair-use limit that refills every hour. Want no waiting? Join the waitlist for Logia Pro.</p>
         </section>
 
         <section className="l-wrap price-grid" aria-label="Plans">
@@ -46,12 +46,12 @@ export default function PricingPage() {
         <section className="l-wrap price-faq" aria-labelledby="faq-h">
           <h2 id="faq-h" className="l-h2" style={{ fontSize: "clamp(1.4rem, 2.6vw, 1.9rem)" }}>Questions</h2>
           <dl>
-            <div><dt>How much AI do I get for free?</dt><dd>Enough for a focused hour of study: checking a few dozen spoken answers, generating a couple of decks, or marking a past paper. Logia shows how much of this hour&apos;s AI you&apos;ve used, and it refills on a rolling hourly basis. With Logia Pro you don&apos;t wait at busy times.</dd></div>
-            <div><dt>What happens when I reach the limit?</dt><dd>AI features pause and Logia tells you when they&apos;ll be back. Everything else, like notes, reading and reviewing cards, keeps working. If you have bonus AI time from invites, AI keeps going and uses that instead.</dd></div>
-            <div><dt>Why is there a limit at all?</dt><dd>AI costs money to run. A fair-use limit keeps Logia free for everyone during the beta. Logia Pro is for students who lean on it every day.</dd></div>
+            <div><dt>How much can I do for free?</dt><dd>Enough for a focused hour of study: checking a few dozen spoken answers, generating a couple of decks, or marking a past paper. Logia shows how much of this hour&apos;s allowance you&apos;ve used, and it refills on a rolling hourly basis. With Logia Pro you don&apos;t wait at busy times.</dd></div>
+            <div><dt>What happens when I reach the limit?</dt><dd>Smart features pause and Logia tells you when they&apos;ll be back. Everything else, like notes, reading and reviewing cards, keeps working. If you have bonus study time from invites, they keep going and use that instead.</dd></div>
+            <div><dt>Why is there a limit at all?</dt><dd>Smart features cost money to run. A fair-use limit keeps Logia free for everyone during the beta. Logia Pro is for students who lean on it every day.</dd></div>
             <div><dt>Will I lose my work if I don&apos;t upgrade?</dt><dd>No. The beta plan stays, and your notes, decks and papers are yours either way.</dd></div>
           </dl>
-          <p className="l-body">Want more AI now? <Link href="/invite" className="site-link">Invite a friend</Link> and you both get bonus AI time.</p>
+          <p className="l-body">Want more now? <Link href="/invite" className="site-link">Invite a friend</Link> and you both get bonus study time.</p>
         </section>
       </main>
       <SiteFooter />

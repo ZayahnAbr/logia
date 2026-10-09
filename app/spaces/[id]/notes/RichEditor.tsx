@@ -111,7 +111,8 @@ export function RichEditor({
   const editor = useEditor({
     extensions: [
       collab ? StarterKit.configure({ undoRedo: false }) : StarterKit,
-      Image.configure({ HTMLAttributes: { style: "max-width:100%;border-radius:10px;margin:10px 0;" } }),
+      // Drag a corner or edge to resize; the width is saved with the note.
+      Image.configure({ HTMLAttributes: { style: "max-width:100%;border-radius:10px;margin:10px 0;" }, resize: { enabled: true, directions: ["bottom-right", "bottom-left", "top-right", "top-left", "right", "left"], minWidth: 80, minHeight: 40, alwaysPreserveAspectRatio: true } }),
       Youtube.configure({ width: 560, height: 315, HTMLAttributes: { style: "border-radius:10px;margin:10px 0;" } }),
       Iframe,
       TextStyle, Color, FontFamily, FontSize,

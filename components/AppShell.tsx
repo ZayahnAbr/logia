@@ -54,7 +54,7 @@ function getSpaceNav(spaceId: string): NavGroup[] {
       { label: "Files", icon: Files, href: h("/files") },
       { label: "Lectures", icon: Mic, href: h("/lectures") },
       { label: "Scan", icon: ScanLine, href: h("/scan") },
-      { label: "Ask AI", icon: MessageSquare, href: h("/chat"), tour: "chat" },
+      { label: "Ask Logia", icon: MessageSquare, href: h("/chat"), tour: "chat" },
     ] },
     { label: "Practise", items: [
       { label: "Flashcards", icon: Layers, href: h("/decks"), tour: "flashcards" },

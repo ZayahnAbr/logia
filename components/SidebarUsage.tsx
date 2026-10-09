@@ -18,7 +18,7 @@ export function SidebarUsage() {
   }, []);
   if (!a) return null;
   if (!a.unlimited && a.pro) return null; // Pro students see no meter
-  if (a.unlimited) return <Link href="/spaces/settings#ai" className="su"><span className="su-top"><span>AI usage</span><b>Unlimited</b></span></Link>;
+  if (a.unlimited) return <Link href="/spaces/settings#ai" className="su"><span className="su-top"><span>Study assistant</span><b>Unlimited</b></span></Link>;
   const left = 100 - a.pct;
   const refill = a.refillAt ? new Date(a.refillAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
   // Calm wording on purpose: a status, not a countdown. Only shows a bar and a time when the assistant needs a rest.

@@ -8,7 +8,7 @@ import { InviteLink } from "./InviteLink";
 
 export const metadata: Metadata = {
   title: "Invite friends · Logia",
-  description: "Invite a friend to Logia and you both get bonus AI time.",
+  description: "Invite a friend to Logia and you both get bonus study time.",
 };
 
 const fmt = (n: number) => n.toLocaleString("en-ZA");
@@ -26,8 +26,8 @@ export default async function InvitePage() {
       <main id="main">
         <section className="l-wrap site-head">
           <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Invite friends</p>
-          <h1 className="site-h1">Bring a friend, both get more AI</h1>
-          <p className="l-body">When a friend joins with your link, you each get about two and a half hours of bonus AI time, used only after your hourly allowance runs out.</p>
+          <h1 className="site-h1">Bring a friend, both get more study time</h1>
+          <p className="l-body">When a friend joins with your link, you each get about two and a half hours of bonus study time, used only after your hourly allowance runs out.</p>
         </section>
 
         <section className="l-wrap invite-grid">
@@ -49,7 +49,7 @@ export default async function InvitePage() {
                 <InviteLink url={`${origin}/?ref=${info.code}`} />
                 <dl className="invite-stats">
                   <div><dt>Friends joined</dt><dd>{fmt(info.friends ?? 0)}</dd></div>
-                  <div><dt>Bonus AI time left</dt><dd>{hours(info.credits ?? 0)}</dd></div>
+                  <div><dt>Bonus study time left</dt><dd>{hours(info.credits ?? 0)}</dd></div>
                 </dl>
               </>
             )}
@@ -58,7 +58,7 @@ export default async function InvitePage() {
           <ol className="invite-steps" aria-label="How it works">
             <li><span className="cap-icon" aria-hidden="true"><UserPlus size={17} /></span><div><h3>Share your link</h3><p>Send it on WhatsApp, Messages or email, or post it in your class group.</p></div></li>
             <li><span className="cap-icon" aria-hidden="true"><Sparkles size={17} /></span><div><h3>Your friend signs up</h3><p>They create a free account from your link within 14 days.</p></div></li>
-            <li><span className="cap-icon" aria-hidden="true"><Gift size={17} /></span><div><h3>You both get bonus AI time</h3><p>It only kicks in when your hourly allowance runs out, so it never goes to waste.</p></div></li>
+            <li><span className="cap-icon" aria-hidden="true"><Gift size={17} /></span><div><h3>You both get bonus study time</h3><p>It only kicks in when your hourly allowance runs out, so it never goes to waste.</p></div></li>
           </ol>
         </section>
 
@@ -67,7 +67,7 @@ export default async function InvitePage() {
           <ul className="cap-facts">
             <li>Each account can accept one invite, within 14 days of signing up.</li>
             <li>You earn rewards for up to 25 friends.</li>
-            <li>Bonus AI time doesn&apos;t expire during the beta and can&apos;t be exchanged for money.</li>
+            <li>Bonus study time doesn&apos;t expire during the beta and can&apos;t be exchanged for money.</li>
           </ul>
         </section>
       </main>

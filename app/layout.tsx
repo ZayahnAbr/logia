@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Instrument_Serif } from "next/font/google";
 import "./globals.css";
+import "./refresh.css";
 import { Toaster } from "@/components/Toaster";
 import { RoomProvider } from "@/components/RoomProvider";
 import { RoomDock } from "@/components/RoomDock";
@@ -32,7 +33,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Logia: notes, flashcards and study rooms",
-  description: "Notes, flashcards, lectures, mind maps and AI study tools in one private workspace.",
+  description: "Notes, flashcards, lectures, mind maps and smart study tools in one private workspace.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -21,6 +21,23 @@ import { openFileAsNote } from "@/app/import-actions";
 
 type FileRow = { id: string; name: string; folder: string; size_bytes: number; mime_type: string; path: string; created_at: string };
 
+// File type, from the extension first and the mime type second. Drives the badge colour and the summary bar.
+const KINDS = { pdf: "PDF", doc: "Doc", slides: "Slides", sheet: "Sheet", image: "Image", audio: "Audio", video: "Video", text: "Text", other: "File" } as const;
+type Kind = keyof typeof KINDS;
+const kindOf = (name: string, mime: string): Kind => {
+  const e = name.split(".").pop()?.toLowerCase() ?? "";
+  if (e === "pdf" || mime === "application/pdf") return "pdf";
+  if (["doc", "docx", "odt", "rtf", "pages"].includes(e)) return "doc";
+  if (["ppt", "pptx", "key", "odp"].includes(e)) return "slides";
+  if (["xls", "xlsx", "csv", "ods", "numbers"].includes(e)) return "sheet";
+  if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("audio/")) return "audio";
+  if (mime.startsWith("video/")) return "video";
+  if (mime.startsWith("text/") || ["txt", "md"].includes(e)) return "text";
+  return "other";
+};
+const shortDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: "numeric", month: "short" });
+
 const fmt = (b: number) => b > 1_000_000 ? `${(b / 1_000_000).toFixed(1)} MB` : `${Math.round(b / 1000)} KB`;
 
 export function FilesBoard({
@@ -163,34 +180,35 @@ export function FilesBoard({
       onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropping(false); }}
       onDrop={(e) => { if (!e.dataTransfer.files.length) return; e.preventDefault(); setDropping(false); if (!pending) uploadMany([...e.dataTransfer.files]); }}>
       {dropping && <div className="fb-drop-hint" aria-hidden="true"><Upload size={20} /> Drop to upload</div>}
-      {/* Toolbar: search, sort, view, upload */}
-      <div className="nb-bar" style={{ alignItems: "flex-start" }}>
-        <div className="nb-search">
+      {/* Toolbar: search on the left, quiet tools and the one primary action on the right */}
+      <div className="fx-bar">
+        <div className="nb-search fx-search">
           <Search size={15} aria-hidden="true" />
           <label htmlFor="fb-q" className="sr-only">Search files</label>
           <input id="fb-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search files" />
           {q && <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={() => setQ("")} aria-label="Clear search"><X size={14} /></button>}
         </div>
-        <label className="sr-only" htmlFor="fb-sort">Sort files</label>
-        <select id="fb-sort" className="ln-select" style={{ height: 38 }} value={sort} onChange={(e) => setSort(e.target.value as "new" | "name" | "size")}>
-          <option value="new">Newest first</option>
-          <option value="name">Name</option>
-          <option value="size">Largest first</option>
-        </select>
-        <div className="ln-seg" role="group" aria-label="View">
-          <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")}><LayoutGrid size={14} aria-hidden="true" /> Grid</button>
-          <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")}><List size={14} aria-hidden="true" /> List</button>
-        </div>
-        <CourseOutlineButton spaceId={spaceId} variant="button" files={files.map((x) => ({ id: x.id, name: x.name, path: x.path, mime_type: x.mime_type }))} />
-        <button type="button" className="btn" style={{ height: 36 }} onClick={() => setImporting(true)}><Link2 size={14} aria-hidden="true" /> Import from link</button>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-          <label className="btn btn-primary" style={{ cursor: pending ? "not-allowed" : "pointer", height: 36 }} aria-disabled={pending}>
-            {pending ? <><Loader2 size={14} className="spin" aria-hidden="true" /> {progress && progress.total > 1 ? `Uploading ${progress.done + 1} of ${progress.total}` : "Uploading…"}</> : <><Upload size={14} aria-hidden="true" /> Upload files</>}
+        <div className="fx-tools">
+          <label className="sr-only" htmlFor="fb-sort">Sort files</label>
+          <select id="fb-sort" className="fx-select" value={sort} onChange={(e) => setSort(e.target.value as "new" | "name" | "size")}>
+            <option value="new">Newest first</option>
+            <option value="name">Name</option>
+            <option value="size">Largest first</option>
+          </select>
+          <div className="fx-view" role="group" aria-label="View">
+            <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")} aria-label="Grid view" title="Grid"><LayoutGrid size={15} aria-hidden="true" /></button>
+            <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} aria-label="List view" title="List"><List size={15} aria-hidden="true" /></button>
+          </div>
+          <span className="fx-sep" aria-hidden="true" />
+          <CourseOutlineButton spaceId={spaceId} variant="button" files={files.map((x) => ({ id: x.id, name: x.name, path: x.path, mime_type: x.mime_type }))} />
+          <button type="button" className="btn btn-ghost" onClick={() => setImporting(true)}><Link2 size={14} aria-hidden="true" /> From link</button>
+          <label className="btn btn-primary" style={{ cursor: pending ? "not-allowed" : "pointer" }} aria-disabled={pending}>
+            {pending ? <><Loader2 size={14} className="spin" aria-hidden="true" /> {progress && progress.total > 1 ? `Uploading ${progress.done + 1} of ${progress.total}` : "Uploading…"}</> : <><Upload size={14} aria-hidden="true" /> Upload</>}
             <input ref={inputRef} type="file" multiple hidden onChange={onPick} disabled={pending} />
           </label>
-          <span style={{ fontSize: 12, color: "var(--faint)" }} aria-live="polite">{progress ? `Uploading ${progress.name}` : "Pick or drop several at once · up to 25 MB each"}</span>
         </div>
       </div>
+      <p className="fx-hint" aria-live="polite">{progress ? `Uploading ${progress.name}` : "Drop files anywhere on this page, or pick several at once. Up to 25 MB each."}</p>
 
       <FolderChips storageKey={`logia.files.${spaceId}.folderColors`} dragType="text/file-id"
         folders={folderList} total={files.length} active={activeFolder} onSelect={setActiveFolder}
@@ -203,36 +221,66 @@ export function FilesBoard({
           router.refresh();
         }} />
 
+      {files.length > 0 && (() => {
+        const total = files.reduce((n, x) => n + (x.size_bytes || 0), 0);
+        const byKind = Object.entries(files.reduce<Record<string, number>>((m, x) => { const k = kindOf(x.name, x.mime_type); m[k] = (m[k] ?? 0) + 1; return m; }, {}))
+          .sort((x, y) => y[1] - x[1]);
+        return (
+          <div className="fx-summary">
+            <span className="fx-summary-n"><b>{files.length}</b> {files.length === 1 ? "file" : "files"} <i aria-hidden="true">·</i> {fmt(total)}</span>
+            <div className="fx-types" role="img" aria-label={byKind.map(([k, n]) => `${n} ${KINDS[k as Kind]}`).join(", ")}>
+              {byKind.map(([k, n]) => <span key={k} data-kind={k} style={{ flexGrow: n }} />)}
+            </div>
+            <ul className="fx-legend" aria-hidden="true">
+              {byKind.slice(0, 5).map(([k, n]) => <li key={k} data-kind={k}><i />{KINDS[k as Kind]} <span>{n}</span></li>)}
+            </ul>
+          </div>
+        );
+      })()}
+
       {err && <div role="alert" className="err" style={{ marginBottom: 12 }}>{err}</div>}
 
       <div className={`ln-files${sel ? " has-sel" : ""}`}>
       <div className="ln-files-grid">
       {filtered.length === 0 ? (
-        <div className="empty card">{needle ? <><strong>No files match “{q}”.</strong> Try another name.</> : <><strong>No files in {activeFolder === "All" ? "this space" : activeFolder} yet.</strong> Upload slides, readings or PDFs, and Ask AI can answer questions from them.</>}</div>
+        <div className="empty card">{needle ? <><strong>No files match “{q}”.</strong> Try another name.</> : <><strong>No files in {activeFolder === "All" ? "this space" : activeFolder} yet.</strong> Upload slides, readings or PDFs, and Ask Logia can answer questions from them.</>}</div>
       ) : view === "list" ? (
-        <ul className="ln-files-list">
-          {filtered.map((f) => (
-            <li key={f.id} className="ln-frow" aria-current={selId === f.id}>
-              <button type="button" className="ln-frow-t" onClick={() => setSelId(selId === f.id ? null : f.id)} aria-label={`Details for ${f.name}`}>{f.name}</button>
-              <span className="ln-frow-m">{folderOf(f)} · {fmt(f.size_bytes)}</span>
-              <button aria-label={`Download ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => download(f.path, f.name)} disabled={downloading === f.path}><Download size={14} /></button>
-              <button aria-label={`Delete ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => remove(f.id, f.path)}><Trash2 size={14} /></button>
-            </li>
-          ))}
+        <ul className="ln-files-list fx-list">
+          <li className="fx-list-head" aria-hidden="true"><span>Name</span><span>Folder</span><span>Size</span><span>Added</span><span /></li>
+          {filtered.map((f) => {
+            const k = kindOf(f.name, f.mime_type);
+            return (
+              <li key={f.id} className="ln-frow fx-row" aria-current={selId === f.id}>
+                <button type="button" className="ln-frow-t fx-row-name" onClick={() => setSelId(selId === f.id ? null : f.id)} aria-label={`Details for ${f.name}`}>
+                  <span className="fx-badge" data-kind={k}>{KINDS[k]}</span><span className="truncate">{f.name}</span>
+                </button>
+                <span className="fx-row-c">{folderOf(f)}</span>
+                <span className="fx-row-c">{fmt(f.size_bytes)}</span>
+                <span className="fx-row-c">{shortDate(f.created_at)}</span>
+                <span className="fx-row-actions">
+                  <button aria-label={`Download ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => download(f.path, f.name)} disabled={downloading === f.path}><Download size={14} /></button>
+                  <button aria-label={`Delete ${f.name}`} className="btn btn-ghost btn-icon btn-sm" onClick={() => remove(f.id, f.path)}><Trash2 size={14} /></button>
+                </span>
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <ul className="fb-grid">
           {filtered.map((f) => (
             <li key={f.id} className={`fb-tile${selId === f.id ? " ln-sel" : ""}`} draggable onDragStart={(e) => { e.dataTransfer.setData("text/file-id", f.id); e.dataTransfer.effectAllowed = "move"; }}>
+              <div className="fx-media">
               <button type="button" className="fb-open" onClick={() => setSelId(selId === f.id ? null : f.id)} aria-label={`Details for ${f.name}`} aria-pressed={selId === f.id} disabled={downloading === f.path}>
                 <FileThumb name={f.name} mime={f.mime_type} url={previews[f.id] ?? null} />
                 {downloading === f.path && <span className="fb-busy"><Loader2 size={18} className="spin" aria-hidden="true" /></span>}
               </button>
+                <span className="fx-badge fx-badge-float" data-kind={kindOf(f.name, f.mime_type)}>{KINDS[kindOf(f.name, f.mime_type)]}</span>
+              </div>
               <div className="fb-meta">
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <RenameableTitle value={f.name} label="file" style={{ fontSize: 13.5, fontWeight: 600 }}
                     onRename={async (n) => { const r = await renameUpload("file", spaceId, f.id, n); if (!r.error) router.refresh(); return r; }} />
-                  <div style={{ fontSize: 12, color: "var(--faint)" }}>{fmt(f.size_bytes)}</div>
+                  <div className="fx-meta-line">{fmt(f.size_bytes)} <i aria-hidden="true">·</i> {shortDate(f.created_at)}</div>
                 </div>
               </div>
               {canEdit(f) && (

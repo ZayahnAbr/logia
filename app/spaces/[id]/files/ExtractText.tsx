@@ -9,7 +9,7 @@ import { extractFileText } from "@/lib/extractText";
 import { scanPagesToText, createNoteFromText, generateNotesFromText } from "@/app/actions";
 
 // Pull the text out of an uploaded file, let the student fix it up, then optionally save it
-// as a note or have the AI turn it into study notes. Text-based files are read on-device (no AI);
+// as a note or have Logia turn it into study notes. Text-based files are read on-device;
 // images and scanned PDFs (no text layer) are read with the vision model.
 async function pdfPagesAsImages(blob: Blob, max = 6) {
   const pdfjs = await import("pdfjs-dist");
@@ -92,13 +92,13 @@ export function ExtractText({ spaceId, file, url, onClose }: { spaceId: string; 
       {(stage === "reading" || stage === "ocr") && (
         <div className="xt-wait" role="status">
           <Loader2 size={20} className="spin" aria-hidden="true" />
-          <span>{stage === "reading" ? "Reading the file…" : "This looks like a scan or photo. Reading it with AI…"}</span>
+          <span>{stage === "reading" ? "Reading the file…" : "This looks like a scan or photo. Reading it carefully…"}</span>
         </div>
       )}
       {stage === "error" && <p className="field-error" role="alert">{err}</p>}
       {(stage === "ready" || busy) && (
         <>
-          <p className="xt-meta">{words.toLocaleString()} words{usedAi ? " · read with AI, so check names and numbers" : " · read directly from the file"}. You can fix anything below before saving.</p>
+          <p className="xt-meta">{words.toLocaleString()} words{usedAi ? " · read from an image, so check names and numbers" : " · read directly from the file"}. You can fix anything below before saving.</p>
           <label htmlFor="xt-text" className="sr-only">Extracted text</label>
           <textarea id="xt-text" className="input xt-text" value={text} onChange={(e) => setText(e.target.value)} disabled={busy} />
           <div className="xt-actions">

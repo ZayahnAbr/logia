@@ -17,7 +17,7 @@ export default async function LecturesPage({ params }: { params: Promise<{ id: s
       <div className="phead phead-grad ln-phead">
         <div className="eyebrow">{space?.name}</div>
         <h1>Lectures</h1>
-        <div className="sub">Upload audio and get a transcript with AI study materials.</div>
+        <div className="sub">Upload audio and get a transcript and study materials made from it.</div>
       </div>
       <LecturesBoard spaceId={id} lectures={lectures as any} />
     </>

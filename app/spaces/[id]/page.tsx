@@ -23,7 +23,8 @@ import { ViewLinkButton } from "@/components/ViewLinkButton";
 import { CloneSpaceButton } from "@/components/CloneSpaceButton";
 import { loadSharedItems, saveDesignLayout } from "@/app/shared-items-actions";
 import { StickerLayer, type Sticker } from "./_components/StickerLayer";
-import { WIDGET_BUCKET, type ImageData, type TextData, type StickyData } from "@/lib/customWidgets";
+import { POSTER, LOOP_SRC, isSceneId, type LoopSceneId } from "@/lib/loopScenes";
+import { WIDGET_BUCKET, type ImageData, type TextData, type StickyData, type RoomData } from "@/lib/customWidgets";
 import { FileText, Files, Mic, Workflow, MessageSquare, FileCheck2, Flame, Sigma, ScanLine, Users, type LucideIcon } from "lucide-react";
 
 const TOOLS: { title: string; icon: LucideIcon; slug: string }[] = [
@@ -51,13 +52,15 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const { decks, due, perDeck } = study;
 
   // Custom widgets and colours (migration 25). Missing tables just mean none yet.
-  const [{ data: cwRows }, { data: colorRow }, { data: stickyFlag }, { data: viewFlag }] = await Promise.all([
+  const [{ data: cwRows }, { data: colorRow }, { data: stickyFlag }, { data: viewFlag }, { data: roomRows }] = await Promise.all([
     supabase.from("space_widgets").select("id, kind, data").eq("user_id", user.id).eq("space_id", id).order("created_at"),
     supabase.from("space_widget_colors").select("colors").eq("user_id", user.id).eq("space_id", id).maybeSingle(),
     // Set by migration 28. If it has not been run, the old sticky-notes widget stays.
     supabase.from("migrations_applied").select("name").eq("name", "migration-28-sticky-stickers").maybeSingle(),
     // Set by migration 40. Until then the Share view link button stays hidden.
     supabase.from("migrations_applied").select("name").eq("name", "migration-40-view-links").maybeSingle(),
+    // Logia's live study rooms, for the optional Live rooms widget.
+    supabase.from("public_rooms").select("slug, name, scene, focus_minutes, break_minutes, anchor").eq("is_active", true).order("created_at"),
   ]);
   const viewLinksReady = !!viewFlag;
   const stickyReady = !!stickyFlag;
@@ -76,6 +79,26 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const stickers: Sticker[] = (await Promise.all((cwRows ?? []).map(async (r): Promise<Sticker | null> => {
     if (r.kind === "text") return { id: r.id, kind: "text", data: r.data as TextData, src: null };
     if (r.kind === "sticky") return stickyReady ? { id: r.id, kind: "sticky", data: r.data as StickyData, src: null } : null;
+    if (r.kind === "room") {
+      const d = r.data as RoomData;
+      if (d.ref === "official") {
+        const room = (roomRows ?? []).find((x) => x.slug === d.slug);
+        if (!room || !isSceneId(room.scene)) return null;
+        return { id: r.id, kind: "room", data: d, src: null, room: {
+          name: room.name, href: `/discover/rooms/${room.slug}`, focus: room.focus_minutes, brk: room.break_minutes, anchor: room.anchor,
+          video: LOOP_SRC[room.scene as LoopSceneId], poster: POSTER[room.scene as LoopSceneId], color: null } };
+      }
+      const { data: c } = await supabase.from("user_cafes").select("id, name, loop_kind, loop_preset, loop_path, bg_color, focus_minutes, break_minutes, anchor").eq("id", d.id ?? "").maybeSingle();
+      if (!c) return null;
+      const signed = c.loop_path && (c.loop_kind === "upload" || c.loop_kind === "image")
+        ? (await supabase.storage.from("cafe-media").createSignedUrl(c.loop_path, 6 * 3600)).data?.signedUrl ?? null : null;
+      const preset = isSceneId(c.loop_preset) ? (c.loop_preset as LoopSceneId) : null;
+      return { id: r.id, kind: "room", data: d, src: null, room: {
+        name: c.name, href: `/discover/c/${c.id}`, focus: c.focus_minutes, brk: c.break_minutes, anchor: c.anchor,
+        video: c.loop_kind === "upload" ? signed : c.loop_kind === "preset" && preset ? LOOP_SRC[preset] : null,
+        poster: c.loop_kind === "image" ? signed : preset ? POSTER[preset] : null,
+        color: c.loop_kind === "color" ? c.bg_color : null } };
+    }
     if (r.kind !== "image") return null;
     const d = r.data as ImageData;
     let src: string | null = d.source === "link" ? d.url ?? null : null;
@@ -142,6 +165,22 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
     {
       id: "stickies", title: "Sticky notes", description: "Quick jottings for this space, saved as you type",
       node: <StickyNotes spaceId={id} />,
+    },
+    {
+      id: "rooms", title: "Live study rooms", description: "Drop into a focus room with a shared timer",
+      node: (
+        <ul className="lr-grid">
+          {(roomRows ?? []).filter((r) => isSceneId(r.scene)).map((r) => (
+            <li key={r.slug}>
+              <Link href={`/discover/rooms/${r.slug}`} className="lr-tile">
+                <span className="lr-img" style={{ backgroundImage: `url(${POSTER[r.scene as LoopSceneId]})` }} aria-hidden="true" />
+                <span className="lr-body"><b>{r.name}</b><small>{r.focus_minutes} min focus · {r.break_minutes} min break</small></span>
+              </Link>
+            </li>
+          ))}
+          <li><Link href="/discover/host" className="lr-tile lr-new"><span className="lr-body"><b>Create your own room</b><small>Your scene, music and timer</small></span></Link></li>
+        </ul>
+      ),
     },
     {
       id: "music", title: "Study music", description: "Play a Spotify, YouTube, Apple Music or SoundCloud playlist",
@@ -219,7 +258,7 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
           </Link>
           <Link href={`/spaces/${id}/chat`} className="ft-tile ft-ai">
             <span className="ft-art" aria-hidden="true"><i className="q" /><i className="a" /><i className="a short" /></span>
-            <span className="ft-copy"><strong>Ask AI</strong><span>Answers from your notes, with sources.</span></span>
+            <span className="ft-copy"><strong>Ask Logia</strong><span>Answers from your notes, with sources.</span></span>
           </Link>
           <Link href={`/spaces/${id}/lectures`} className="ft-tile ft-lect">
             <span className="ft-art" aria-hidden="true"><span className="ft-rec" /><span className="ft-bars">{[6, 12, 18, 10, 16, 8, 14, 20, 9, 13].map((h, k) => <i key={k} style={{ height: h }} />)}</span></span>
@@ -320,8 +359,8 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
         <DashboardGrid
           widgets={widgets}
           storageKey={`logia.space.${id}.layout`}
-          defaultOrder={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library", "music"])}
-          defaultVisible={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library"])}
+          defaultOrder={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library", "rooms", "music"])}
+          defaultVisible={noStickies(["outline", "shared", "stats", "tools", "calendar", "notes"])}
           defaultHalf={noStickies(["marks", "checklist", "calendar", "notes", "pain", "papers", "stickies", "music"])}
           syncToAccount={false}
           toolbarExtra={<AddWidgetButton key="add-widget" spaceId={id} stickyReady={stickyReady} />}

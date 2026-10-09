@@ -19,7 +19,7 @@ export default function DonatePage() {
         <section className="l-wrap site-head">
           <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Donate</p>
           <h1 className="site-h1">Help keep Logia free</h1>
-          <p className="l-body">Logia is free during the beta. Donations pay for the AI and servers that keep it that way for every student.</p>
+          <p className="l-body">Logia is free during the beta. Donations pay for the servers and services that keep it that way for every student.</p>
         </section>
 
         <section className="l-wrap invite-grid">
@@ -40,7 +40,7 @@ export default function DonatePage() {
           </div>
 
           <ul className="invite-steps" aria-label="Where donations go">
-            <li><span className="cap-icon" aria-hidden="true"><Cpu size={17} /></span><div><h3>AI requests</h3><p>Every flashcard, recall check and marked paper is an AI request we pay for.</p></div></li>
+            <li><span className="cap-icon" aria-hidden="true"><Cpu size={17} /></span><div><h3>Smart features</h3><p>Every flashcard, recall check and marked paper is work we pay for.</p></div></li>
             <li><span className="cap-icon" aria-hidden="true"><Server size={17} /></span><div><h3>Hosting and storage</h3><p>Your notes, textbooks and recordings are stored and backed up.</p></div></li>
             <li><span className="cap-icon" aria-hidden="true"><Wrench size={17} /></span><div><h3>New features</h3><p>Time spent building what students ask for.</p></div></li>
           </ul>

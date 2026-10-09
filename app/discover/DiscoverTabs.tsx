@@ -44,7 +44,7 @@ export function DiscoverTabs({ initialTab, rooms, streams, hosted, mine, admin }
           ))}
         </div>
         <div className="dc-bar-actions">
-          {false && <Link href="/discover/host" className="btn btn-primary btn-sm"><Plus size={14} aria-hidden="true" /> Host a study-with-me</Link>}
+          {tab === "rooms" && <Link href="/discover/host" className="btn btn-primary btn-sm"><Plus size={14} aria-hidden="true" /> Create your own room</Link>}
         {admin && <Link href="/discover/admin" className="btn btn-sm"><Settings2 size={14} aria-hidden="true" /> Manage</Link>}
         </div>
       </div>

@@ -168,7 +168,7 @@ export function InkCanvas({ value, onChange }: { value: string; onChange: (body:
     setRedo((r) => r.slice(0, -1));
   };
 
-  // Handwriting → text (uses the existing vision model, counts towards the AI allowance).
+  // Handwriting → text (uses the existing vision model, counts towards the Study allowance).
   const convert = async () => {
     const c = canvasRef.current; if (!c || !ink.strokes.length) return;
     setReading(true);

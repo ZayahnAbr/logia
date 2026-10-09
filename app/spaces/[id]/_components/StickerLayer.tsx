@@ -4,20 +4,22 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { GripVertical, Palette, Check, Trash2, Loader2, MoveDiagonal2 } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import {
-  WIDGET_COLORS, STICKER_MIN_W, STICKER_MAX_W, STICKER_DEFAULT_IMAGE_W, STICKER_DEFAULT_TEXT_W, STICKER_MAX_Y,
-  STICKER_DEFAULT_STICKY_W, type ImageData, type TextData, type StickyData, type StickerPos,
+  WIDGET_COLORS, STICKER_MIN_W, STICKER_MAX_W, STICKER_DEFAULT_IMAGE_W, STICKER_DEFAULT_TEXT_W, STICKER_DEFAULT_ROOM_W, STICKER_MAX_Y,
+  STICKER_DEFAULT_STICKY_W, type ImageData, type TextData, type StickyData, type RoomData, type StickerPos,
 } from "@/lib/customWidgets";
 import { removeCustomWidget, saveStickerPos, setWidgetColor } from "../widget-actions";
 import { ImageStickerBody, TextStickerBody, StickyStickerBody } from "./CustomWidgets";
+import { RoomStickerBody } from "./RoomSticker";
 
-export type Sticker = { id: string; kind: "image" | "text" | "sticky"; data: ImageData | TextData | StickyData; src: string | null };
+export type RoomInfo = { name: string; href: string; focus: number; brk: number; anchor: string; video: string | null; poster: string | null; color: string | null };
+export type Sticker = { id: string; kind: "image" | "text" | "sticky" | "room"; data: ImageData | TextData | StickyData | RoomData; src: string | null; room?: RoomInfo };
 
 const GAP = 12;
 const MARGIN = 16;
 // A small, stable tilt per note (-2 to 2 degrees). CSS removes it for people who prefer reduced motion.
 const tiltFor = (id: string) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; return (Math.abs(h) % 5) - 2; };
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
-const label = (s: Sticker) => (s.kind === "text" ? "Text sticker" : s.kind === "sticky" ? "Sticky note" : `Image sticker: ${(s.data as ImageData).alt || (s.data as ImageData).caption || "picture"}`);
+const label = (s: Sticker) => (s.kind === "room" ? `Live room: ${s.room?.name ?? "room"}` : s.kind === "text" ? "Text sticker" : s.kind === "sticky" ? "Sticky note" : `Image sticker: ${(s.data as ImageData).alt || (s.data as ImageData).caption || "picture"}`);
 
 export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId: string; stickers: Sticker[]; colors: Record<string, string>; children: ReactNode }) {
   const root = useRef<HTMLDivElement>(null);
@@ -83,7 +85,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     const maxW = Math.max(STICKER_MIN_W, Math.min(STICKER_MAX_W, W - 2));
     list.forEach((s, i) => {
       const p = merged(s);
-      const baseW = s.kind === "text" ? STICKER_DEFAULT_TEXT_W : s.kind === "sticky" ? STICKER_DEFAULT_STICKY_W : STICKER_DEFAULT_IMAGE_W;
+      const baseW = s.kind === "text" ? STICKER_DEFAULT_TEXT_W : s.kind === "sticky" ? STICKER_DEFAULT_STICKY_W : s.kind === "room" ? STICKER_DEFAULT_ROOM_W : STICKER_DEFAULT_IMAGE_W;
       const w = clamp(Math.round(p.w ?? baseW), STICKER_MIN_W, Math.min(maxW, Math.max(STICKER_MIN_W, W)));
       const h = heights[s.id] ?? 160;
       let left: number, top: number;
@@ -219,7 +221,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     const isSticky = s.kind === "sticky";
     return (
       <div key={s.id} data-sid={s.id} tabIndex={0} role="group" aria-label={`${label(s)}.${mobile ? "" : " Arrow keys move it, plus and minus resize it, Delete removes it."}`}
-        className={`st ${isText ? "st-text" : isSticky ? "st-sticky" : "st-image"}${tint ? ` st-tinted cw-tint-${tint}` : ""}${colorOpen === s.id ? " is-open" : ""}${abs ? " is-abs" : ""}${active?.id === s.id ? ` is-${active.mode}` : ""}`}
+        className={`st ${isText ? "st-text" : isSticky ? "st-sticky" : s.kind === "room" ? "st-image st-room" : "st-image"}${tint ? ` st-tinted cw-tint-${tint}` : ""}${colorOpen === s.id ? " is-open" : ""}${abs ? " is-abs" : ""}${active?.id === s.id ? ` is-${active.mode}` : ""}`}
         style={style}
         onKeyDown={(e) => onKey(e, s)}
         onPointerDown={!isText && abs ? (e) => { if (!(e.target as HTMLElement).closest(isSticky ? "button,a,input,select,textarea" : "button,a,input,select")) begin(e, s.id, "move"); } : undefined}
@@ -250,7 +252,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
           )}
           <button type="button" className="st-btn" aria-label={`Remove ${isText ? "text" : isSticky ? "sticky note" : "image"}`} title="Remove" onClick={() => setConfirm(s)}><Trash2 size={14} aria-hidden="true" /></button>
         </div>
-        {isText ? <TextStickerBody id={s.id} data={s.data as TextData} /> : isSticky ? <StickyStickerBody id={s.id} data={s.data as StickyData} tilt={tiltFor(s.id)} /> : <ImageStickerBody data={s.data as ImageData} src={s.src} />}
+        {isText ? <TextStickerBody id={s.id} data={s.data as TextData} /> : isSticky ? <StickyStickerBody id={s.id} data={s.data as StickyData} tilt={tiltFor(s.id)} /> : s.kind === "room" && s.room ? <RoomStickerBody room={s.room} /> : <ImageStickerBody data={s.data as ImageData} src={s.src} />}
         {abs && (
           <button type="button" className="st-resize" aria-label="Resize. Drag, or focus the sticker and press plus or minus" title="Drag to resize"
             onPointerDown={(e) => begin(e, s.id, "resize")}><MoveDiagonal2 size={14} aria-hidden="true" /></button>

@@ -60,7 +60,13 @@ export async function reviewUpload(input: { bucket: string; path: string; kind: 
     p_bucket: input.bucket, p_path: input.path, p_outcome: verdict.outcome, p_category: verdict.category, p_reason: verdict.reason,
     p_frames: frames, p_secret: process.env.MODERATION_SECRET ?? null,
   });
-  if (error) return { error: /does not exist|schema cache|could not find/i.test(error.message) ? MISSING : "That file could not be checked." };
+  if (error) {
+    if (/does not exist|schema cache|could not find/i.test(error.message)) return { error: MISSING };
+    // The check could not be recorded (for example the moderation secret does not match). The upload still works for
+    // the student; the database keeps it hidden from everyone else until it is reviewed, so nothing unsafe leaks.
+    console.warn("[upload-safety] set_media_verdict failed:", error.message);
+    return { state: "pending" };
+  }
   if (data === "clean") return { state: "clean" };
   return { state: verdict.outcome === "unsafe" ? "unsafe" : "pending" };
 }

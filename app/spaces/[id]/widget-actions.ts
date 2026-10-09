@@ -4,7 +4,7 @@ import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { COLOR_KEYS, MAX_TEXT, IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_WIDGETS_PER_SPACE, WIDGET_BUCKET, MAX_WIDGET_BYTES, STICKER_MIN_W, STICKER_MAX_W, STICKER_MAX_Y, type StickerPos, type GifData, type GifResult, type ImageData, type TextData, type StickyData, STICKY_COLOR_IDS, STICKY_MAX_TEXT } from "@/lib/customWidgets";
+import { COLOR_KEYS, MAX_TEXT, IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_WIDGETS_PER_SPACE, WIDGET_BUCKET, MAX_WIDGET_BYTES, STICKER_MIN_W, STICKER_MAX_W, STICKER_MAX_Y, type StickerPos, type GifData, type GifResult, type ImageData, type TextData, type StickyData, STICKY_COLOR_IDS, STICKY_MAX_TEXT, type RoomData } from "@/lib/customWidgets";
 
 const MISSING = "Custom widgets need a database update. Run supabase/migration-25-space-widgets.sql.";
 const nice = (m: string, fallback: string) => (/schema cache|does not exist|could not find the (table|function)|bucket/i.test(m) ? MISSING : fallback);
@@ -46,7 +46,7 @@ export async function searchGiphy(query: string, kind: "gifs" | "stickers"): Pro
   }
 }
 
-async function insertWidget(spaceId: string, kind: "gif" | "image" | "text" | "sticky", data: GifData | ImageData | TextData | StickyData): Promise<{ error?: string }> {
+async function insertWidget(spaceId: string, kind: "gif" | "image" | "text" | "sticky" | "room", data: GifData | ImageData | TextData | StickyData | RoomData): Promise<{ error?: string }> {
   const { supabase, user } = await authed();
   if (!UUID.test(spaceId)) return { error: "That space could not be found." };
   const { count, error: cErr } = await supabase.from("space_widgets").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("space_id", spaceId);
@@ -291,4 +291,38 @@ export async function setWidgetColor(spaceId: string, widgetId: string, color: s
   if (color) next[widgetId] = color; else delete next[widgetId];
   const { error } = await supabase.from("space_widget_colors").upsert({ user_id: user.id, space_id: spaceId, colors: next, updated_at: new Date().toISOString() });
   return error ? { error: nice(error.message, "Could not save the colour.") } : {};
+}
+
+
+// ── Live room widget (migration 49) ────────────────────────────────────────────
+
+export type RoomChoice = { ref: "official" | "hosted"; key: string; name: string; scene: string | null; focus: number; brk: number; mine: boolean };
+
+/** Rooms a student can place on a space home: Logia's rooms, plus rooms they host and public hosted rooms. */
+export async function listRoomChoices(): Promise<RoomChoice[]> {
+  const { supabase, user } = await authed();
+  const [{ data: official }, { data: hosted }] = await Promise.all([
+    supabase.from("public_rooms").select("slug, name, scene, focus_minutes, break_minutes").eq("is_active", true).order("created_at"),
+    supabase.from("user_cafes").select("id, owner_id, name, loop_preset, focus_minutes, break_minutes, status").in("status", ["public", "unlisted", "pending"]).order("created_at", { ascending: false }).limit(40),
+  ]);
+  return [
+    ...(official ?? []).map((r) => ({ ref: "official" as const, key: r.slug as string, name: r.name as string, scene: r.scene as string, focus: r.focus_minutes as number, brk: r.break_minutes as number, mine: false })),
+    ...(hosted ?? []).filter((r) => r.owner_id === user.id || r.status === "public")
+      .map((r) => ({ ref: "hosted" as const, key: r.id as string, name: r.name as string, scene: (r.loop_preset as string) ?? null, focus: r.focus_minutes as number, brk: r.break_minutes as number, mine: r.owner_id === user.id })),
+  ];
+}
+
+export async function addRoomWidget(spaceId: string, ref: "official" | "hosted", key: string) {
+  const { supabase } = await authed();
+  if (ref === "official") {
+    const { data } = await supabase.from("public_rooms").select("slug").eq("slug", key).eq("is_active", true).maybeSingle();
+    if (!data) return { error: "That room isn't available any more." };
+  } else {
+    if (!UUID.test(key)) return { error: "That room could not be found." };
+    const { data } = await supabase.from("user_cafes").select("id").eq("id", key).maybeSingle();
+    if (!data) return { error: "That room could not be found." };
+  }
+  const r = await insertWidget(spaceId, "room", { ref, ...(ref === "official" ? { slug: key } : { id: key }), x: 0.04, y: 16, w: 360 } as RoomData);
+  if (r.error && /space_widgets_kind_check|violates check/i.test(r.error)) return { error: "Room widgets need a database update. Run migration 49 in Supabase." };
+  return r;
 }

@@ -3,12 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Copy, Layers, Loader2, Share2, ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { Eye, Copy, Layers, Loader2, Share2, ChevronLeft, ChevronRight, Check, BookOpen, Pencil } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { CoverArt } from "@/components/NotebookCover";
 import { createSpace } from "@/app/actions";
 import {
-  listShareablePicks, saveSharePicks, previewShare, myOtherSpaces, copySharedItem,
+  listShareablePicks, saveSharePicks, previewShare, myOtherSpaces, copySharedItem, setShareDescription,
   type SharedItem, type SharePreview, type CopyResult,
 } from "@/app/shared-items-actions";
 
@@ -19,6 +19,7 @@ export function SharedItemsWidget({ spaceId, items }: { spaceId: string; items: 
   const [picker, setPicker] = useState(false);
   const [preview, setPreview] = useState<SharedItem | null>(null);
   const [adding, setAdding] = useState<SharedItem | null>(null);
+  const [detail, setDetail] = useState<SharedItem | null>(null);
   const hasMine = true; // anyone in the space may share their own items; the picker lists only theirs
 
   return (
@@ -35,37 +36,40 @@ export function SharedItemsWidget({ spaceId, items }: { spaceId: string; items: 
       {items.length === 0 ? (
         <div className="empty card" style={{ padding: "24px 20px" }}>Nothing is shared here yet. Choose a notebook or a deck of yours to show it to this space.</div>
       ) : (
-        <ul className="shr-list">
-          {items.map((it) => (
-            <li key={it.share_id} className="shr-row card">
-              <span className="shr-art" aria-hidden="true">
-                {it.kind === "notebook"
-                  ? <CoverArt cover={{ kind: it.cover_kind, value: it.cover_value }} />
-                  : <Layers size={22} />}
-              </span>
-              <div className="shr-body">
-                <span className="shr-title truncate" title={it.title}>{it.title}</span>
-                <span className="shr-meta">
-                  {it.kind === "notebook" ? "Notebook" : "Flashcard deck"} · {it.item_count} {it.kind === "notebook" ? (it.item_count === 1 ? "note" : "notes") : (it.item_count === 1 ? "card" : "cards")}
-                </span>
-                <span className="shr-meta">Shared by {it.is_mine ? "you" : it.owner_name}</span>
-              </div>
-              <div className="shr-actions">
-                <button type="button" className="btn btn-sm" onClick={() => setPreview(it)} aria-haspopup="dialog" aria-label={`Preview ${it.title}`}>
-                  <Eye size={14} aria-hidden="true" /> Preview
+        <ul className="shr-grid">
+          {items.map((it) => {
+            const count = `${it.item_count} ${it.kind === "notebook" ? (it.item_count === 1 ? "note" : "notes") : (it.item_count === 1 ? "card" : "cards")}`;
+            return (
+              <li key={it.share_id}>
+                <button type="button" className={`shr-tile shr-${it.kind}`} onClick={() => setDetail(it)} aria-haspopup="dialog"
+                  aria-label={`${it.title}, ${it.kind === "notebook" ? "notebook" : "flashcard deck"}, ${count}, shared by ${it.is_mine ? "you" : it.owner_name}`}>
+                  {it.kind === "notebook" ? (
+                    <span className="shr-book" aria-hidden="true">
+                      <span className="shr-book-cover"><CoverArt cover={{ kind: it.cover_kind, value: it.cover_value }} /></span>
+                      <span className="shr-book-spine" />
+                      <span className="shr-book-label">{it.title}</span>
+                    </span>
+                  ) : (
+                    <span className="shr-deck" aria-hidden="true">
+                      <i /><i />
+                      <span className="shr-deck-top"><Layers size={16} /><b>{it.title}</b><em>{count}</em></span>
+                    </span>
+                  )}
+                  <span className="shr-tile-body">
+                    <span className="shr-title truncate">{it.title}</span>
+                    <span className="shr-meta">{count} · {it.is_mine ? "Shared by you" : `by ${it.owner_name}`}</span>
+                    {it.description ? <span className="shr-desc">{it.description}</span> : null}
+                  </span>
                 </button>
-                {!it.is_mine && (
-                  <button type="button" className="btn btn-sm btn-primary" onClick={() => setAdding(it)} aria-haspopup="dialog" aria-label={`Add ${it.title} to mine`}>
-                    <Copy size={14} aria-hidden="true" /> Add to mine
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       )}
 
       {picker && <PickerDialog spaceId={spaceId} onClose={() => setPicker(false)} onSaved={() => { setPicker(false); router.refresh(); }} />}
+      {detail && <DetailDialog item={detail} onClose={() => setDetail(null)}
+        onPreview={() => { setPreview(detail); setDetail(null); }} onAdd={() => { setAdding(detail); setDetail(null); }} onSaved={() => router.refresh()} />}
       {preview && <PreviewDialog item={preview} onClose={() => setPreview(null)} />}
       {adding && <AddDialog item={adding} currentSpace={spaceId} onClose={() => setAdding(null)} />}
     </div>
@@ -259,6 +263,58 @@ export function AddDialog({ item, currentSpace, onClose, copy = copySharedItem }
           </div>
         </>
       )}
+    </Dialog>
+  );
+}
+
+// What you see when you click a shared notebook or deck: the owner's description, then preview or copy.
+function DetailDialog({ item, onClose, onPreview, onAdd, onSaved }: { item: SharedItem; onClose: () => void; onPreview: () => void; onAdd: () => void; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [text, setText] = useState(item.description ?? "");
+  const [shown, setShown] = useState(item.description ?? "");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const count = `${item.item_count} ${item.kind === "notebook" ? (item.item_count === 1 ? "note" : "notes") : (item.item_count === 1 ? "card" : "cards")}`;
+
+  const save = async () => {
+    setBusy(true); setErr("");
+    const r = await setShareDescription(item.share_id, text);
+    setBusy(false);
+    if (r.error) { setErr(r.error); return; }
+    setShown(text.trim()); setEditing(false); onSaved();
+  };
+
+  return (
+    <Dialog title={item.title} onClose={onClose} width={520}>
+      <div className="shr-detail">
+        <p className="shr-meta" style={{ margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          {item.kind === "notebook" ? <BookOpen size={14} aria-hidden="true" /> : <Layers size={14} aria-hidden="true" />}
+          {item.kind === "notebook" ? "Notebook" : "Flashcard deck"} · {count} · {item.is_mine ? "Shared by you" : `Shared by ${item.owner_name}`}
+        </p>
+
+        {editing ? (
+          <div className="field" style={{ marginTop: 14 }}>
+            <label className="field-label" htmlFor="shr-desc">Description</label>
+            <textarea id="shr-desc" className="input" rows={4} maxLength={500} value={text} onChange={(e) => setText(e.target.value)}
+              placeholder="What is in it, who it is for, and how you use it" />
+            <div className="field-hint">{text.length}/500 · Everyone in this space can read it.</div>
+          </div>
+        ) : (
+          <div className="shr-detail-desc">
+            {shown ? <p>{shown}</p> : <p className="shr-meta">{item.is_mine ? "Add a short description so classmates know what this is." : "No description yet."}</p>}
+          </div>
+        )}
+        {err && <div className="notice notice-error" role="alert" style={{ marginTop: 10 }}>{err}</div>}
+
+        <div className="shr-detail-actions">
+          {item.is_mine && !editing && <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}><Pencil size={14} aria-hidden="true" /> {shown ? "Edit description" : "Add a description"}</button>}
+          {editing && <button type="button" className="btn btn-ghost" onClick={() => { setEditing(false); setText(shown); }}>Cancel</button>}
+          {editing && <button type="button" className="btn btn-primary" onClick={save} disabled={busy} aria-busy={busy}>{busy ? <><Loader2 size={14} className="spin" aria-hidden="true" /> Saving…</> : "Save"}</button>}
+          {!editing && <span style={{ flex: 1 }} />}
+          {!editing && <button type="button" className="btn" onClick={onPreview}><Eye size={14} aria-hidden="true" /> Preview</button>}
+          {!editing && !item.is_mine && <button type="button" className="btn btn-primary" onClick={onAdd}><Copy size={14} aria-hidden="true" /> Add to mine</button>}
+        </div>
+      </div>
     </Dialog>
   );
 }

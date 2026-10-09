@@ -6,7 +6,7 @@ import { nextSchedule } from "@/lib/scheduler";
 import type { Card, Rating, SpaceType } from "@/lib/types";
 import { notebookIdForName } from "@/lib/server/notebooks";
 import { retrieve, reindexSource, noteText } from "@/lib/server/rag";
-import { friendlyError, authed, enforceRateLimit, groqChat, isUnmetered } from "@/lib/server/llm";
+import { friendlyError, authed, enforceRateLimit, groqChat, isUnmetered, parseLooseJson } from "@/lib/server/llm";
 import { callChat, callVision, callAudio } from "@/lib/server/aiRoute";
 import type { Plan } from "@/lib/server/plans";
 
@@ -229,7 +229,8 @@ Rules:
   try {
     const plan = (await enforceRateLimit(supabase, user)) ?? "free";
     const { content } = await callChat({ purpose: "batch", system: SYSTEM, user: lecture.transcript.slice(0, 8000), maxTokens: 1000, temperature: 0.3, json: true, supabase, userId: user.id, unmetered: isUnmetered(user.email), plan });
-    const parsed = JSON.parse(content || "{}");
+    const parsed = parseLooseJson(content);
+    if (!parsed) throw new SyntaxError("unreadable JSON");
     const summary: string = parsed.summary ?? "";
     const cards = (parsed.cards ?? []).map((c: any) => ({ id: crypto.randomUUID(), concept: String(c.concept ?? "").slice(0, 120), question: String(c.question ?? "").slice(0, 500), hint: String(c.hint ?? "").slice(0, 500), answer: String(c.answer ?? "").slice(0, 800) })).filter((c: any) => c.question);
     const { data: deck, error: deckErr } = await supabase.from("active_recall_decks")
@@ -390,7 +391,7 @@ export async function searchSpaceContent(spaceId: string, query: string) {
 
 export type AskSource = { n: number; type: string; title: string; id: string; snippet: string };
 
-// Ask AI: one ranked retrieval + one model call. Grounded by default; "general" mode answers
+// Ask Logia: one ranked retrieval + one model call. Grounded by default; "general" mode answers
 // from general knowledge when the student's own material doesn't cover the question.
 export async function chatWithSpace(
   spaceId: string,

@@ -1,4 +1,5 @@
 "use client";
+import { POSTER, isSceneId } from "@/lib/loopScenes";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
@@ -9,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/Toaster";
 import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
 import { IMAGE_TYPES, MAX_IMAGE_BYTES, MAX_TEXT, WIDGET_BUCKET, STICKY_COLORS, STICKY_MAX_TEXT, type GifData, type ImageData, type TextData, type StickyData } from "@/lib/customWidgets";
-import { addStickyNote, saveStickyNote, addImageLink, addTextWidget, addUploadedImage, removeCustomWidget, saveTextWidget } from "../widget-actions";
+import { listRoomChoices, addRoomWidget, type RoomChoice, addStickyNote, saveStickyNote, addImageLink, addTextWidget, addUploadedImage, removeCustomWidget, saveTextWidget } from "../widget-actions";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -172,8 +173,8 @@ export function StickyStickerBody({ id, data, tilt }: { id: string; data: Sticky
   );
 }
 
-type Tab = "image" | "text" | "sticker" | "saved" | "sticky";
-const ALL_TABS: { key: Tab; label: string }[] = [{ key: "image", label: "Image" }, { key: "text", label: "Text" }, { key: "sticky", label: "Sticky note" }, { key: "sticker", label: "Sticker" }, { key: "saved", label: "Saved" }];
+type Tab = "image" | "text" | "sticker" | "saved" | "sticky" | "room";
+const ALL_TABS: { key: Tab; label: string }[] = [{ key: "room", label: "Live room" }, { key: "image", label: "Image" }, { key: "text", label: "Text" }, { key: "sticky", label: "Sticky note" }, { key: "sticker", label: "Sticker" }, { key: "saved", label: "Saved" }];
 
 export function AddWidgetButton({ spaceId, stickyReady }: { spaceId: string; stickyReady?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -227,6 +228,7 @@ function AddDialog({ spaceId, stickyReady, onClose }: { spaceId: string; stickyR
             </button>
           </div>
         )}
+        {tab === "room" && <RoomPicker spaceId={spaceId} busy={busy} setBusy={setBusy} done={done} />}
         {tab === "text" && (
           <div className="cw-form">
             <p className="cw-note">A free text block for a reminder, goal or heading. Edit it right on the page.</p>
@@ -308,5 +310,38 @@ function ImageForm({ spaceId, busy, setBusy, done, setError }: { spaceId: string
         {busy ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <ImageIcon size={14} aria-hidden="true" />} Add image
       </button>
     </form>
+  );
+}
+
+
+// Pick a live room to place on the space home as a moving widget with its timer.
+function RoomPicker({ spaceId, busy, setBusy, done }: { spaceId: string; busy: boolean; setBusy: (b: boolean) => void; done: (r: { error?: string }) => void }) {
+  const [rooms, setRooms] = useState<RoomChoice[] | null>(null);
+  useEffect(() => { listRoomChoices().then(setRooms).catch(() => setRooms([])); }, []);
+  const pick = async (r: RoomChoice) => { setBusy(true); done(await addRoomWidget(spaceId, r.ref, r.key)); };
+  if (!rooms) return <p className="cw-note" role="status">Loading rooms…</p>;
+  const mine = rooms.filter((r) => r.mine), logia = rooms.filter((r) => r.ref === "official"), others = rooms.filter((r) => r.ref === "hosted" && !r.mine);
+  const group = (title: string, list: RoomChoice[]) => list.length > 0 && (
+    <div className="cw-rooms-group">
+      <h3>{title}</h3>
+      <ul className="cw-rooms">
+        {list.map((r) => (
+          <li key={r.ref + r.key}>
+            <button type="button" className="cw-room" disabled={busy} onClick={() => pick(r)}>
+              <span className="cw-room-img" style={r.scene && isSceneId(r.scene) ? { backgroundImage: `url(${POSTER[r.scene]})` } : undefined} aria-hidden="true" />
+              <span className="cw-room-body"><b>{r.name}</b><small>{r.focus} min focus · {r.brk} min break</small></span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+  return (
+    <div className="cw-form">
+      <p className="cw-note">The room plays on your space home with its live timer. You can move and resize it, and press Join to go in.</p>
+      {group("Your rooms", mine)}
+      {group("Logia rooms", logia)}
+      {group("Other rooms", others)}
+    </div>
   );
 }

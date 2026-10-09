@@ -2,7 +2,7 @@
 import { authed } from "@/lib/server/llm";
 import type { AskSource } from "@/app/actions";
 
-// Saved Ask AI history (migration 36). Every function fails soft: if the table is missing or
+// Saved Ask Logia history (migration 36). Every function fails soft: if the table is missing or
 // anything goes wrong, the chat simply stays in memory and no error reaches the student.
 
 export type SavedMessage = { role: "user" | "assistant"; content: string; sources?: AskSource[]; grounded?: boolean };

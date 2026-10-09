@@ -116,14 +116,14 @@ export function poolGate(s: PacingStatus, estimate: number, purpose: "interactiv
   if (purpose === "batch" && s.remainingFraction < PACING.batchPausedBelow) return { ok: false, message: BATCH_PAUSED_MESSAGE, waitMs: Infinity };
   const hardCap = s.hour >= PACING.reserveFromHour ? s.dailyBudget : s.dailyBudget * (1 - PACING.reserveFraction);
   if (s.spentToday >= s.dailyBudget) {
-    return { ok: false, message: "Logia's AI is resting for today and is back tomorrow morning. Your notes and files still work.", waitMs: Infinity };
+    return { ok: false, message: "Logia's study assistant is resting for today and is back tomorrow morning. Your notes and files still work.", waitMs: Infinity };
   }
   const nextShare = s.hour < 23 ? hourShares(s.dailyBudget)[s.hour + 1] : 0;
   const frac = purpose === "interactive" ? 1 : PACING.borrowFraction;
   const allowed = Math.min(hardCap, s.allowedSoFar + nextShare * frac);
   if (s.spentToday + estimate > allowed) {
     const nextHourMs = Math.floor((now + SAST_MS) / HOUR_MS) * HOUR_MS - SAST_MS + HOUR_MS;
-    return { ok: false, message: "Logia's AI is busy right now. Try again in a few minutes.", waitMs: Math.max(0, nextHourMs - now) };
+    return { ok: false, message: "Logia is busy right now. Try again in a few minutes.", waitMs: Math.max(0, nextHourMs - now) };
   }
   return { ok: true };
 }

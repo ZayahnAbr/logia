@@ -1,6 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { authed } from "@/lib/server/llm";
+import { hasBlockedWord } from "@/lib/moderation";
 import { noteText } from "@/lib/server/rag";
 import { WIDGET_BUCKET, MAX_IMAGE_BYTES } from "@/lib/customWidgets";
 import { HEADER_BUCKET } from "@/lib/spaceHeader";
@@ -9,6 +10,8 @@ import { HEADER_BUCKET } from "@/lib/spaceHeader";
 export type SharedItem = {
   share_id: string; kind: "notebook" | "deck"; item_id: string; owner_id: string; owner_name: string; is_mine: boolean;
   title: string; cover_kind: string | null; cover_value: string | null; icon: string | null; item_count: number;
+  /** Written by the owner (migration 48). Empty when there is none. */
+  description?: string;
 };
 export type SharePreview =
   | { kind: "notebook"; notes: { id: string; title: string; text: string }[] }
@@ -25,6 +28,16 @@ export async function loadSharedItems(spaceId: string): Promise<SharedItem[] | n
   const { data, error } = await supabase.rpc("shared_items_for_space", { p_space: spaceId });
   if (error) return null; // migration 39 not run: the widget stays hidden
   return ((data ?? []) as SharedItem[]).map((r) => ({ ...r, item_count: Number(r.item_count) }));
+}
+
+/** The owner's short description of something they shared. Others see it on the item's card. */
+export async function setShareDescription(shareId: string, text: string): Promise<{ error?: string }> {
+  const { supabase, user } = await authed();
+  const clean = text.replace(/\s+/g, " ").trim().slice(0, 500);
+  if (hasBlockedWord(clean)) return { error: "That description can't be used. Please reword it." };
+  const { error } = await supabase.from("space_shared_items").update({ description: clean }).eq("id", shareId).eq("owner_id", user.id);
+  if (error) return { error: /column .*description|schema cache/i.test(error.message) ? "Descriptions need a database update. Run migration 48 in Supabase." : fail(error.message, "Couldn't save the description.") };
+  return {};
 }
 
 export async function listShareablePicks(spaceId: string): Promise<

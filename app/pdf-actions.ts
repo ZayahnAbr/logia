@@ -1,6 +1,6 @@
 "use server";
 
-import { authed, enforceRateLimit, friendlyError, isUnmetered } from "@/lib/server/llm";
+import { authed, enforceRateLimit, friendlyError, isUnmetered, parseLooseJson } from "@/lib/server/llm";
 import { callChat } from "@/lib/server/aiRoute";
 import type { Plan } from "@/lib/server/plans";
 
@@ -84,8 +84,8 @@ export async function chunkText(
     try {
       const { content } = await callChat({ purpose: "batch", system: SYSTEM, user: piece, maxTokens: 3000, temperature: 0, json: true, supabase: ctx.supabase, userId: ctx.user.id, unmetered: isUnmetered(ctx.user.email), plan });
       let parsed: any;
-      try { parsed = JSON.parse(content || "{}"); }
-      catch { failures++; continue; }
+      parsed = parseLooseJson(content);
+      if (!parsed) { failures++; continue; }
 
       for (const c of parsed.chunks ?? []) {
         const verified = (c.sentences ?? []).filter((s: string) => {

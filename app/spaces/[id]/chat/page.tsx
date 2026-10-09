@@ -21,7 +21,7 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
     <>
       <div className="phead phead-grad ln-phead">
         <div className="eyebrow">{space?.name}</div>
-        <h1>Ask AI</h1>
+        <h1>Ask Logia</h1>
         <div className="sub">Ask about anything in this space. Every answer cites its source.</div>
       </div>
       <ChatBoard spaceId={id} indexedCount={count ?? 0} />

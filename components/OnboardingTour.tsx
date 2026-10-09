@@ -292,13 +292,13 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
           <button type="button" className="ob-plan" aria-pressed={plan === "standard"} onClick={() => setPlan("standard")}>
             <h3>Standard</h3>
             <div className="ob-price">Free <small>during the beta</small></div>
-            <ul><li>Notes, flashcards, past papers</li><li>Study rooms and Discover</li><li>AI help with a fair hourly allowance</li></ul>
+            <ul><li>Notes, flashcards, past papers</li><li>Study rooms and Discover</li><li>Study help with a fair hourly allowance</li></ul>
           </button>
           <button type="button" className="ob-plan" aria-pressed={plan === "pro"} onClick={() => setPlan("pro")}>
             <span className="ob-tag">Exam Season special</span>
             <h3>Pro</h3>
             <div className="ob-price">R250 <small>once-off, not monthly</small></div>
-            <ul><li>Covers the exam period until December</li><li>More AI each hour, no waiting at busy times</li><li>Everything in Standard</li></ul>
+            <ul><li>Covers the exam period until December</li><li>More help each hour, no waiting at busy times</li><li>Everything in Standard</li></ul>
           </button>
         </div>
         {plan === "pro" && (
@@ -357,7 +357,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
       <Dialog hideTitle title="Invite a friend" width={480} onClose={finish}>
         {top}
         <h2 className="ob-h" aria-hidden="true">Invite a friend</h2>
-        <p className="ob-sub">Studying is easier together. When a friend joins with your link, you both get bonus AI time.</p>
+        <p className="ob-sub">Studying is easier together. When a friend joins with your link, you both get bonus study time.</p>
         {invite ? (
           <>
             <div className="field"><label className="field-label" htmlFor="ob-invite">Your link</label>

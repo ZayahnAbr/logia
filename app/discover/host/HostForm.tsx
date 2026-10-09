@@ -372,7 +372,7 @@ export function HostForm({ uid, initial }: { uid: string; initial?: HostInitial 
       </section>
 
       <div className="host-actions">
-        <Link href="/discover?tab=streams" className="btn btn-ghost"><X size={15} aria-hidden="true" /> Cancel</Link>
+        <Link href="/discover?tab=rooms" className="btn btn-ghost"><X size={15} aria-hidden="true" /> Cancel</Link>
         <button type="submit" className="btn btn-primary" disabled={busy || uploading || !name.trim()}>
           {busy ? <Loader2 size={15} className="spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />} {initial ? "Save changes" : "Create room"}
         </button>

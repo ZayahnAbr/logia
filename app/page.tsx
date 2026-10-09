@@ -84,25 +84,35 @@ export default async function LandingPage() {
         <section id="rooms" className="l-wrap l-sec">
           <Reveal className="l-split">
             <div>
-              <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Study rooms</p>
-              <h2 className="l-h2">Study alongside classmates, <em className="serif">even when you’re apart</em></h2>
-              <p className="l-body">Set one goal and share a timer. Keep it silent, or turn on chat and voice.</p>
-              <Link href="/invite" className="btn" style={{ marginTop: 20 }}>Invite friends, get bonus AI</Link>
-            </div>
-            <div className="l-roomcard card">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="l-avatars l-avatars-lg">
-                  {[["#f2836b", "Z"], ["#a9c6a2", "M"], ["#9cc3e6", "L"], ["#c6b8ea", "A"]].map(([c, l], i) => <span key={l} style={{ background: c, marginLeft: i ? -8 : 0 }}>{l}</span>)}
-                </span>
-                <span style={{ fontSize: 14, fontWeight: 600 }}><span className="live-dot" aria-hidden="true" /> 4 people studying</span>
-              </div>
-              <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 14px" }}>Zayahn · Mia · Lebo · Amara</p>
-              <div className="eyebrow" style={{ color: "var(--accent-text)" }}>Session goal</div>
-              <p style={{ fontSize: 15, fontWeight: 500, margin: "4px 0 14px" }}>Revise Lecture 6 and complete the practice questions.</p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <span className="room-chip">Silent co-study</span><span className="room-chip">Shared 50-minute timer</span><span className="room-chip">Chat available</span>
+              <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Live study rooms</p>
+              <h2 className="l-h2">Focus alongside others, <em className="serif">in a calm room</em></h2>
+              <p className="l-body">Pick a filmed scene, from rain on a roof to a forest stream, and work to one shared timer with everyone in it. Chat opens on the break. You can host your own room and put one on your space home.</p>
+              <div className="l-actions" style={{ marginTop: 20 }}>
+                <Link href="/discover?tab=rooms" className="btn btn-primary">See the rooms</Link>
+                <Link href="/invite" className="btn">Invite friends, get bonus study time</Link>
               </div>
             </div>
+            <div className="l-live" aria-hidden="true">
+              <video className="l-live-video" src="/loops/forest-stream.mp4" poster="/loops/forest-stream.jpg" autoPlay muted loop playsInline />
+              <div className="l-live-over">
+                <span className="l-live-name">Forest stream <i><span className="live-dot" /> 6 studying</i></span>
+                <span className="l-live-time"><small>Focus</small>18:42</span>
+                <span className="l-live-next">Next: 5 min break</span>
+              </div>
+            </div>
+          </Reveal>
+        </section>
+
+        <section className="l-wrap l-sec">
+          <Reveal className="l-yours">
+            <p className="eyebrow" style={{ color: "var(--accent-text)" }}>Make it yours</p>
+            <h2 className="l-h2">Every module gets <em className="serif">a home of its own</em></h2>
+            <ul className="l-yours-grid">
+              <li><b>Set it up from your outline</b><span>Upload your course outline and Logia lays out the topics, tests and due dates. You check everything first.</span></li>
+              <li><b>Arrange it your way</b><span>Choose which cards show, colour the header, and drop sticky notes, headings and cut-out stickers anywhere.</span></li>
+              <li><b>Share what helps</b><span>Show your notebooks and decks to classmates, or make the space public on Discover for others to copy.</span></li>
+            </ul>
+            <Link href="/features" className="btn" style={{ marginTop: 8 }}>See everything Logia can do</Link>
           </Reveal>
         </section>
 

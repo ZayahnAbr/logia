@@ -94,6 +94,10 @@ export function SpacesTab() {
   return (
     <div className="dc-spaces">
       <div className="dc-filters card">
+        <div className="dc-fhead">
+          <h2>Find a study space</h2>
+          <span aria-hidden="true">{spaces === null ? "" : `${list.length} ${list.length === 1 ? "space" : "spaces"}`}</span>
+        </div>
         <div className="field" style={{ maxWidth: 420 }}>
           <label className="field-label" htmlFor="space-search">Search public spaces</label>
           <div style={{ position: "relative" }}>

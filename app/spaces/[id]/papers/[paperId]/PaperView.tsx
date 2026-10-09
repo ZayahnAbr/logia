@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Loader2, Sparkles, ArrowLeft } from "lucide-react";
+import { ThinkingSteps } from "@/components/ThinkingSteps";
 import { generateMoreFromPaper } from "@/app/actions";
 import { PracticeCard } from "./QuestionBank";
 import { CompareView } from "./CompareView";
@@ -88,6 +89,7 @@ export function PaperView({
             <button className="btn btn-primary" onClick={generate} disabled={loading}>
               {loading ? <><Loader2 size={14} className="spin" /> Generating…</> : "Generate similar questions"}
             </button>
+            {loading && <ThinkingSteps className="think-compact" every={4000} steps={["Looking at the topics you missed", "Writing new questions", "Checking each one has a clear answer"]} />}
             {error && <div style={{ color: "var(--amber)", fontSize: 12.5, marginTop: 12 }}>{error}</div>}
           </div>
         </aside>
