@@ -172,7 +172,7 @@ export function DashboardGrid({
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         {notice && <span role="status" style={{ fontSize: 13, color: "var(--muted)", flex: 1, minWidth: 200 }}>{notice}</span>}
         {toolbarExtra}
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(layout)}>
+        <button type="button" className="btn btn-ghost btn-sm" data-tour="customise" onClick={() => setEditing(layout)}>
           <SlidersHorizontal size={15} aria-hidden="true" /> {dialogTitle.replace("Customise", "Customise")}
         </button>
       </div>

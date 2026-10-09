@@ -12,7 +12,7 @@ import { isSceneId } from "@/lib/loopScenes";
 
 export const metadata: Metadata = { title: "Discover · Logia" };
 
-const TABS: Tab[] = ["rooms", "streams", "spaces"];
+const TABS: Tab[] = ["rooms", "spaces"];
 
 export default async function DiscoverPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const { tab } = await searchParams;

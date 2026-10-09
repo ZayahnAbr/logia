@@ -9,23 +9,20 @@ import { AiAllowance } from "@/components/AiAllowance";
 import "../../workspace-layout.css";
 import { ProfileRow, ThemeSwitch } from "./ProfileRow";
 import { LmsSection } from "./LmsSection";
-import { GoogleDocsCard } from "./GoogleDocsCard";
 
 const SECTIONS = [
   { id: "profile", label: "Profile", icon: User },
   { id: "appearance", label: "Appearance", icon: Palette },
   { id: "ai", label: "AI and plan", icon: Sparkles },
   { id: "school-sync", label: "School sync", icon: Plug },
-  { id: "connections", label: "Connected apps", icon: Link2 },
   { id: "help", label: "Help", icon: LifeBuoy },
   { id: "legal", label: "Legal", icon: Scale },
   { id: "account", label: "Account", icon: LogOut },
 ];
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ classroom?: string; n?: string; msg?: string; gdocs?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ classroom?: string; n?: string; msg?: string }> }) {
   const sp = await searchParams;
   const notice = sp.classroom === "ok" ? { kind: "ok" as const, text: `Google Classroom connected. Synced ${Number(sp.n) || 0} item${Number(sp.n) === 1 ? "" : "s"}.` } : sp.classroom === "error" ? { kind: "error" as const, text: (sp.msg ?? "Couldn't connect Google Classroom.").slice(0, 200) } : undefined;
-  const gdocsNotice = sp.gdocs === "ok" ? { kind: "ok" as const, text: "Google Docs connected. You can now link notes from their Google Docs menu." } : sp.gdocs === "error" ? { kind: "error" as const, text: (sp.msg ?? "Couldn't connect Google Docs.").slice(0, 200) } : undefined;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/auth/signin");
@@ -80,11 +77,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <section id="school-sync" className="st-sec" aria-labelledby="h-school-sync">
             <h2 id="h-school-sync">School sync (browser extension)</h2>
             <LmsSection notice={notice} />
-          </section>
-
-          <section id="connections" className="st-sec" aria-labelledby="h-connections">
-            <h2 id="h-connections">Connected apps</h2>
-            <GoogleDocsCard notice={gdocsNotice} />
           </section>
 
           <section id="help" className="st-sec" aria-labelledby="h-help">

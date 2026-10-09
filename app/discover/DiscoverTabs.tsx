@@ -13,7 +13,6 @@ import { SpacesTab } from "./SpacesTab";
 export type Tab = "rooms" | "streams" | "spaces";
 const TABS: { id: Tab; label: string }[] = [
   { id: "rooms", label: "Live rooms" },
-  { id: "streams", label: "Study with me" },
   { id: "spaces", label: "Public spaces" },
 ];
 
@@ -45,7 +44,7 @@ export function DiscoverTabs({ initialTab, rooms, streams, hosted, mine, admin }
           ))}
         </div>
         <div className="dc-bar-actions">
-          {tab !== "spaces" && <Link href="/discover/host" className="btn btn-primary btn-sm"><Plus size={14} aria-hidden="true" /> Host a study-with-me</Link>}
+          {false && <Link href="/discover/host" className="btn btn-primary btn-sm"><Plus size={14} aria-hidden="true" /> Host a study-with-me</Link>}
         {admin && <Link href="/discover/admin" className="btn btn-sm"><Settings2 size={14} aria-hidden="true" /> Manage</Link>}
         </div>
       </div>

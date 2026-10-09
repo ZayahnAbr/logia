@@ -29,7 +29,7 @@ export function TermsGate({ needsAge }: { needsAge: boolean }) {
       <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <h1 style={{ fontSize: "1.5rem", margin: 0 }}>We&apos;ve updated our terms</h1>
         <p style={{ margin: 0 }}>
-          {needsAge ? "Before you carry on, please read and accept our terms and tell us your age." : "Please read and accept our terms to carry on using Logia."} Your notes and spaces are untouched.
+          {needsAge ? "Before you carry on, please read and accept our terms and tell us your age." : "Please read and accept our terms to carry on using Logia."}
         </p>
         <ConsentFields value={c} onChange={setC} />
         {err && <p role="alert" className="auth-err">{err}</p>}

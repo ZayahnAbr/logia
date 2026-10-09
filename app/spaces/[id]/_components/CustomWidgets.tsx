@@ -180,7 +180,7 @@ export function AddWidgetButton({ spaceId, stickyReady }: { spaceId: string; sti
   const close = useCallback(() => setOpen(false), []);
   return (
     <>
-      <button type="button" className="btn btn-sm" onClick={() => setOpen(true)}><Plus size={15} aria-hidden="true" /> Add widget</button>
+      <button type="button" className="btn btn-sm" data-tour="add-widget" onClick={() => setOpen(true)}><Plus size={15} aria-hidden="true" /> Add widget</button>
       {open && <AddDialog spaceId={spaceId} stickyReady={!!stickyReady} onClose={close} />}
     </>
   );

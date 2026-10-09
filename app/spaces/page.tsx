@@ -131,7 +131,7 @@ export default async function SpacesPage() {
                   <li key={sp.id} className="sp-card">
                     <Link href={`/spaces/${sp.id}`} className="stretched" aria-label={`Open ${sp.name}`} />
                     <SpaceCover spaceId={sp.id} initial={covers[sp.id] ?? COVER_COLORS[i % COVER_COLORS.length]}>
-                      <span className="sp-kind">{sp.type === "peer" ? <Users size={12} /> : <GraduationCap size={12} />} {sp.type === "peer" ? "Peer space" : "Class hub"}</span>
+                      <span className="sp-kind">{sp.type === "peer" ? <Users size={12} /> : <GraduationCap size={12} />} {sp.type === "peer" ? "Study space" : "Class hub"}</span>
                       {st.due > 0 && <span className="sp-due">{st.due} due</span>}
                     </SpaceCover>
                     <div className="sp-body">

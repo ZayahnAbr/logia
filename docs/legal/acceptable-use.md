@@ -1,8 +1,6 @@
-> **Draft for legal review. Not yet final.**
-
 # Acceptable Use Policy
 
-**Company:** [COMPANY NAME] ([REGISTRATION NUMBER]). **Contact:** [CONTACT EMAIL]. **Effective date:** [EFFECTIVE DATE]
+**Effective date:** {{EFFECTIVE}} · **Contact:** {{EMAIL}}
 
 Logia is a place to study. Many people here are teenagers. This policy says what you may and may not put on Logia. It is part of the [Terms of Use](/legal/terms).
 
@@ -21,7 +19,7 @@ Before you upload or share anything (notes, files, images, videos, room covers, 
 7. **Illegal activity.** No content that breaks South African law, helps commit a crime, sells illegal goods, or shares hacked material, fraud or scams.
 8. **Other people's private information.** No sharing someone's ID number, address, phone number, photos, marks, messages or other personal details without their permission.
 9. **Copyrighted material you lack the right to share.** This includes university or school lecture slides, past papers, memos, marking guidelines, textbooks and other copyrighted work. Sharing your own notes and your own summaries is fine. Public spaces and rooms are visible to others, so be extra careful there.
-10. **Spam, malware and misuse of Logia.** No bulk or repeated unwanted messages, no attempts to break, overload or get around Logia's limits or safety checks.
+10. **Spam, malware and misuse of Logia.** No bulk or repeated unwanted messages, and no attempts to break, overload or get around Logia's limits or safety checks.
 
 ## Study-with-me rooms and chat
 
@@ -47,8 +45,12 @@ Use Logia responsibly and follow your school, college or university's rules, inc
 
 ## Reporting
 
-Use the report options in the app, or see the [Takedown page](/legal/takedown) or write to [CONTACT EMAIL].
+Use the report options in the app, see the [reporting page](/legal/takedown), or write to {{EMAIL}}.
 
 ## Where to get help
 
-[ATTORNEY AND OWNER TO CONFIRM CURRENT HELPLINE NUMBERS BEFORE PUBLISHING. Examples to verify: SADAG, Childline South Africa, Lifeline South Africa, emergency services.]
+If you or someone you know is in danger, call the police on 10111, or 112 from a mobile phone.
+
+- **SADAG (mental health and suicide crisis line):** 0800 567 567
+- **Childline South Africa:** 0800 055 555
+- **Lifeline South Africa:** 0861 322 322

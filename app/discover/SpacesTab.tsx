@@ -91,8 +91,8 @@ export function SpacesTab() {
   const list = spaces ?? [];
 
   return (
-    <div>
-      <div className="dc-filters">
+    <div className="dc-spaces">
+      <div className="dc-filters card">
         <div className="field" style={{ maxWidth: 420 }}>
           <label className="field-label" htmlFor="space-search">Search public spaces</label>
           <div style={{ position: "relative" }}>
@@ -156,9 +156,10 @@ export function SpacesTab() {
         </div>
       )}
 
-      <ul className="dc-grid" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+      <ul className="dc-grid dc-spgrid" style={{ listStyle: "none", margin: 0, padding: 0 }}>
         {list.map((s) => (
-          <li key={s.id} className="card dc-card">
+          <li key={s.id} className="card dc-card dc-spcard">
+            <div className="dc-spband" aria-hidden="true" />
             <div className="dc-body">
               {s.subject && <div className="eyebrow">{s.subject}</div>}
               <h2 className="dc-name">{s.name}</h2>
@@ -173,7 +174,7 @@ export function SpacesTab() {
                 <span className="dc-count"><Users size={14} aria-hidden="true" /> {s.member_count} {s.member_count === 1 ? "member" : "members"}</span>
                 {(s.level || s.institution) && <span className="dc-sub">{[s.level ? cap(s.level) : "", s.institution].filter(Boolean).join(" · ")}</span>}
               </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div className="dc-actions">
                 <button type="button" className="btn btn-primary" disabled={joining === s.id} onClick={() => join(s)} aria-label={`Join ${s.name}`}>{joining === s.id ? "Joining…" : "Join"}</button>
                 <CloneSpaceButton spaceId={s.id} spaceName={s.name} />
                 <button type="button" className="btn btn-ghost" onClick={() => setReporting(s.id)} aria-label={`Report ${s.name}`}><Flag size={14} aria-hidden="true" /> Report</button>

@@ -292,10 +292,10 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
     headerUrl = signed?.signedUrl ?? null;
   }
   const look = headerLook(headerReady ? headerKind : "default", headerColor, headerUrl);
-  // Peer spaces: any member. Class hubs: only the creator (same rule as set_space_header).
+  // Study spaces: any member. Class hubs: only the creator (same rule as set_space_header).
   const canEditHeader = space.type === "teacher_hub" ? space.created_by === user.id : true;
   const heroTexts = {
-    eyebrow: `${space.type === "peer" ? "Peer space" : "Class hub"}${space.subject ? ` · ${space.subject}` : ""}`,
+    eyebrow: `${space.type === "peer" ? "Study space" : "Class hub"}${space.subject ? ` · ${space.subject}` : ""}`,
     sub: `${due.length ? `${due.length} card${due.length === 1 ? "" : "s"} due today` : "You're up to date"}${openPains.length ? ` · ${openPains.length} weak spot${openPains.length === 1 ? "" : "s"} to fix` : ""}`,
   };
 

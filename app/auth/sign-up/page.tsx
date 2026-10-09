@@ -9,8 +9,6 @@ import { AuthShell } from "@/components/AuthShell";
 import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { RefCapture } from "@/components/site/Referral";
 import { nextFromLocation, withNext } from "@/lib/safeNext";
-import { ConsentFields, emptyConsent, validateConsent, type ConsentState } from "@/components/ConsentFields";
-import { TERMS_VERSION, looksLikeEmail } from "@/lib/legal";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -20,18 +18,14 @@ export default function SignUpPage() {
   const [repeat, setRepeat]     = useState("");
   const [error, setError]       = useState<string | null>(null);
   const [loading, setLoading]   = useState(false);
-  const [consent, setConsent]   = useState<ConsentState>(emptyConsent);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (password !== repeat) { setError("Passwords don't match."); return; }
-    const consentErr = validateConsent(consent, looksLikeEmail);
-    if (consentErr) { setError(consentErr); return; }
     if (hasBlockedWord(name)) { setError("Please choose a different name."); return; }
     setLoading(true); setError(null);
     const supabase = createClient();
     const next = nextFromLocation();
-    const acceptedAt = new Date().toISOString();
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -39,23 +33,12 @@ export default function SignUpPage() {
         emailRedirectTo: `${window.location.origin}${next ?? "/spaces"}`,
         data: {
           display_name: name,
-          terms_version: TERMS_VERSION,
-          terms_accepted_at: acceptedAt,
-          age_band: consent.age,
-          ...(consent.age === "13-17" ? { guardian_email: consent.guardianEmail.trim() } : {}),
         },
       },
     });
     if (error) { setError(error.message); setLoading(false); return; }
     if (name && data.user) {
       await supabase.from("profiles").update({ display_name: name }).eq("id", data.user.id);
-    }
-    if (data.user && data.session) {
-      // Before migration 44 these columns don't exist and the update just fails; the terms screen then asks on first visit.
-      await supabase.from("profiles").update({
-        terms_version: TERMS_VERSION, terms_accepted_at: acceptedAt, age_band: consent.age,
-        ...(consent.age === "13-17" ? { guardian_email: consent.guardianEmail.trim(), guardian_consent_at: acceptedAt } : {}),
-      }).eq("id", data.user.id);
     }
     // With "Confirm email" off in Supabase, signUp returns a live session — go straight in.
     if (data.session) { router.push(next ?? "/spaces"); router.refresh(); return; }
@@ -75,7 +58,9 @@ export default function SignUpPage() {
           <Field label="Password" type="password" autoComplete="new-password" hint="At least 6 characters" value={password} onChange={setPassword} />
           <Field label="Repeat password" type="password" autoComplete="new-password" value={repeat} onChange={setRepeat} />
 
-          <ConsentFields value={consent} onChange={setConsent} />
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
+            By creating an account you agree to the <Link href="/legal/terms" target="_blank" style={{ color: "var(--accent-text)", textDecoration: "underline" }}>Terms</Link> and the <Link href="/legal/privacy" target="_blank" style={{ color: "var(--accent-text)", textDecoration: "underline" }}>Privacy Policy</Link>. We will ask your age once you are in.
+          </p>
 
           {error && <p role="alert" className="auth-err">{error}</p>}
 

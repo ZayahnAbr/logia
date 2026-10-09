@@ -410,7 +410,7 @@ html[data-theme="dark"] .stk-stage { background-color: #3a3a3a; background-image
 
 /* Text sticker box hugs the text, so the resize handle sits at the corner of the words.
    Width still drives the font size via --st-w; the box just shrink-wraps the content. */
-.st-text.is-abs { width: max-content !important; max-width: 100%; }
+.st-text.is-abs { max-width: none; }
 .st-text .cw-textcard { width: auto; }
 .st-text .cw-text { field-sizing: content; width: auto; min-width: 3ch; max-width: min(90vw, 1200px); white-space: pre; overflow: hidden; }
 .st-text .st-resize { right: -14px; bottom: -10px; width: 22px; height: 22px; }
@@ -738,3 +738,8 @@ html[data-theme="dark"] .ce-drop.is-over, html[data-theme="dark"] .ce-drop:hover
    on the chosen colour; it is strongest behind the text on the left and fades out across the band. */
 .space-hero.sh-color { background: linear-gradient(90deg, rgba(0,0,0,var(--sh-shade, 0)) 0%, rgba(0,0,0,var(--sh-shade, 0)) 45%, rgba(0,0,0,calc(var(--sh-shade, 0) * .35)) 80%, rgba(0,0,0,0) 100%), var(--sh-bg); }
 @media (max-width: 760px) { .space-hero.sh-color { background: linear-gradient(rgba(0,0,0,var(--sh-shade, 0)), rgba(0,0,0,var(--sh-shade, 0))), var(--sh-bg); } }
+
+/* Resize handle: always reachable on the selected sticker, never clipped, always above the content */
+.st.is-abs { overflow: visible; }
+.st.is-abs:focus-within .st-resize, .st.is-abs:hover .st-resize, .st.is-abs.is-resize .st-resize { opacity: 1 !important; pointer-events: auto; z-index: 6; }
+.st.is-abs.is-resize, .st.is-abs.is-move { user-select: none; }

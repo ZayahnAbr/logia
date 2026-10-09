@@ -136,22 +136,22 @@ function Sidebar({
             <LayoutDashboard size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Dashboard</span>
           </Link>
-          <Link href="/library" onClick={onClose}
+          <Link href="/library" onClick={onClose} data-tour="library"
             className={`sidebar-nav-item${pathname.startsWith("/library") ? " active" : ""}`} aria-current={pathname.startsWith("/library") ? "page" : undefined}>
             <Library size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Library</span>
           </Link>
-          <Link href="/discover" onClick={onClose}
+          <Link href="/discover" onClick={onClose} data-tour="discover"
             className={`sidebar-nav-item${pathname.startsWith("/discover") ? " active" : ""}`} aria-current={pathname.startsWith("/discover") ? "page" : undefined}>
             <Compass size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Discover</span>
           </Link>
-          <Link href="/timetable" onClick={onClose}
+          <Link href="/timetable" onClick={onClose} data-tour="timetable"
             className={`sidebar-nav-item${pathname.startsWith("/timetable") ? " active" : ""}`} aria-current={pathname.startsWith("/timetable") ? "page" : undefined}>
             <CalendarDays size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Timetable</span>
           </Link>
-          <button type="button" className="sidebar-nav-item" onClick={() => { onFocusClick?.(); onClose?.(); }}>
+          <button type="button" className="sidebar-nav-item" data-tour="focus" onClick={() => { onFocusClick?.(); onClose?.(); }}>
             <Timer size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Focus timer</span>
           </button>
@@ -183,7 +183,7 @@ function Sidebar({
       {/* Footer — identical on every page */}
       <div className="sidebar-nav-list" style={{ paddingTop: 12, marginTop: 12, boxShadow: "0 -1px 0 var(--sidebar-border)" }}>
         <ThemeToggle />
-        <Link href="/spaces/settings" onClick={onClose}
+        <Link href="/spaces/settings" data-tour="settings" onClick={onClose}
           className={`sidebar-nav-item${pathname.startsWith("/spaces/settings") ? " active" : ""}`} aria-current={pathname.startsWith("/spaces/settings") ? "page" : undefined}>
           <Settings size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
           <span>Settings</span>

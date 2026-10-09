@@ -20,7 +20,7 @@ import { useEffect, useRef, useState } from "react";
 import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Strikethrough, ImageIcon, Film, Loader2, Layers, Baseline, Highlighter, ChevronDown, Sigma } from "lucide-react";
 import { getNoteMediaSignedUrl } from "@/app/actions";
 import { createClient } from "@/lib/supabase/client";
-import { GoogleDocsMenu } from "./GoogleDocsMenu";
+import { ExportToDocs } from "./ExportToDocs";
 
 const FONTS = [
   { label: "Default", value: "" },
@@ -274,7 +274,7 @@ export function RichEditor({
         {noteId && (
           <>
             <div style={{ width: 1, background: "var(--border-soft)", margin: "4px 4px" }} />
-            <GoogleDocsMenu editor={editor} noteId={noteId} noteTitle={noteTitle ?? ""} isReady={() => ready.current} />
+            <ExportToDocs editor={editor} noteTitle={noteTitle ?? ""} />
           </>
         )}
         {onMakeFlashcard && (

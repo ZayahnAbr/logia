@@ -41,7 +41,7 @@ export function SpaceForms() {
   return (
     <div className="grid2" data-tour="create-space">
       <div style={panel}>
-        <div className="sec-title" style={{ marginBottom: 14 }}>New Peer Space</div>
+        <div className="sec-title" style={{ marginBottom: 14 }}>New Study Space</div>
         <div style={{ display: "grid", gap: 10 }}>
           <input
             className="input"

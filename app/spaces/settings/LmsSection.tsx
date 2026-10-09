@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Copy, KeyRound, Loader2, Trash2 } from "lucide-react";
 import { toast } from "@/components/Toaster";
-import { ClassroomCard } from "./ClassroomCard";
 import { createLmsConnection, listLmsConnections, revokeLmsConnection, type LmsConnection } from "@/app/lms-actions";
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "Never");
@@ -49,7 +48,7 @@ export function LmsSection({ notice }: { notice?: { kind: "ok" | "error"; text: 
         <div>
           <strong>Sync Work To Do from your school</strong>
           <span>Install the Logia School Sync extension in Chrome or Edge. Your school login stays in your browser. Only titles, courses, due dates and links are sent to Logia.</span>
-          <span><strong style={{ fontSize: 13 }}>Works with:</strong> Brightspace, Canvas, Moodle. <strong style={{ fontSize: 13 }}>Experimental:</strong> Blackboard. Google Classroom connects below, without the extension.</span>
+          <span><strong style={{ fontSize: 13 }}>Works with:</strong> Brightspace, Canvas, Moodle. <strong style={{ fontSize: 13 }}>Experimental:</strong> Blackboard.</span>
         </div>
         <button type="button" className="btn btn-primary" onClick={make} disabled={busy || !!err}>
           {busy ? <Loader2 size={14} className="spin" aria-hidden="true" /> : <KeyRound size={14} aria-hidden="true" />} New connection code
@@ -104,7 +103,6 @@ export function LmsSection({ notice }: { notice?: { kind: "ok" | "error"; text: 
         <p style={{ margin: "8px 0 0" }}>Logia only receives what you tick in that list. It can&apos;t log in to your school for you, and it can&apos;t see your grades.</p>
       </details>
     </div>
-    <ClassroomCard notice={notice} />
     </>
   );
 }

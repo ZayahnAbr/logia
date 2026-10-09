@@ -21,13 +21,15 @@ export function SidebarUsage() {
   if (a.unlimited) return <Link href="/spaces/settings#ai" className="su"><span className="su-top"><span>AI usage</span><b>Unlimited</b></span></Link>;
   const left = 100 - a.pct;
   const refill = a.refillAt ? new Date(a.refillAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
-  const when = a.window === "day" ? "today" : a.window === "hour" ? "this hour" : "this minute";
-  const sub = a.pct === 0 ? "Refills every hour" : a.window === "day" ? "Back tomorrow morning" : refill ? `Back by ${refill}` : "Refills soon";
+  // Calm wording on purpose: a status, not a countdown. Only shows a bar and a time when the assistant needs a rest.
+  const resting = left <= 10;
+  const status = resting ? "Resting" : left <= 40 ? "Going steady" : "Ready";
+  const sub = !resting ? null : a.window === "day" ? "Back tomorrow morning" : refill ? `Back around ${refill}` : "Back shortly";
   return (
-    <Link href="/spaces/settings#ai" className={`su${a.pct >= 90 ? " low" : ""}`} aria-label={`${left}% of ${when}'s AI left`}>
-      <span className="su-top"><span>AI left {when}</span><b>{left}%</b></span>
-      <span className="su-bar" aria-hidden="true"><i style={{ width: `${left}%` }} /></span>
-      <span className="su-sub">{sub}{a.bonusHours > 0 ? ` · +${a.bonusHours}h bonus` : ""}</span>
+    <Link href="/spaces/settings#ai" className={`su${resting ? " low" : ""}`} aria-label={`Study assistant: ${status.toLowerCase()}`}>
+      <span className="su-top"><span>Study assistant</span><b>{status}</b></span>
+      {resting && <span className="su-bar" aria-hidden="true"><i style={{ width: `${Math.max(left, 4)}%` }} /></span>}
+      {sub && <span className="su-sub">{sub}{a.bonusHours > 0 ? " · bonus time added" : ""}</span>}
     </Link>
   );
 }

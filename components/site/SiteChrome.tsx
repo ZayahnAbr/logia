@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/LogoMark";
+import { createClient } from "@/lib/supabase/server";
 
 // Public-site chrome shared by the landing page and the marketing pages.
 export const Logo = ({ size = 28 }: { size?: number }) => <LogoMark size={size} />;
@@ -18,7 +19,9 @@ const LEGAL_LINKS = [
   { href: "/legal/takedown", label: "Report content" },
 ];
 
-export function SiteNav({ current }: { current?: string }) {
+export async function SiteNav({ current }: { current?: string }) {
+  const { data } = await (await createClient()).auth.getUser();
+  const signedIn = !!data.user;
   return (
     <header className="l-nav-dark">
       <div className="l-wrap l-nav-row">
@@ -29,8 +32,14 @@ export function SiteNav({ current }: { current?: string }) {
           ))}
         </nav>
         <div className="l-nav-cta">
-          <Link href="/auth/login" className="l-nav-signin">Sign in</Link>
-          <Link href="/auth/sign-up" className="btn btn-sm l-nav-get">Get Logia free</Link>
+          {signedIn ? (
+            <Link href="/spaces" className="btn btn-sm l-nav-get">Open Logia</Link>
+          ) : (
+            <>
+              <Link href="/auth/login" className="l-nav-signin">Sign in</Link>
+              <Link href="/auth/sign-up" className="btn btn-sm l-nav-get">Get Logia free</Link>
+            </>
+          )}
         </div>
       </div>
     </header>

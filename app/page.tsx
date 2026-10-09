@@ -4,13 +4,16 @@ import { Reveal, DepthStage } from "@/components/motion";
 import { DemoDeck } from "@/components/landing/DemoDeck";
 import { ProductTour } from "@/components/landing/ProductTour";
 import { SiteNav, SiteFooter, Logo } from "@/components/site/SiteChrome";
+import { createClient } from "@/lib/supabase/server";
 import { RefCapture } from "@/components/site/Referral";
 
 // Feeling curve: recognition (hero) → quiet → clarity (the peak: a note becomes recall)
 // → belonging (rooms) → trust (privacy) → resolve (one line, one action).
 
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const { data } = await (await createClient()).auth.getUser();
+  const cta = data.user ? { href: "/spaces", label: "Open Logia" } : { href: "/auth/sign-up", label: "Get Logia free" };
   return (
     <div className="landing" style={{ minHeight: "100dvh", background: "var(--bg)" }}>
 
@@ -30,7 +33,7 @@ export default function LandingPage() {
                 Logia turns your notes into flashcards that check your recall, marks your past papers, and gives you a quiet room to study with classmates.
               </p>
               <div className="l-rise l-actions" style={{ ["--d" as string]: "340ms" }}>
-                <Link href="/auth/sign-up" className="btn btn-primary btn-lg">Get Logia free</Link>
+                <Link href={cta.href} className="btn btn-primary btn-lg">{cta.label}</Link>
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, color: "rgba(17,17,17,.68)" }}>
                   <ShieldCheck size={15} aria-hidden="true" /> No ads. No tracking.
                 </span>
@@ -110,7 +113,7 @@ export default function LandingPage() {
             <h2 className="l-h2">Start with the notes <em className="serif">you already have</em>.</h2>
             <p className="l-body">Free for students. Upload a lecture or paste a page of notes, and your first deck is ready in a minute.</p>
             <div className="l-actions" style={{ justifyContent: "center" }}>
-              <Link href="/auth/sign-up" className="btn btn-primary btn-lg">Get Logia free</Link>
+              <Link href={cta.href} className="btn btn-primary btn-lg">{cta.label}</Link>
               <Link href="#tour" className="btn btn-lg l-btn-soft">See how it works</Link>
             </div>
           </Reveal>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SiteNav, SiteFooter } from "@/components/site/SiteChrome";
+import { CONTACT_EMAIL, EFFECTIVE_DATE } from "@/lib/legal";
 import "./legal.css";
 
 export const LEGAL_DOCS = [
@@ -15,12 +16,12 @@ export const LEGAL_DOCS = [
 
 export function legalMetadata(slug: string) {
   const d = LEGAL_DOCS.find((x) => x.slug === slug);
-  return { title: `${d?.label ?? "Legal"} · Logia`, description: `${d?.label ?? "Legal"} for Logia (draft for legal review).`, robots: { index: true, follow: true } };
+  return { title: `${d?.label ?? "Legal"} · Logia`, description: `${d?.label ?? "Legal"} for Logia.`, robots: { index: true, follow: true } };
 }
 
 export function LegalDoc({ slug }: { slug: string }) {
   const file = path.join(process.cwd(), "docs", "legal", `${slug}.md`);
-  const text = fs.readFileSync(file, "utf8");
+  const text = fs.readFileSync(file, "utf8").replaceAll("{{EMAIL}}", CONTACT_EMAIL).replaceAll("{{EFFECTIVE}}", EFFECTIVE_DATE);
   return (
     <div className="landing site" style={{ minHeight: "100dvh", background: "var(--bg)" }}>
       <SiteNav />
