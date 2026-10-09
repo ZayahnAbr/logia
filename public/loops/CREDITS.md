@@ -15,3 +15,12 @@ with a poster JPG of the first frame beside each one.
 | morning-mist.mp4 / .jpg | 28339 | Forest covered by mist at sunrise from the heights | https://mixkit.co/free-stock-video/forest-covered-by-mist-at-sunrise-from-the-heights-28339/ |
 
 Note: 3316 is cropped to the trees and rock above the road, so no traffic shows.
+
+## Added from Coverr
+
+Coverr's own filmed library (not the AI-generated section), free for commercial use under the Coverr licence. Converted to seamless 1280x720 loops the same way.
+
+| File | Title | Source |
+| --- | --- | --- |
+| forest-stream.mp4 / .jpg | Stream next to the road | https://coverr.co/videos/stream-next-to-the-road-hhiajcjvr6 |
+| conifer-forest.mp4 / .jpg | Coniferous forest | https://coverr.co/videos/coniferous-forest-q4t1vnzq7a |

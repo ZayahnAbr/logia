@@ -3,22 +3,23 @@
 import { useRef, useState } from "react";
 import { Check, Loader2, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { uploadFile, createLectureRecord } from "@/app/actions";
-import { compressAudioFile } from "@/app/spaces/[id]/lectures/compressAudio";
+import { createLectureRecord } from "@/app/actions";
+import { registerUploadedFile } from "@/app/onboarding-actions";
 
-export type UploadKind = "files" | "outlines" | "recordings";
+export type UploadKind = "files" | "outlines" | "pdfs" | "recordings";
 
 const COPY: Record<UploadKind, { title: string; hint: string; accept?: string; folder?: string }> = {
-  files: { title: "Your files", hint: "Notes, documents and slides", folder: "General" },
-  outlines: { title: "Course outlines and PDFs", hint: "PDF, Word or PowerPoint", accept: ".pdf,.doc,.docx,.ppt,.pptx", folder: "Course outlines" },
-  recordings: { title: "Lecture recordings", hint: "Audio or video", accept: "audio/*,video/*" },
+  files: { title: "Your files", hint: "Notes, documents and slides (up to 25 MB each)", folder: "General" },
+  outlines: { title: "Course outline", hint: "PDF or Word (up to 25 MB each)", accept: ".pdf,.doc,.docx", folder: "Course outlines" },
+  pdfs: { title: "PDFs and slides", hint: "Readings, slides and past papers (up to 25 MB each)", accept: ".pdf,.ppt,.pptx", folder: "PDFs" },
+  recordings: { title: "Lecture recordings", hint: "Audio or video (up to 20 MB each)", accept: "audio/*,video/*" },
 };
 
 type Item = { name: string; state: "busy" | "done" | "error"; msg?: string };
 
 // A real upload into the student's first space. Everything is optional and runs in the background of the step.
 export function OnboardingUploads({ spaceId, kinds }: { spaceId: string; kinds: UploadKind[] }) {
-  const [items, setItems] = useState<Record<UploadKind, Item[]>>({ files: [], outlines: [], recordings: [] });
+  const [items, setItems] = useState<Record<UploadKind, Item[]>>({ files: [], outlines: [], pdfs: [], recordings: [] });
   const refs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const patch = (k: UploadKind, name: string, p: Partial<Item>) =>
@@ -27,18 +28,20 @@ export function OnboardingUploads({ spaceId, kinds }: { spaceId: string; kinds: 
   const upload = async (k: UploadKind, file: File) => {
     setItems((cur) => ({ ...cur, [k]: [...cur[k], { name: file.name, state: "busy" }] }));
     try {
+      const MAX = k === "recordings" ? 20 : 25;
+      if (file.size > MAX * 1024 * 1024) {
+        throw new Error(k === "recordings" ? "Too big to add here. Upload it from Lectures once you're in your space." : `Over the ${MAX} MB limit.`);
+      }
+      // Straight from the browser to storage, so nothing big passes through the server and the page never stalls.
+      const path = `${spaceId}/${k === "recordings" ? "audio-" : ""}${crypto.randomUUID()}-${file.name.replace(/[^\w.\-]/g, "_")}`;
+      const { error } = await createClient().storage.from("space-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
+      if (error) throw error;
       if (k === "recordings") {
-        const compressed = await compressAudioFile(file);
-        const path = `${spaceId}/audio-${crypto.randomUUID()}-${compressed.name}`;
-        const { error } = await createClient().storage.from("space-files").upload(path, compressed, { contentType: "audio/mp3", upsert: false });
-        if (error) throw error;
         const res = await createLectureRecord(spaceId, file.name.replace(/\.[^.]+$/, ""), path);
         if (res.error) throw new Error(res.error);
       } else {
-        const fd = new FormData();
-        fd.set("spaceId", spaceId); fd.set("folder", COPY[k].folder ?? "General"); fd.set("file", file);
-        const res = await uploadFile(fd);
-        if ("error" in res && res.error) throw new Error(res.error);
+        const res = await registerUploadedFile(spaceId, COPY[k].folder ?? "General", file.name, path, file.size, file.type);
+        if ("error" in res) throw new Error(res.error);
       }
       patch(k, file.name, { state: "done" });
     } catch (e) {

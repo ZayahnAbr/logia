@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Flag, Search, Users } from "lucide-react";
+import Link from "next/link";
+import { Compass, Flag, Search, Users } from "lucide-react";
 import { listDiscoverSpaces, joinPublicSpace, type DiscoverSpace, type Facets } from "@/app/discover-actions";
 import { LEVELS } from "@/lib/spaceTags";
 import { toast } from "@/components/Toaster";
@@ -147,12 +148,19 @@ export function SpacesTab() {
       <p className="sr-only" role="status" aria-live="polite">{announce}</p>
 
       {error && <div className="notice notice-error" role="alert">{error}</div>}
-      {!error && spaces === null && <p role="status" style={{ color: "var(--muted)" }}>Loading public spaces…</p>}
+      {!error && spaces === null && (
+        <ul className="dc-grid dc-spgrid" role="status" aria-label="Loading public spaces" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {[0, 1, 2].map((i) => <li key={i} className="card dc-skel" aria-hidden="true"><i /><i /><i /></li>)}
+        </ul>
+      )}
       {!error && spaces !== null && list.length === 0 && (
-        <div className="empty card" style={{ padding: "32px 20px" }}>
-          {filtered
-            ? "No spaces match these filters. Try removing a tag, choosing any level, or searching for something shorter."
-            : "No public spaces yet. The creator of a space can make it public from the space home page."}
+        <div className="dc-empty card">
+          <span className="dc-empty-icon" aria-hidden="true"><Compass size={22} /></span>
+          <h2>{filtered ? "No spaces match yet" : "No public spaces yet"}</h2>
+          <p>{filtered
+            ? "Try removing a tag, choosing any level, or searching for something shorter."
+            : "Spaces appear here when their creator makes them public. Yours could be the first: open a space and choose Make public."}</p>
+          {filtered ? <button type="button" className="btn" onClick={clear}>Clear filters</button> : <Link href="/spaces" className="btn btn-primary">Go to my spaces</Link>}
         </div>
       )}
 

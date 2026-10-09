@@ -8,7 +8,7 @@ const list = (v: unknown, allowed: string[]) => (Array.isArray(v) ? v.map((x) =>
 
 const ROLES = ["student", "undergrad", "postgrad", "other"];
 const GOALS = ["notes", "flashcards", "papers", "exams", "lectures", "together", "maths"];
-const SETUP = ["files", "extension", "recordings", "outlines", "none"];
+const SETUP = ["files", "extension", "recordings", "outlines", "pdfs", "none"];
 const PERSONA: Record<string, string> = { student: "high_school", undergrad: "university", postgrad: "university", other: "self_learner" };
 
 export type OnboardingAnswers = { roles?: string[]; goals?: string[]; setup?: string[]; plan?: "standard" | "pro"; code?: string };
@@ -32,7 +32,6 @@ export async function saveOnboarding(a: OnboardingAnswers) {
   if (roles?.length) upd.persona = PERSONA[roles.includes("postgrad") ? "postgrad" : roles.includes("undergrad") ? "undergrad" : roles[0]];
   let { error } = await supabase.from("profiles").update(upd).eq("id", user.id);
   if (error && upd.persona) ({ error } = await supabase.from("profiles").update({ persona: upd.persona }).eq("id", user.id));
-  revalidatePath("/spaces");
   return error ? { error: "Couldn't save that, but you can carry on." } : {};
 }
 
@@ -62,9 +61,20 @@ export async function createDemoSpace(existingId?: string): Promise<{ id: string
   });
   // A heading, a sticky note, so the tour has real stickers to point at. Tolerates a missing sticky table.
   await supabase.from("space_widgets").insert([
-    { user_id: user.id, space_id: spaceId, kind: "text", data: { text: existingId ? "My study space" : "Biology: exam on Friday", size: "heading", x: 0.5, y: 24, w: 340 } },
-    { user_id: user.id, space_id: spaceId, kind: "sticky", data: { body: "Revise chapter 4", color: "yellow", x: 0.55, y: 170, w: 210 } },
+    { user_id: user.id, space_id: spaceId, kind: "text", data: { text: existingId ? "My study space" : "Biology: exam on Friday", size: "heading", x: 0.52, y: 60, w: 300 } },
+    { user_id: user.id, space_id: spaceId, kind: "sticky", data: { body: "Revise chapter 4", color: "yellow", x: 0.6, y: 112, w: 150 } },
   ]);
   revalidatePath("/spaces");
   return { id: spaceId };
+}
+
+// Records a file the browser already uploaded straight to storage (big files can't pass through a server action).
+export async function registerUploadedFile(spaceId: string, folder: string, name: string, path: string, size: number, mime: string): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Sign in first." };
+  if (!path.startsWith(`${spaceId}/`)) return { error: "That upload doesn't match this space." };
+  const { data, error } = await supabase.from("files").insert({ space_id: spaceId, folder: clean(folder, 60) || "General", name: clean(name, 200), path, size_bytes: Math.max(0, Math.round(size)), mime_type: clean(mime, 100), uploaded_by: user.id }).select("id").single();
+  if (error || !data) { await supabase.storage.from("space-files").remove([path]); return { error: "Couldn't save that file." }; }
+  return { id: data.id as string };
 }

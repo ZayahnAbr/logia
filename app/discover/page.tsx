@@ -33,7 +33,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Pro
       <div className="phead mesh-warm">
         <div className="eyebrow">Discover</div>
         <h1>Study with others</h1>
-        <div className="sub">Join a cozy focus room, watch a study-with-me stream, or explore public study spaces.</div>
+        <div className="sub">Join a cozy focus room, or explore public study spaces from other students.</div>
       </div>
       {missing && (
         <div className="notice notice-error" role="status" style={{ marginBottom: 16 }}>

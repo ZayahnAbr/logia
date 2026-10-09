@@ -1,5 +1,5 @@
-// Real filmed loops (Mixkit, see public/loops/CREDITS.md). Plain module: safe to import from server and client code.
-export const SCENE_IDS = ["rain-roof", "fireside", "seaside", "rainforest", "snowy-forest", "morning-mist"] as const;
+// Real filmed loops (Mixkit and Coverr, see public/loops/CREDITS.md). Plain module: safe to import from server and client code.
+export const SCENE_IDS = ["rain-roof", "fireside", "seaside", "rainforest", "snowy-forest", "morning-mist", "forest-stream", "conifer-forest"] as const;
 export type LoopSceneId = (typeof SCENE_IDS)[number];
 
 export const LOOP_SRC: Record<LoopSceneId, string> = {
@@ -9,6 +9,8 @@ export const LOOP_SRC: Record<LoopSceneId, string> = {
   "rainforest": "/loops/rainforest.mp4",
   "snowy-forest": "/loops/snowy-forest.mp4",
   "morning-mist": "/loops/morning-mist.mp4",
+  "forest-stream": "/loops/forest-stream.mp4",
+  "conifer-forest": "/loops/conifer-forest.mp4",
 };
 
 // First frame of each loop: shown while the video loads, under reduced motion, and if the video fails.
@@ -19,6 +21,8 @@ export const POSTER: Record<LoopSceneId, string> = {
   "rainforest": "/loops/rainforest.jpg",
   "snowy-forest": "/loops/snowy-forest.jpg",
   "morning-mist": "/loops/morning-mist.jpg",
+  "forest-stream": "/loops/forest-stream.jpg",
+  "conifer-forest": "/loops/conifer-forest.jpg",
 };
 
 export const SCENE_LABEL: Record<LoopSceneId, string> = {
@@ -28,6 +32,8 @@ export const SCENE_LABEL: Record<LoopSceneId, string> = {
   "rainforest": "Rainforest",
   "snowy-forest": "Snowy forest",
   "morning-mist": "Morning mist",
+  "forest-stream": "Forest stream",
+  "conifer-forest": "Pine forest",
 };
 
 export function isSceneId(s: unknown): s is LoopSceneId {

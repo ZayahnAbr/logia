@@ -97,8 +97,12 @@ export function startAmbient(scene: SceneId, volume: number) {
     // Two swells at slightly different speeds so the pattern does not repeat exactly.
     layer("white", [filt("lowpass", 1400), filt("highpass", 120)], 0.3, { hz: 0.11, depth: 0.9 });
     layer("brown", [filt("lowpass", 500)], 0.3, { hz: 0.083, depth: 0.8 });
+  } else if (scene === "forest-stream") {
+    // Water over stones: bright, steady noise with a gentle low bed.
+    layer("white", [filt("bandpass", 1800, 0.5), filt("highpass", 500)], 0.2, { hz: 0.13, depth: 0.25 });
+    layer("brown", [filt("lowpass", 300)], 0.3);
   } else {
-    // snowy-forest and morning-mist: quiet wind
+    // snowy-forest, morning-mist and conifer-forest: quiet wind
     layer("white", [filt("bandpass", scene === "snowy-forest" ? 450 : 650, 0.6)], 0.22, { hz: 0.06, depth: 0.5 });
     layer("brown", [filt("lowpass", 220)], 0.35);
   }

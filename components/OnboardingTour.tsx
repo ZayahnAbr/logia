@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Check, Copy, Sparkles } from "lucide-react";
+import { SpiralLoader } from "@/components/SpiralLoader";
 import { completeOnboarding, createSpace } from "@/app/actions";
 import { OnboardingUploads, type UploadKind } from "@/components/OnboardingUploads";
 import { saveOnboarding, getMyInviteLink, createDemoSpace } from "@/app/onboarding-actions";
@@ -14,7 +15,7 @@ import type { DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import "./onboarding.css";
 
-type Stage = "idle" | "about" | "goals" | "setup" | "upload" | "plan" | "design" | "running" | "invite" | "done";
+type Stage = "idle" | "loading" | "about" | "goals" | "setup" | "upload" | "plan" | "design" | "running" | "invite" | "done";
 const ORDER: Stage[] = ["about", "goals", "setup", "upload", "plan", "design", "invite", "done"];
 
 const ROLES = [
@@ -36,19 +37,21 @@ const SETUP = [
   { id: "files", label: "Import my files", hint: "Notes, documents and slides" },
   { id: "extension", label: "Connect my school site", hint: "With the browser extension" },
   { id: "recordings", label: "Add lecture recordings", hint: "Audio from your lectures" },
-  { id: "outlines", label: "Add course outlines and PDFs", hint: "So Logia knows your syllabus" },
+  { id: "outlines", label: "Add my course outline", hint: "So Logia knows your syllabus" },
+  { id: "pdfs", label: "Add PDFs and slides", hint: "Readings, slides and past papers" },
   { id: "none", label: "None of these for now", hint: "You can do any of it later" },
 ];
 
 function useChecks(initial: string[] = []) {
   const [on, setOn] = useState<string[]>(initial);
+  const set = setOn;
   const toggle = (id: string, exclusive?: string) =>
     setOn((cur) => {
       if (cur.includes(id)) return cur.filter((x) => x !== id);
       if (exclusive && id === exclusive) return [id];
       return [...cur.filter((x) => x !== exclusive), id];
     });
-  return [on, toggle] as const;
+  return [on, toggle, set] as const;
 }
 
 export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }) {
@@ -58,24 +61,39 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
   const [spaceBusy, setSpaceBusy] = useState(false);
   const [demoBusy, setDemoBusy] = useState(false);
   const [demoErr, setDemoErr] = useState("");
-  const [roles, toggleRole] = useChecks();
-  const [goals, toggleGoal] = useChecks();
-  const [setup, toggleSetup] = useChecks();
+  const [role, setRole] = useState("");
+  const roles = role ? [role] : [];
+  const [goals, toggleGoal, setGoals] = useChecks();
+  const [setup, toggleSetup, setSetup] = useChecks();
   const [plan, setPlan] = useState<"standard" | "pro">("standard");
   const [code, setCode] = useState("");
   const [codeMsg, setCodeMsg] = useState("");
   const [invite, setInvite] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Keep their place, so a reload or a hiccup never sends them back to the start.
+  useEffect(() => {
+    if (!show || stage === "idle" || stage === "running") return;
+    try { sessionStorage.setItem("logia.ob.state", JSON.stringify({ stage, role, goals, setup, plan, firstSpace })); } catch { /* private mode */ }
+  }, [show, stage, role, goals, setup, plan, firstSpace]);
+
   useEffect(() => {
     if (!show) return;
     let resume = false;
     try { resume = sessionStorage.getItem("logia.ob") === "tour"; } catch { /* private mode */ }
     if (resume) {
+      setStage("loading");
       // Arrived in the demo space: wait for the sidebar to render, then spotlight it.
       const t = setTimeout(() => { try { sessionStorage.removeItem("logia.ob"); } catch { /* private mode */ } startTour(); }, 1200);
       return () => clearTimeout(t);
     }
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("logia.ob.state") || "null");
+      if (saved && ORDER.includes(saved.stage)) {
+        setRole(saved.role || ""); setGoals(saved.goals || []); setSetup(saved.setup || []); setPlan(saved.plan || "standard"); setFirstSpace(saved.firstSpace || "");
+        setStage(saved.stage); return;
+      }
+    } catch { /* ignore */ }
     setStage("about");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show]);
@@ -85,16 +103,22 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
     setDemoBusy(true); setDemoErr("");
     const r = await createDemoSpace(firstSpace || undefined);
     if ("error" in r) { setDemoBusy(false); setDemoErr(r.error); return; }
-    try { sessionStorage.setItem("logia.ob", "tour"); } catch { /* private mode */ }
-    setStage("idle");
+    try {
+      sessionStorage.setItem("logia.ob", "tour");
+      // Leave the right half of the first row free, so the demo stickers sit in clear space.
+      localStorage.setItem(`logia.space.${r.id}.layout`, JSON.stringify([{ id: "outline", visible: false }, { id: "stats", visible: true, half: true }, { id: "tools", visible: true }]));
+    } catch { /* private mode */ }
+    setStage("loading");
     router.push(`/spaces/${r.id}`);
   };
 
-  const finish = () => { setStage("idle"); completeOnboarding(); };
+  const finish = () => { setStage("idle"); try { sessionStorage.removeItem("logia.ob.state"); } catch { /* private mode */ } completeOnboarding(); };
   const go = (to: Stage) => setStage(to);
 
   const startTour = async () => {
     setStage("running");
+    // Stickers draw a moment after the page, so give them a few seconds before deciding which steps exist.
+    for (let i = 0; i < 12 && !document.querySelector(".st-text"); i++) await new Promise((r) => setTimeout(r, 250));
     const { driver } = await import("driver.js");
     const d = driver({
       showProgress: true,
@@ -141,6 +165,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
     getMyInviteLink().then((r) => { if ("code" in r) setInvite(`${window.location.origin}/?ref=${r.code}`); });
   }, [stage, invite]);
 
+  if (stage === "loading") return <SpiralLoader />;
   if (stage === "idle" || stage === "running") return null;
 
   const idx = ORDER.indexOf(stage);
@@ -162,7 +187,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
           <legend className="sr-only">I am a</legend>
           {ROLES.map((r) => (
             <label key={r.id} className="ob-opt">
-              <input type="checkbox" checked={roles.includes(r.id)} onChange={() => toggleRole(r.id)} />
+              <input type="radio" name="ob-role" checked={role === r.id} onChange={() => setRole(r.id)} />
               <div><b>{r.label}</b><span>{r.hint}</span></div>
             </label>
           ))}
@@ -217,13 +242,13 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
           <button type="button" className="btn btn-primary" disabled={spaceBusy} onClick={async () => {
             saveOnboarding({ setup });
             // Anything they want to bring in needs somewhere to go, so make their first space now.
-            if (setup.some((x) => x === "files" || x === "outlines" || x === "recordings") && !firstSpace) {
+            if (setup.some((x) => x === "files" || x === "outlines" || x === "pdfs" || x === "recordings") && !firstSpace) {
               setSpaceBusy(true);
               const r = await createSpace("My first space", "", "peer");
               setSpaceBusy(false);
               if (r.id) setFirstSpace(r.id);
             }
-            go(setup.some((x) => x === "files" || x === "outlines" || x === "recordings") ? "upload" : "plan");
+            go(setup.some((x) => x === "files" || x === "outlines" || x === "pdfs" || x === "recordings") ? "upload" : "plan");
           }}>{spaceBusy ? "Setting up…" : "Next"}</button>
         </div>
       </Dialog>
@@ -231,7 +256,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
   }
 
   if (stage === "upload") {
-    const kinds = setup.filter((x): x is UploadKind => x === "files" || x === "outlines" || x === "recordings");
+    const kinds = setup.filter((x): x is UploadKind => x === "files" || x === "outlines" || x === "pdfs" || x === "recordings");
     return (
       <Dialog hideTitle title="Add your things" width={520} onClose={finish}>
         {top}
@@ -305,8 +330,12 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
         <p className="ob-sub">Each module gets its own space. Here is how you make one yours: pick a colour, add notes and stickers, and keep your files together.</p>
         <div className="ob-demo" aria-hidden="true">
           <div className="ob-demo-head">Biology 201</div>
-          <div className="ob-demo-card a"><strong>Notes</strong>Cell biology</div>
-          <div className="ob-demo-card b"><strong>Files</strong>Your uploads are here</div>
+          <div className="ob-demo-grid">
+            <div className="ob-tc a"><div className="ob-tc-art fc"><i>Your first card</i></div><b>Flashcards</b><span>Answer out loud and see what you missed.</span></div>
+            <div className="ob-tc b"><div className="ob-tc-art rm"><u /><u /><u /><em>live</em></div><b>Study rooms</b><span>Shared goal, shared timer, chat and voice.</span></div>
+            <div className="ob-tc c"><div className="ob-tc-art pp" /><b>Past papers</b><span>Upload a marked paper, see where the marks went.</span></div>
+            <div className="ob-tc d"><div className="ob-tc-art mm"><s /><s /><s /></div><b>Mind maps</b><span>Turn a chapter into a map you can edit.</span></div>
+          </div>
           <div className="ob-demo-card c">Revise ch. 4!</div>
           <span className="ob-demo-ptr" />
         </div>
