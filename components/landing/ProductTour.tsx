@@ -126,7 +126,7 @@ function RoomsScreen() {
         <div className="pt-timer"><span className="pt-tring"><b>38:12</b></span><small><Timer size={11} /> Shared 50-minute timer</small></div>
         <div className="pt-chat">
           <span><i style={{ background: "#a9c6a2" }}>M</i> Anyone done Q3?</span>
-          <span><i style={{ background: "#9cc3e6" }}>L</i> Yes, it’s chunking</span>
+          <span><i style={{ background: "#9cc3e6" }}>L</i> Yes, check my notes.</span>
           <span className="me">Thanks, starting now</span>
         </div>
       </div>

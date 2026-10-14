@@ -93,3 +93,6 @@ html[data-theme="dark"] .ob-tag { color: #151312; }
 .ob-tc-art.mm s { width: 12px; height: 8px; border-radius: 3px; background: #fff; } .ob-tc-art.mm s:nth-child(2) { background: #2b2623; width: 18px; }
 @media (max-width: 520px) { .ob-demo-grid { grid-template-columns: repeat(2, 1fr); } .ob-tc.c, .ob-tc.d { display: none; } }
 @media (prefers-reduced-motion: reduce) { .ob-tc { animation: none; opacity: 1; } }
+.ob-opt-wrap { display: grid; gap: 6px; }
+.ob-inline-link { justify-self: start; margin-left: 46px; font-size: 13px; font-weight: 600; color: var(--accent-text); text-decoration: underline; }
+.ob-inline-link:hover { color: var(--accent); }

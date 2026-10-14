@@ -61,8 +61,8 @@ export async function createDemoSpace(existingId?: string): Promise<{ id: string
   });
   // A heading, a sticky note, so the tour has real stickers to point at. Tolerates a missing sticky table.
   await supabase.from("space_widgets").insert([
-    { user_id: user.id, space_id: spaceId, kind: "text", data: { text: existingId ? "My study space" : "Biology: exam on Friday", size: "heading", x: 0.52, y: 60, w: 300 } },
-    { user_id: user.id, space_id: spaceId, kind: "sticky", data: { body: "Revise chapter 4", color: "yellow", x: 0.6, y: 112, w: 150 } },
+    { user_id: user.id, space_id: spaceId, kind: "text", data: { text: existingId ? "My study space" : "Biology: exam on Friday", size: "heading", w: 300 } },
+    { user_id: user.id, space_id: spaceId, kind: "sticky", data: { text: "Revise chapter 4", color: "yellow", w: 150 } },
   ]);
   revalidatePath("/spaces");
   return { id: spaceId };

@@ -6,6 +6,7 @@ import type { NextConfig } from "next";
 const PRIVATE_ROUTES = ["/spaces/:path*", "/discover/:path*", "/library/:path*", "/timetable/:path*", "/dashboard/:path*", "/invite/:path*", "/auth/:path*", "/api/:path*", "/loops/:path*", "/s/:path*"];
 
 const nextConfig: NextConfig = {
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   cacheComponents: false,
   async headers() {
     // Signed-in pages are never kept by the browser, so Back after signing out can't show a cached copy.

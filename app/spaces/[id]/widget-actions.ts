@@ -237,8 +237,7 @@ export async function saveTextWidget(widgetId: string, data: TextData): Promise<
 export async function addStickyNote(spaceId: string, color: string): Promise<{ error?: string }> {
   try { await authed(); } catch { return { error: "Please sign in again." }; }
   const c = STICKY_COLOR_IDS.includes(color) ? color : "yellow";
-  // Drop it near the top, slightly staggered so a few new notes do not sit exactly on top of each other.
-  return insertWidget(spaceId, "sticky", { text: "", color: c, x: Math.round((0.08 + Math.random() * 0.45) * 1000) / 1000, y: Math.round(16 + Math.random() * 60), w: 200 });
+  return insertWidget(spaceId, "sticky", { text: "", color: c, w: 200 });
 }
 
 export async function saveStickyNote(widgetId: string, patch: { text?: string; color?: string }): Promise<{ error?: string }> {
@@ -274,7 +273,7 @@ export async function saveStickerPos(widgetId: string, pos: StickerPos): Promise
   if (!UUID.test(widgetId)) return { error: "That widget could not be found." };
   const { supabase, user } = ctx;
   const { data: row } = await supabase.from("space_widgets").select("kind, data").eq("id", widgetId).eq("user_id", user.id).maybeSingle();
-  if (!row || (row.kind !== "image" && row.kind !== "text" && row.kind !== "sticky")) return { error: "That widget could not be found." };
+  if (!row || (row.kind !== "image" && row.kind !== "text" && row.kind !== "sticky" && row.kind !== "room")) return { error: "That widget could not be found." };
   const next = { ...(row.data as object), ...cleanPos(pos) };
   if (JSON.stringify(next).length > MAX_WIDGET_BYTES - 200) return { error: "That widget is too large to save." };
   const { error } = await supabase.from("space_widgets").update({ data: next }).eq("id", widgetId).eq("user_id", user.id);

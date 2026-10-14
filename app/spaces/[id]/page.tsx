@@ -20,6 +20,7 @@ import { DashboardGrid, type Widget } from "../_components/DashboardGrid";
 import { AddWidgetButton } from "./_components/CustomWidgets";
 import { SharedItemsWidget } from "./_components/SharedItemsWidget";
 import { ViewLinkButton } from "@/components/ViewLinkButton";
+import { MobileActionsMenu } from "@/components/MobileActionsMenu";
 import { CloneSpaceButton } from "@/components/CloneSpaceButton";
 import { loadSharedItems, saveDesignLayout } from "@/app/shared-items-actions";
 import { StickerLayer, type Sticker } from "./_components/StickerLayer";
@@ -347,13 +348,13 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
         <p className="space-hero-p">{heroTexts.sub}</p>
         {space.copied_from_name && <p className="shr-credit">Copied from {space.copied_from_name}</p>}
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <MobileActionsMenu>
           {headerReady && canEditHeader && <SpaceHeaderEditor spaceId={id} kind={headerKind} color={headerColor} imageUrl={headerUrl} texts={{ ...heroTexts, name: space.name }} />}
           {space.created_by === user.id && <MakePublicButton spaceId={id} isPublic={!!space.is_public} description={space.public_description ?? ""} cloneReady={cloneReady} allowDesign={cloneFlags.allow_design_clone ?? true} allowContent={cloneFlags.allow_content_clone ?? false} />}
           {viewLinksReady && (space.created_by === user.id || canEditHeader) && <ViewLinkButton spaceId={id} />}
           {space.is_public && space.created_by !== user.id && <CloneSpaceButton spaceId={id} spaceName={space.name} className="btn btn-sm" />}
           {space.invite_code && <InviteButton code={space.invite_code} />}
-        </div>
+        </MobileActionsMenu>
       </header>
       <StickerLayer spaceId={id} stickers={stickers} colors={colors}>
         <DashboardGrid

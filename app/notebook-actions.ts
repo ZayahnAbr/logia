@@ -1,7 +1,10 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { authed } from "@/lib/server/llm";
-import { COVER_BUCKET, DEFAULT_COVER_COLOR, validateCover, type Cover } from "@/lib/notebookCovers";
+import { COVER_BUCKET, DEFAULT_COVER_COLOR, validateCover, parseCover, type Cover } from "@/lib/notebookCovers";
+// cover_value for an image cover may carry a "#x,y" drag-to-reposition suffix; compare and delete by the
+// underlying storage path, not the raw value, or repositioning a cover would delete its own file.
+const coverPath = (value: string | null) => (value ? parseCover({ kind: "image", value })?.path ?? value : value);
 
 const MISSING = "Notebooks aren't set up yet. Run migration 26 in Supabase first.";
 const fail = (m: string) => (/notebooks|notebook_id|schema cache/i.test(m) ? MISSING : m);
@@ -37,7 +40,7 @@ export async function updateNotebook(spaceId: string, id: string, name: string, 
   if (error) return { error: error.code === "23505" ? "You already have a notebook with that name." : fail(error.message) };
   // Keep the legacy folder label in step with the name.
   await supabase.from("notes").update({ folder: n }).eq("notebook_id", id);
-  if (old?.cover_kind === "image" && old.cover_value !== c.cover.value) await supabase.storage.from(COVER_BUCKET).remove([old.cover_value as string]);
+  if (old?.cover_kind === "image" && coverPath(old.cover_value) !== coverPath(c.cover.value)) await supabase.storage.from(COVER_BUCKET).remove([coverPath(old.cover_value) as string]);
   refresh(spaceId);
   return {};
 }
@@ -49,7 +52,7 @@ export async function deleteNotebook(spaceId: string, id: string) {
   await supabase.from("notes").update({ notebook_id: null, folder: "General" }).eq("notebook_id", id);
   const { error } = await supabase.from("notebooks").delete().eq("id", id).eq("space_id", spaceId);
   if (error) return { error: fail(error.message) };
-  if (old?.cover_kind === "image") await supabase.storage.from(COVER_BUCKET).remove([old.cover_value as string]);
+  if (old?.cover_kind === "image") await supabase.storage.from(COVER_BUCKET).remove([coverPath(old.cover_value) as string]);
   refresh(spaceId);
   return {};
 }
@@ -91,7 +94,7 @@ export async function setNoteCover(spaceId: string, noteId: string, cover: Cover
   const { data: old } = await supabase.from("notes").select("cover_kind, cover_value").eq("id", noteId).eq("space_id", spaceId).maybeSingle();
   const { error } = await supabase.from("notes").update(patch).eq("id", noteId).eq("space_id", spaceId);
   if (error) return { error: fail(error.message) };
-  if (old?.cover_kind === "image" && old.cover_value !== patch.cover_value) await supabase.storage.from(COVER_BUCKET).remove([old.cover_value as string]);
+  if (old?.cover_kind === "image" && coverPath(old.cover_value) !== coverPath(patch.cover_value)) await supabase.storage.from(COVER_BUCKET).remove([coverPath(old.cover_value) as string]);
   refresh(spaceId);
   return {};
 }

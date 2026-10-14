@@ -78,13 +78,16 @@ export async function listPublicSpaces(): Promise<{ spaces: PublicSpace[] } | { 
   return { spaces: ((data ?? []) as PublicSpace[]).map((s) => ({ ...s, member_count: Number(s.member_count) })) };
 }
 
-export async function joinPublicSpace(spaceId: string): Promise<{ id: string } | { error: string }> {
-  const { supabase } = await authed();
-  const { data, error } = await supabase.rpc("join_public_space", { p_space_id: spaceId });
-  if (error) return { error: nice(error.message, error.message.includes("not open") ? "This space is no longer open to join." : "Couldn't join that space. Try again.") };
-  revalidatePath("/spaces");
-  return { id: (data as string) ?? spaceId };
+/** Space ids the signed-in student owns, so Discover can grey out "Join" on their own spaces. */
+export async function myOwnSpaceIds(): Promise<string[]> {
+  const { supabase, user } = await authed();
+  const { data } = await supabase.from("spaces").select("id").eq("created_by", user.id);
+  return (data ?? []).map((r) => r.id as string);
 }
+
+// Public spaces found on Discover are copy-only (see CloneSpaceButton): nobody can join one and edit the
+// original live, so there is no viewer/editor distinction to get right or wrong. join_public_space() stays
+// in the database for any old links that call it, but nothing in the app offers it any more.
 
 // ── Making a space public ─────────────────────────────────────
 export type PublicState = { status: "private" | "pending" | "public" | "rejected"; tags: string[]; institution: string; level: string };
@@ -154,7 +157,10 @@ export async function rescanIfDue(spaceId: string): Promise<void> {
 
 // ── Discover: filtered public spaces ──────────────────────────
 export type DiscoverFilters = { q?: string; tags?: string[]; level?: string; institution?: string; sort?: "members" | "newest" | "copied" };
-export type DiscoverSpace = PublicSpace & { tags: string[]; institution: string | null; level: string | null; copy_count: number };
+export type DiscoverSpace = PublicSpace & {
+  tags: string[]; institution: string | null; level: string | null; copy_count: number;
+  header_kind?: "default" | "color" | "image" | null; header_color?: string | null; created_by?: string | null;
+};
 export type Facets = { tags: { value: string; n: number }[]; levels: { value: string; n: number }[]; institutions: { value: string; n: number }[] };
 
 export async function listDiscoverSpaces(f: DiscoverFilters): Promise<{ spaces: DiscoverSpace[]; facets: Facets } | { error: string }> {

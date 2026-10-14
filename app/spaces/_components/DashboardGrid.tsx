@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Children, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { SlidersHorizontal, ChevronUp, ChevronDown, Loader2, GripVertical, EyeOff, Columns2, RectangleHorizontal, Palette, Check } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { saveDashboardLayout } from "@/app/actions";
@@ -220,7 +220,7 @@ export function DashboardGrid({
                   <EyeOff size={14} aria-hidden="true" /> Hide
                 </button>
               </div>
-              {byId[e.id].node}
+              {Children.toArray(byId[e.id].node)}
             </section>
           ))}
         </div>

@@ -1,14 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Compass, Flag, Search, Users } from "lucide-react";
-import { listDiscoverSpaces, joinPublicSpace, type DiscoverSpace, type Facets } from "@/app/discover-actions";
+import { Compass, Eye, Flag, Search, Users, X } from "lucide-react";
+import { listDiscoverSpaces, myOwnSpaceIds, type DiscoverSpace, type Facets } from "@/app/discover-actions";
 import { LEVELS } from "@/lib/spaceTags";
-import { toast } from "@/components/Toaster";
 import { ReportDialog } from "./ReportDialog";
 import { CloneSpaceButton } from "@/components/CloneSpaceButton";
+import { Dialog } from "@/components/Dialog";
+
+// Same look as the real space header band (lib/spaceHeader.ts), kept light here since the card
+// only has the colour, not an image (reading the header image needs a signed URL we don't fetch for a list).
+function cardBandStyle(s: DiscoverSpace): CSSProperties | undefined {
+  if (s.header_kind === "color" && s.header_color) return { background: s.header_color };
+  return undefined;
+}
 
 type Sort = "members" | "newest" | "copied";
 const SORTS: { id: Sort; label: string }[] = [{ id: "members", label: "Most members" }, { id: "newest", label: "Newest" }, { id: "copied", label: "Most copied" }];
@@ -23,7 +29,6 @@ function readUrl() {
 }
 
 export function SpacesTab() {
-  const router = useRouter();
   const [spaces, setSpaces] = useState<DiscoverSpace[] | null>(null);
   const [facets, setFacets] = useState<Facets>({ tags: [], levels: [], institutions: [] });
   const [error, setError] = useState("");
@@ -34,14 +39,16 @@ export function SpacesTab() {
   const [sort, setSort] = useState<Sort>("members");
   const [moreTags, setMoreTags] = useState(false);
   const [ready, setReady] = useState(false);
-  const [joining, setJoining] = useState<string | null>(null);
   const [reporting, setReporting] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<DiscoverSpace | null>(null);
+  const [mySpaceIds, setMySpaceIds] = useState<Set<string>>(new Set());
   const [announce, setAnnounce] = useState("");
   const firstLoad = useRef(true);
 
   useEffect(() => {
     const f = readUrl();
     setQ(f.q); setTags(f.tags); setLevel(f.level); setUni(f.uni); setSort(f.sort); setReady(true);
+    myOwnSpaceIds().then((ids) => setMySpaceIds(new Set(ids))).catch(() => {});
   }, []);
 
   // Keep the filters in the address bar without a server round trip.
@@ -70,14 +77,6 @@ export function SpacesTab() {
     }, firstLoad.current ? 0 : 250);
     return () => { alive = false; clearTimeout(t); };
   }, [ready, q, tags, level, uni, sort]);
-
-  const join = async (s: DiscoverSpace) => {
-    setJoining(s.id);
-    const res = await joinPublicSpace(s.id);
-    setJoining(null);
-    if ("error" in res) { toast(res.error, "error"); return; }
-    router.push(`/spaces/${res.id}`);
-  };
 
   const toggle = (t: string) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
   const filtered = !!(q.trim() || tags.length || level || uni);
@@ -169,33 +168,64 @@ export function SpacesTab() {
       )}
 
       <ul className="dc-grid dc-spgrid" style={{ listStyle: "none", margin: 0, padding: 0 }}>
-        {list.map((s) => (
-          <li key={s.id} className="card dc-card dc-spcard">
-            <div className="dc-spband" aria-hidden="true" />
-            <div className="dc-body">
-              {s.subject && <div className="eyebrow">{s.subject}</div>}
-              <h2 className="dc-name">{s.name}</h2>
-              <p className="dc-desc">{s.public_description || "No description yet."}</p>
-              {s.tags.length > 0 && (
-                <ul className="dc-tags" aria-label="Tags">
-                  {s.tags.slice(0, 3).map((t) => <li key={t}>{t}</li>)}
-                  {s.tags.length > 3 && <li title={s.tags.slice(3).join(", ")}>+{s.tags.length - 3}</li>}
-                </ul>
-              )}
-              <div className="dc-meta">
-                <span className="dc-count"><Users size={14} aria-hidden="true" /> {s.member_count} {s.member_count === 1 ? "member" : "members"}</span>
-                {(s.level || s.institution) && <span className="dc-sub">{[s.level ? cap(s.level) : "", s.institution].filter(Boolean).join(" · ")}</span>}
+        {list.map((s) => {
+          const mine = mySpaceIds.has(s.id);
+          return (
+            <li key={s.id} className="card dc-card dc-spcard">
+              <button type="button" className="dc-spband dc-spband-btn" style={cardBandStyle(s)} onClick={() => setPreviewing(s)} aria-label={`View ${s.name}`} />
+              <div className="dc-body">
+                {s.subject && <div className="eyebrow">{s.subject}</div>}
+                <h2 className="dc-name">{s.name}</h2>
+                <p className="dc-desc">{s.public_description || "No description yet."}</p>
+                {s.tags.length > 0 && (
+                  <ul className="dc-tags" aria-label="Tags">
+                    {s.tags.slice(0, 3).map((t) => <li key={t}>{t}</li>)}
+                    {s.tags.length > 3 && <li title={s.tags.slice(3).join(", ")}>+{s.tags.length - 3}</li>}
+                  </ul>
+                )}
+                <div className="dc-meta">
+                  <span className="dc-count"><Users size={14} aria-hidden="true" /> {s.member_count} {s.member_count === 1 ? "member" : "members"}</span>
+                  {(s.level || s.institution) && <span className="dc-sub">{[s.level ? cap(s.level) : "", s.institution].filter(Boolean).join(" · ")}</span>}
+                </div>
+                <div className="dc-actions">
+                  <button type="button" className="btn btn-ghost" onClick={() => setPreviewing(s)} aria-label={`View ${s.name}`}><Eye size={14} aria-hidden="true" /> View</button>
+                  {mine ? (
+                    <button type="button" className="btn" disabled aria-disabled="true" title="This is your own space">Your space</button>
+                  ) : (
+                    <CloneSpaceButton spaceId={s.id} spaceName={s.name} className="btn btn-primary" />
+                  )}
+                  <button type="button" className="btn btn-ghost" onClick={() => setReporting(s.id)} aria-label={`Report ${s.name}`}><Flag size={14} aria-hidden="true" /> Report</button>
+                </div>
               </div>
-              <div className="dc-actions">
-                <button type="button" className="btn btn-primary" disabled={joining === s.id} onClick={() => join(s)} aria-label={`Join ${s.name}`}>{joining === s.id ? "Joining…" : "Join"}</button>
-                <CloneSpaceButton spaceId={s.id} spaceName={s.name} />
-                <button type="button" className="btn btn-ghost" onClick={() => setReporting(s.id)} aria-label={`Report ${s.name}`}><Flag size={14} aria-hidden="true" /> Report</button>
-              </div>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
       {reporting && <ReportDialog kind="space" targetId={reporting} onClose={() => setReporting(null)} />}
+      {previewing && (
+        <Dialog title={previewing.name} onClose={() => setPreviewing(null)} width={480}>
+          <div className="dc-preview-band" style={cardBandStyle(previewing)} aria-hidden="true" />
+          {previewing.subject && <p className="eyebrow" style={{ marginTop: 14 }}>{previewing.subject}</p>}
+          <p style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.55 }}>{previewing.public_description || "No description yet."}</p>
+          {previewing.tags.length > 0 && (
+            <ul className="dc-tags" aria-label="Tags" style={{ marginBottom: 12 }}>
+              {previewing.tags.map((t) => <li key={t}>{t}</li>)}
+            </ul>
+          )}
+          <div className="dc-meta" style={{ marginBottom: 16 }}>
+            <span className="dc-count"><Users size={14} aria-hidden="true" /> {previewing.member_count} {previewing.member_count === 1 ? "member" : "members"}</span>
+            {(previewing.level || previewing.institution) && <span className="dc-sub">{[previewing.level ? cap(previewing.level) : "", previewing.institution].filter(Boolean).join(" · ")}</span>}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <button type="button" className="btn btn-ghost" onClick={() => setPreviewing(null)}><X size={14} aria-hidden="true" /> Close</button>
+            {mySpaceIds.has(previewing.id) ? (
+              <button type="button" className="btn" disabled aria-disabled="true">Your space</button>
+            ) : (
+              <CloneSpaceButton spaceId={previewing.id} spaceName={previewing.name} className="btn btn-primary" />
+            )}
+          </div>
+        </Dialog>
+      )}
     </div>
   );
 }

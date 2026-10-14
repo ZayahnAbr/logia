@@ -16,6 +16,7 @@ export type Sticker = { id: string; kind: "image" | "text" | "sticky" | "room"; 
 
 const GAP = 12;
 const MARGIN = 16;
+const DEFAULT_STICKER_TOP = 280;
 // A small, stable tilt per note (-2 to 2 degrees). CSS removes it for people who prefer reduced motion.
 const tiltFor = (id: string) => { let h = 0; for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) | 0; return (Math.abs(h) % 5) - 2; };
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -26,6 +27,8 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
   const [W, setW] = useState(0);
   const [mobile, setMobile] = useState(false);
   const [heights, setHeights] = useState<Record<string, number>>({});
+  const [focusedTextId, setFocusedTextId] = useState<string | null>(null);
+  const [textRects, setTextRects] = useState<Record<string, { width: number; height: number }>>({});
   const [local, setLocal] = useState<Record<string, StickerPos>>({});
   const localRef = useRef(local);
   localRef.current = local;
@@ -76,21 +79,46 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     return () => ro.disconnect();
   }, [list, mobile]);
 
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      setTextRects((cur) => {
+        const next = { ...cur };
+        let changed = false;
+        for (const entry of entries) {
+          const text = entry.target as HTMLElement;
+          const id = text.closest<HTMLElement>("[data-sid]")?.dataset.sid;
+          if (!id) continue;
+          const width = Math.round(text.getBoundingClientRect().width);
+          const height = Math.round(text.getBoundingClientRect().height);
+          if (next[id]?.width !== width || next[id]?.height !== height) { next[id] = { width, height }; changed = true; }
+        }
+        return changed ? next : cur;
+      });
+    });
+    el.querySelectorAll<HTMLElement>("[data-sid] .cw-text").forEach((text) => ro.observe(text));
+    return () => ro.disconnect();
+  }, [list, mobile]);
+
   const merged = useCallback((s: Sticker): StickerPos => ({ ...(s.data as StickerPos), ...local[s.id] }), [local]);
 
   // Final geometry: stored values, or a default stacked down the top right; always inside the container.
   const geo = useMemo(() => {
     const out: Record<string, { left: number; top: number; w: number; z: number }> = {};
-    let cursor = 8;
+    let cursor = DEFAULT_STICKER_TOP;
     const maxW = Math.max(STICKER_MIN_W, Math.min(STICKER_MAX_W, W - 2));
     list.forEach((s, i) => {
       const p = merged(s);
       const baseW = s.kind === "text" ? STICKER_DEFAULT_TEXT_W : s.kind === "sticky" ? STICKER_DEFAULT_STICKY_W : s.kind === "room" ? STICKER_DEFAULT_ROOM_W : STICKER_DEFAULT_IMAGE_W;
-      const w = clamp(Math.round(p.w ?? baseW), STICKER_MIN_W, Math.min(maxW, Math.max(STICKER_MIN_W, W)));
+      const storedW = clamp(Math.round(p.w ?? baseW), STICKER_MIN_W, Math.min(maxW, Math.max(STICKER_MIN_W, W)));
+      // Text stickers track the drag directly (the textarea's own width is pinned to this value via --st-w),
+      // so the box the student drags always matches the box they see — no separate "measured text" floor.
+      const w = storedW;
       const h = heights[s.id] ?? 160;
       let left: number, top: number;
       if (typeof p.x === "number" && typeof p.y === "number") { left = p.x * W; top = p.y; }
-      else { left = W - w - MARGIN; top = cursor; cursor += h + GAP; }
+      else { left = Math.max(MARGIN, (W - w) / 2); top = cursor; cursor += h + GAP; }
       left = clamp(left, 0, Math.max(0, W - w));
       top = clamp(top, 0, STICKER_MAX_Y);
       out[s.id] = { left, top, w, z: p.z ?? i };
@@ -144,7 +172,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
 
   // Pointer gestures (mouse, touch and pen). Pointer capture keeps them going outside the sticker.
   const begin = (e: React.PointerEvent<HTMLElement>, id: string, mode: "move" | "resize") => {
-    if (mobile || e.button > 0) return;
+    if ((mobile && mode === "move") || e.button > 0) return;
     const g = geo[id];
     if (!g) return;
     e.preventDefault();
@@ -166,8 +194,14 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     if (!g) return;
     const dx = x - g.sx, dy = y - g.sy;
     if (g.mode === "move") update(g.id, { left: g.left + dx, top: g.top + dy });
-    // Dragging right or down both grow it (diagonal handle), so either direction works.
-    else update(g.id, { w: Math.min(g.w + (Math.abs(dx) >= Math.abs(dy) ? dx : dy), W - g.left) });
+    // Dragging right or down grows it; at the container edge, keep the right edge fixed and grow leftward.
+    else {
+      const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+      const isText = list.find((s) => s.id === g.id)?.kind === "text";
+      const nextW = clamp(g.w + (isText ? Math.abs(delta) : delta), STICKER_MIN_W, Math.min(STICKER_MAX_W, W));
+      const nextLeft = nextW > W - g.left ? Math.max(0, W - nextW) : g.left;
+      update(g.id, { left: nextLeft, w: nextW });
+    }
   };
   const onMoveRef = useRef(moveTo);
   onMoveRef.current = moveTo;
@@ -175,7 +209,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
   const end = () => {};
 
   const onKey = (e: React.KeyboardEvent<HTMLElement>, s: Sticker) => {
-    if (e.target !== e.currentTarget || mobile) return;
+    if (e.target !== e.currentTarget || (mobile && !["+", "=", "-", "_"].includes(e.key))) return;
     const g = geo[s.id];
     if (!g) return;
     const step = e.shiftKey ? 32 : 8;
@@ -220,14 +254,15 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     const isText = s.kind === "text";
     const isSticky = s.kind === "sticky";
     return (
-      <div key={s.id} data-sid={s.id} tabIndex={0} role="group" aria-label={`${label(s)}.${mobile ? "" : " Arrow keys move it, plus and minus resize it, Delete removes it."}`}
+      <div key={s.id} data-sid={s.id} tabIndex={0} role="group" aria-label={`${label(s)}.${mobile ? "" : isText ? " Use the font size control, arrow keys move it, Delete removes it." : " Arrow keys move it, plus and minus resize it, Delete removes it."}`}
         className={`st ${isText ? "st-text" : isSticky ? "st-sticky" : s.kind === "room" ? "st-image st-room" : "st-image"}${tint ? ` st-tinted cw-tint-${tint}` : ""}${colorOpen === s.id ? " is-open" : ""}${abs ? " is-abs" : ""}${active?.id === s.id ? ` is-${active.mode}` : ""}`}
         style={style}
         onKeyDown={(e) => onKey(e, s)}
         onPointerDown={!isText && abs ? (e) => { if (!(e.target as HTMLElement).closest(isSticky ? "button,a,input,select,textarea" : "button,a,input,select")) begin(e, s.id, "move"); } : undefined}
         onPointerMove={onMove} onPointerUp={end} onPointerCancel={end}
-        onFocus={() => { if (abs) toFront(s.id); }}>
-        <div className="st-bar">
+        onFocus={() => { if (abs) toFront(s.id); if (isText) setFocusedTextId(s.id); }}
+        onBlur={(e) => { if (isText && !e.currentTarget.contains(e.relatedTarget as Node | null)) setFocusedTextId(null); }}>
+        <div className="st-bar" style={isText ? { opacity: 1, pointerEvents: "auto" } : undefined}>
           {(isText || isSticky) && abs && (
             <button type="button" className="st-btn st-grip" aria-label={`Move ${isSticky ? "sticky note" : "text"}. Drag, or focus the ${isSticky ? "note" : "text box"} itself and use the arrow keys`} title="Drag to move"
               onPointerDown={(e) => begin(e, s.id, "move")}><GripVertical size={14} aria-hidden="true" /></button>
@@ -253,7 +288,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
           <button type="button" className="st-btn" aria-label={`Remove ${isText ? "text" : isSticky ? "sticky note" : "image"}`} title="Remove" onClick={() => setConfirm(s)}><Trash2 size={14} aria-hidden="true" /></button>
         </div>
         {isText ? <TextStickerBody id={s.id} data={s.data as TextData} /> : isSticky ? <StickyStickerBody id={s.id} data={s.data as StickyData} tilt={tiltFor(s.id)} /> : s.kind === "room" && s.room ? <RoomStickerBody room={s.room} /> : <ImageStickerBody data={s.data as ImageData} src={s.src} />}
-        {abs && (
+        {mobile && (
           <button type="button" className="st-resize" aria-label="Resize. Drag, or focus the sticker and press plus or minus" title="Drag to resize"
             onPointerDown={(e) => begin(e, s.id, "resize")}><MoveDiagonal2 size={14} aria-hidden="true" /></button>
         )}
@@ -266,6 +301,25 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
       {mobile && list.length > 0 && <div className="st-flow">{list.map(render)}</div>}
       {children}
       {!mobile && list.map(render)}
+      {!mobile && (
+        <div className="st-resize-layer">
+          {list.map((s) => {
+            const g = geo[s.id];
+            const h = heights[s.id] ?? 160;
+            const size = s.kind === "sticky" ? 34 : 30;
+            const inset = s.kind === "text" ? 6 : 6;
+            const rightInset = inset;
+            const textRect = textRects[s.id];
+            const contentHeight = s.kind === "text" ? textRect?.height ?? h : h;
+            if (!g) return null;
+            return (
+              <button key={s.id} type="button" className={`st-resize${s.kind === "text" ? " is-text-resize" : ""}${focusedTextId === s.id ? " is-focused" : ""}${active?.id === s.id ? " is-active" : ""}`} aria-label="Resize. Drag, or focus the sticker and press plus or minus" title="Drag to resize"
+                style={{ left: g.left + g.w - rightInset - size, top: g.top + contentHeight - inset - size, right: "auto", bottom: "auto", width: size, height: size }}
+                onPointerDown={(e) => begin(e, s.id, "resize")}><MoveDiagonal2 size={14} aria-hidden="true" /></button>
+            );
+          })}
+        </div>
+      )}
       <div role="status" className="sr-only">{notice}</div>
       {notice && <p className="st-notice" aria-hidden="true">{notice}</p>}
       {confirm && (

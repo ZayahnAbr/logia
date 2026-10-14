@@ -418,6 +418,15 @@ textarea.input { height: auto; padding: 11px 13px; resize: vertical; line-height
 button::-moz-focus-inner { border: 0; }
 * { -webkit-tap-highlight-color: transparent; }
 
+/* A plain light scrollbar track reads as a stray white seam against a dark section that
+   runs to the page edge (the landing header). Keep the track transparent so the page's own
+   background shows through instead, with a plain, unobtrusive thumb. */
+html { scrollbar-width: thin; scrollbar-color: color-mix(in oklab, var(--text) 28%, transparent) transparent; }
+html::-webkit-scrollbar { width: 11px; }
+html::-webkit-scrollbar-track { background: transparent; }
+html::-webkit-scrollbar-thumb { background: color-mix(in oklab, var(--text) 24%, transparent); border-radius: 8px; border: 3px solid transparent; background-clip: padding-box; }
+html::-webkit-scrollbar-thumb:hover { background: color-mix(in oklab, var(--text) 38%, transparent); background-clip: padding-box; }
+
 a:focus, button:focus, .btn:focus, .chip:focus, .preset-b:focus,
 .sidebar-nav-item:focus, .input:focus, input:focus, textarea:focus, select:focus {
   outline: none;
@@ -1976,10 +1985,11 @@ input:focus, input:focus-visible, textarea:focus, textarea:focus-visible, select
 
 /* Heading bands: all text white (eyebrow, subtitle, status line too), with the same soft shadow for legibility */
 .phead.mesh-warm .eyebrow, .phead.mesh-warm .sub,
-.space-hero .eyebrow, .space-hero .space-hero-p {
+.space-hero .eyebrow, .space-hero .space-hero-p, .space-hero .shr-credit {
   color: #fff !important;
   text-shadow: 0 1px 2px rgba(120,40,20,.4), 0 4px 14px rgba(150,50,20,.25);
 }
+.shr-credit { margin: 4px 0 0; font-size: 12.5px; opacity: .88; }
 .phead.mesh-warm .sub, .space-hero .space-hero-p { font-weight: 500; }
 
 /* ── Study-room chat v2 ── */
@@ -2636,7 +2646,9 @@ html[data-theme="dark"] .phead.phead-grad h1 { background: linear-gradient(100de
   .dash-hero-art { display: none !important; }
   .dash-hero-h { font-size: 1.4rem !important; }
   .dash-hero-p { font-size: 14px; margin-top: 8px; }
-  .dash-hero .l-actions { margin-top: 16px !important; } .dash-hero .btn-lg { height: 42px; padding: 0 16px; font-size: 14px; }
+  .dash-hero .l-actions { margin-top: 16px !important; flex-wrap: wrap; }
+  .dash-hero .btn-lg { height: 42px; padding: 0 16px; font-size: 14px; max-width: 100%; min-width: 0; }
+  .dash-hero .btn-lg span, .dash-hero .btn-lg { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   section.mesh-warm[aria-labelledby="room-title"] { padding: 18px 16px !important; }
   section.mesh-warm[aria-labelledby="room-title"] h1 { font-size: 1.4rem !important; margin-bottom: 10px !important; }
 }
@@ -2853,6 +2865,7 @@ html[data-theme="dark"] .phead.phead-grad h1 { background: linear-gradient(100de
 
 /* Chat: a small pill while resting, a normal panel when open */
 .cafe-chat-pill { position: absolute; z-index: 4; right: 16px; bottom: 16px; min-height: 40px; box-shadow: var(--shadow-card); }
+.cafe-chat-pill { background: rgba(92, 96, 102, .78) !important; border-color: rgba(255,255,255,.45) !important; color: #fff !important; }
 .cafe-chat { position: absolute; z-index: 4; top: 72px; right: 16px; bottom: 16px; width: 340px; display: flex; flex-direction: column; overflow: hidden; animation: cafe-chat-in .2s var(--ease-out); }
 .cafe-chat-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--border); }
 .cafe-chat-head h2 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
@@ -2935,7 +2948,7 @@ html[data-theme="dark"] .phead.phead-grad h1 { background: linear-gradient(100de
 .tt-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px; border-radius: 12px; background: var(--surface-2); }
 .tt-row .tt-w2 { grid-column: 1 / -1; }
 .tt-rm { justify-self: start; }
-.tt-week { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 10px; }
+.tt-week { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 4px; }
 .tt-col { padding: 8px; border-radius: 12px; min-width: 0; }
 .tt-col.today { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--accent-text); }
 @media (min-width: 760px) {
@@ -2943,7 +2956,7 @@ html[data-theme="dark"] .phead.phead-grad h1 { background: linear-gradient(100de
   .tt-row .tt-w2 { grid-column: auto; }
   .tt-row .tt-rm { grid-column: 1 / -1; }
 }
-@media (max-width: 759px) { .tt-week { grid-template-columns: 1fr; } }
+@media (max-width: 759px) { .tt-week { grid-template-columns: 1fr; overflow-x: visible; } }
 @media (prefers-reduced-motion: reduce) { .tt-card *, .tt-form * { transition: none !important; animation: none !important; } }
 
 /* ---- Timetable maker (tm-) ---- */
@@ -2975,7 +2988,7 @@ html[data-theme="dark"] .phead.phead-grad h1 { background: linear-gradient(100de
 .tm-head { display: grid; grid-template-columns: 56px repeat(var(--tm-n), 1fr); border-bottom: 1px solid var(--border); background: var(--paper); }
 .tm-dayh { padding: 8px 4px; text-align: center; font-size: 13px; font-weight: 600; border-left: 1px solid var(--border); }
 .tm-dayh.today { color: var(--accent-text); }
-.tm-body { display: grid; grid-template-columns: 56px 1fr; position: relative; }
+.tm-body { display: grid; grid-template-columns: 56px 1fr; position: relative; max-height: 72vh; overflow-y: auto; }
 .tm-gutter { position: relative; }
 .tm-hl { position: absolute; right: 6px; transform: translateY(-50%); font-size: 11px; color: var(--muted); white-space: nowrap; }
 .tm-hl:first-child { transform: translateY(2px); }
@@ -3124,7 +3137,10 @@ html[data-theme="dark"] .nav-link.active, html[data-theme="dark"] .nav-link[aria
 .dc-spgrid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 18px; }
 .dc-spcard { border: 1px solid var(--border); box-shadow: var(--shadow-card); transition: box-shadow .18s, transform .18s, border-color .18s; }
 .dc-spcard:hover { border-color: var(--accent); transform: translateY(-2px); }
-.dc-spband { height: 6px; background: linear-gradient(90deg, #d94f3d, #ef8a6e); }
+.dc-spband { height: 56px; width: 100%; display: block; border: 0; padding: 0; cursor: pointer; background: linear-gradient(90deg, #d94f3d, #ef8a6e); }
+.dc-spband-btn:hover { filter: brightness(1.05); }
+.dc-spband-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.dc-preview-band { height: 100px; border-radius: 10px; margin-bottom: 4px; background: linear-gradient(90deg, #d94f3d, #ef8a6e); }
 .dc-spcard .dc-body { display: flex; flex-direction: column; flex: 1; padding: 18px 20px 20px; }
 .dc-spcard .dc-name { font-size: 18px; line-height: 1.25; }
 .dc-spcard .dc-desc { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; min-height: 3.9em; }
@@ -3308,3 +3324,68 @@ html[data-theme="dark"] .dc-spaces .dc-filters, html[data-theme="dark"] .dc-empt
 .host-actions .btn-ghost { background: var(--surface); border-radius: 12px 0 0 12px; box-shadow: 0 8px 24px rgba(21,19,18,.14); }
 .host-actions .btn-primary { border-radius: 0 12px 12px 0; box-shadow: 0 8px 24px rgba(21,19,18,.18); }
 @media (prefers-reduced-motion: reduce) { .host-thumb, .host-seg label, .host-form .input { transition: none; } .host-preset:hover .host-thumb { transform: none; } }
+
+/* Try-it-now landing tool */
+.try-logia { max-width: 640px; margin: 0 auto; }
+.try-drop { border: 1.5px dashed var(--border); border-radius: 16px; padding: 32px 20px; text-align: center; cursor: pointer; background: var(--surface); transition: border-color .15s, background .15s; }
+.try-drop:hover, .try-drop.is-over { border-color: var(--coral); background: color-mix(in oklab, var(--coral) 6%, var(--surface)); }
+.try-drop:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.try-drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.try-drop-title { font-weight: 600; margin-bottom: 4px; }
+.try-drop-sub { color: var(--muted); font-size: 13px; }
+.try-drop-file { margin-top: 10px; font-size: 13px; color: var(--coral); font-weight: 600; }
+.try-or { text-align: center; color: var(--muted); font-size: 13px; margin: 16px 0; }
+.try-textarea { width: 100%; border: 1px solid var(--border); border-radius: 14px; padding: 14px; font: inherit; resize: vertical; background: var(--surface); }
+.try-actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.try-status { margin-top: 12px; color: var(--muted); font-size: 14px; }
+.try-error { margin-top: 12px; color: #b3261e; font-size: 14px; }
+.try-result-html h3 { font-size: 16px; margin: 14px 0 6px; }
+.try-result-html ul { padding-left: 20px; }
+.try-result-html li { margin-bottom: 4px; }
+.try-cards { display: grid; gap: 10px; padding: 0; margin: 0; }
+.try-card { list-style: none; border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; background: var(--surface-2); }
+.try-card-q { font-weight: 600; margin-bottom: 4px; }
+.try-card-a { color: var(--muted); }
+.try-transcript { white-space: pre-wrap; line-height: 1.6; }
+.try-dialog-actions { display: flex; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.try-dialog-signup { margin-top: 16px; padding: 16px; border-radius: 14px; background: color-mix(in oklab, var(--coral) 8%, var(--surface-2)); text-align: center; }
+.try-dialog-signup p { color: var(--muted); font-size: 13.5px; margin-bottom: 12px; }
+.try-dialog-signup .btn { width: 100%; }
+
+:root .btn.l-see-all:hover { background: #fff; }
+@media (max-width: 760px) { .try-drop { padding: 24px 14px; } .try-actions { flex-direction: column; } .try-actions .btn { width: 100%; } }
+
+/* Hero redesign: the try-it tool is the focal point, laid out like remove.bg — copy on
+   the left, the tool floating as its own larger white card on the right, set against a
+   full-bleed warm band rather than boxed inside a smaller colour card. */
+.l-hero-band { padding: clamp(36px, 6vw, 64px) 0 clamp(48px, 7vw, 80px); }
+.l-hero3 { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: clamp(32px, 5vw, 56px); }
+.l-hero3-copy { max-width: 480px; }
+.l-hero3-copy .l-hero-h { margin-top: 0; }
+.l-hero3-tool { width: 100%; max-width: 620px; justify-self: end; }
+.l-hero3-tool .try-logia { max-width: none; background: var(--surface); border-radius: 24px; padding: clamp(28px, 3.4vw, 40px); box-shadow: 0 36px 80px -32px rgba(64,38,28,.32), 0 0 0 1px rgba(64,38,28,.05); }
+.l-hero3-tool .try-drop { border: none; padding: 20px 16px; }
+.l-hero3-tool .try-drop:hover, .l-hero3-tool .try-drop.is-over { background: color-mix(in oklab, var(--coral) 5%, transparent); }
+.l-hero3-tool .try-drop-title { font-size: 17px; }
+.l-hero3-tool .try-textarea { border-radius: 16px; }
+@media (max-width: 860px) { .l-hero3 { grid-template-columns: 1fr; } .l-hero3-tool { justify-self: stretch; max-width: 100%; } }
+@media (max-width: 760px) {
+  /* The band itself is untouched — same mesh-warm box, same size, same colour. On mobile the
+     tool card instead sits on an opaque panel that bleeds edge-to-edge and stretches down past
+     the band's own bottom padding, masking the gradient there rather than resizing it (resizing
+     it changed how it looked — this doesn't touch the gradient at all). */
+  .l-hero-band { padding: 24px 0 0; border-radius: 0 0 28px 28px; }
+  .l-hero3 { gap: 0; }
+  .l-hero3-tool {
+    position: relative;
+    background: var(--bg);
+    width: 100vw;
+    max-width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    margin-top: 20px;
+    margin-bottom: calc(-1 * clamp(48px, 7vw, 80px));
+    padding: 20px 16px calc(clamp(48px, 7vw, 80px) + 8px);
+  }
+  .l-hero3-tool .try-logia { padding: 18px; border-radius: 18px; }
+}

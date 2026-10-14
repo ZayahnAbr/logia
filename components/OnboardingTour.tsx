@@ -231,10 +231,19 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
         <fieldset className="ob-opts">
           <legend className="sr-only">Set up</legend>
           {SETUP.map((s) => (
-            <label key={s.id} className="ob-opt">
-              <input type="checkbox" checked={setup.includes(s.id)} onChange={() => toggleSetup(s.id, "none")} />
-              <div><b>{s.label}</b><span>{s.hint}</span></div>
-            </label>
+            <div key={s.id} className="ob-opt-wrap">
+              <label className="ob-opt" htmlFor={`ob-setup-${s.id}`}>
+                <input id={`ob-setup-${s.id}`} type="checkbox" checked={setup.includes(s.id)} onChange={() => toggleSetup(s.id, "none")} />
+                <div>
+                  <b>{s.label}</b><span>{s.hint}</span>
+                </div>
+              </label>
+              {/* Outside the label on purpose: a link nested inside a <label> can have its click swallowed
+                  by the label's own click-forwards-to-checkbox behaviour, which looked like "nothing happens". */}
+              {s.id === "extension" && setup.includes("extension") && (
+                <a href="/spaces/settings#school-sync" target="_blank" rel="noopener noreferrer" className="ob-inline-link">Get the browser extension</a>
+              )}
+            </div>
           ))}
         </fieldset>
         <div className="ob-nav">

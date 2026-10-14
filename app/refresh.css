@@ -91,10 +91,22 @@ html[data-theme="dark"] .btn-primary * { color: #161514 !important; }
 :root .field-hint { color: var(--faint); }
 
 /* ── Segmented controls and tabs (Day / Week / Month) ───── */
-:root :is(.dc-tabs, .host-seg, .seg, .tabs, .cw-tabs) { display: inline-flex; gap: 2px; padding: 3px; border-radius: 11px; background: var(--surface-3); border: 0; box-shadow: inset 0 1px 1px rgba(27,26,25,.04); width: fit-content; max-width: 100%; }
+:root :is(.dc-tabs, .host-seg, .seg, .tabs, .cw-tabs) { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 11px; background: var(--surface-3); border: 0; box-shadow: inset 0 1px 1px rgba(27,26,25,.04); width: fit-content; max-width: 100%; }
 :root :is(.dc-tab, .host-seg label, .cw-tab) { border: 0; background: transparent; color: var(--muted); padding: 7px 14px; border-radius: 8px; font-size: 13.5px; font-weight: 500; box-shadow: none; transition: background-color var(--dur) var(--ease), color var(--dur), box-shadow var(--dur); }
 :root :is(.dc-tab, .cw-tab):hover:not([aria-selected="true"]), :root .host-seg label:hover:not(.on) { color: var(--text); }
-:root :is(.dc-tab[aria-selected="true"], .host-seg label.on, .cw-tab.is-on, .cw-tab[aria-selected="true"]) { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(27,26,25,.08), 0 2px 6px rgba(27,26,25,.06); }
+:root :is(.dc-tab[aria-selected="true"], .cw-tab.is-on, .cw-tab[aria-selected="true"]) { background: #fff; color: var(--text); box-shadow: 0 1px 3px rgba(27,26,25,.14), 0 3px 8px rgba(27,26,25,.1); }
+html[data-theme="dark"] :is(.dc-tab[aria-selected="true"], .cw-tab.is-on, .cw-tab[aria-selected="true"]) { background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,.3), 0 3px 10px rgba(0,0,0,.25); }
+/* Toggle groups whose "selected" state is a type of upload/mode choice: a clear accent tint, not plain white
+   (plain white blended into the page and barely read as "selected"). */
+:root .host-seg label.on { background: var(--accent-soft); color: var(--accent-text); box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent); }
+:root .fx-view button[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-text); box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 30%, transparent); }
+
+/* Live room: the "what are you working on" field sits over the video, so it must stay transparent even
+   focused — the generic input-focus rule above was turning it solid white. */
+:root .cafe-room .input, :root .cafe-room .input:hover, :root .cafe-room .input:focus { background: transparent !important; border: 0; border-bottom: 1px solid rgba(255,255,255,.55); color: #fff; box-shadow: none; }
+:root .cafe-room .input:focus { border-bottom-color: #fff; }
+/* Chat bubble: grey, not the pink accent tint */
+:root .cafe-msg.mine .cafe-msg-body { background: var(--surface-3); color: var(--text); }
 html[data-theme="dark"] :is(.dc-tabs, .host-seg, .cw-tabs) { background: #121110; }
 
 /* ── Sidebar: quiet list, active item is a raised white key ── */
@@ -348,7 +360,7 @@ html[data-theme="dark"] .ft-card-mic { color: #6d6863; }
 @media (prefers-reduced-motion: reduce) { :root .shr-book, :root .shr-deck > i, :root .shr-deck-top { transition: none; } :root .shr-tile:hover :is(.shr-book, .shr-deck > i, .shr-deck-top) { transform: none; } }
 
 /* Image stickers: the resize handle is always findable, not hidden until hover */
-:root .st-image.is-abs .st-resize { opacity: .7; width: 30px; height: 30px; right: -8px; bottom: -8px; }
+:root .st-image.is-abs .st-resize { opacity: .7; width: 30px; height: 30px; right: 6px; bottom: 6px; }
 :root .st-image.is-abs:hover .st-resize, :root .st-image.is-abs .st-resize:focus-visible, :root .st-image.is-resize .st-resize { opacity: 1; }
 /* Shared decks: plain white cards */
 :root .shr-deck > i:nth-child(1), :root .shr-deck > i:nth-child(2) { background: #fff; border: 1px solid var(--border-soft); }
@@ -381,7 +393,8 @@ html[data-theme="dark"] .shr-deck > i, html[data-theme="dark"] .shr-deck-top { b
 @media (hover: none) { :root [data-resize-handle] { opacity: 1; width: 18px; height: 18px; } }
 
 /* Live room widget on the space home: the scene plays, the timer runs, Join takes you in */
-:root .rs { position: relative; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; background: #1b1a19; box-shadow: 0 2px 6px rgba(27,26,25,.12), 0 14px 34px rgba(27,26,25,.16); }
+:root .st-room .rs { width: 100% !important; }
+:root .rs { position: relative; width: 100%; aspect-ratio: 16 / 10; border-radius: 16px; overflow: hidden; background: #1b1a19; box-shadow: 0 2px 6px rgba(27,26,25,.12), 0 14px 34px rgba(27,26,25,.16); }
 :root .rs-scene { position: absolute; inset: 0; background-size: cover; background-position: center; }
 :root .rs-video { width: 100%; height: 100%; object-fit: cover; display: block; }
 :root .rs::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,.08), rgba(0,0,0,.42)); pointer-events: none; }
@@ -420,3 +433,67 @@ html[data-theme="dark"] .shr-deck > i, html[data-theme="dark"] .shr-deck-top { b
 :root .l-yours-grid li { display: grid; gap: 6px; padding: 20px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-card); }
 :root .l-yours-grid b { font-size: 15px; } :root .l-yours-grid span { font-size: 14px; color: var(--muted); line-height: 1.55; }
 @media (prefers-reduced-motion: reduce) { :root .l-live-video { display: none; } :root .l-live { background: #1b1a19 url(/loops/forest-stream.jpg) center / cover; } }
+
+/* Notebook cover: drag-to-reposition frame */
+:root .nbk-reposition { margin-top: 12px; }
+:root .nbk-reposition-frame { position: relative; width: 160px; aspect-ratio: 3 / 4; border-radius: 8px; overflow: hidden; cursor: move; touch-action: none; box-shadow: 0 0 0 1px var(--border); }
+:root .nbk-reposition-dot { position: absolute; width: 10px; height: 10px; margin: -5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px var(--accent), 0 1px 4px rgba(0,0,0,.4); pointer-events: none; }
+
+/* Phones now have a fixed bottom tab bar (components/AppShell.tsx); floating docks clear it */
+@media (max-width: 1023px) {
+  :root .room-dock { bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important; }
+  :root .music-dock { bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important; }
+  :root body:has(.room-dock) .music-dock { bottom: calc(66px + 68px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+
+/* ── Space home on phones: declutter. Single-column study tools with full text (the forced
+   2-up grid with a squeezed 76px picture was clipping the flashcard preview text and the
+   section headings were wrapping onto 2-3 lines), and calmer widget headings. ── */
+@media (max-width: 760px) {
+  :root .ft { grid-template-columns: 1fr !important; gap: 12px !important; }
+  /* Content grids (notebooks, decks, files, shared items, live rooms): always two-up on a phone.
+     Several of these use auto-fill with a minimum tile width that happens to be just too wide to fit
+     two columns at common phone widths, so they were silently collapsing to one card per row. */
+  :root .nb-grid, :root .fb-grid, :root .decks, :root .nbk-shelf,
+  :root .shr-grid, :root .lr-grid, :root .cw-rooms, :root .pr-decklist {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 14px 12px !important;
+  }
+  /* Dashboard hero: one clear action, not two competing buttons, and a shorter body so the whole
+     band doesn't dominate the first screen someone sees. */
+  :root .dash-hero-p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  :root .dash-hero .l-actions .l-btn-soft { display: none; }
+  :root .dash-hero .eyebrow { font-size: 12px; }
+
+  /* "Add widget" and similar tab rows: several tabs (Image/Text/Sticky note/Sticker/Saved/Room) in a
+     narrow dialog need to wrap onto a couple of rows, with slightly tighter tabs, rather than be forced
+     into one row and overflow past the dialog's edge. */
+  :root .cw-tab { padding: 7px 11px; font-size: 13px; }
+  :root [role="dialog"].card { padding: 20px !important; }
+  :root .ft-tile, :root .ft-cards { grid-template-rows: 112px auto !important; }
+  :root .ft-copy { padding: 12px 14px 14px !important; }
+  :root .ft-copy span { display: block !important; font-size: 12.5px !important; }
+  :root .dash-widget-head { margin-left: 0; gap: 6px; flex-wrap: nowrap; }
+  :root .dash-widget-head h2 { font-size: 14.5px !important; flex: 1 1 auto !important; min-width: 0; line-height: 1.25; }
+  /* A phone's first look at a space should be calm: no drag handle, no per-widget colour/width/hide
+     icons sitting next to every title. "Customise space home" already does all of this in one place,
+     so these controls simply aren't shown here on a small screen. */
+  :root .dash-grip, :root .dash-widget-head .dash-hide { display: none !important; }
+}
+
+/* Space header actions: normal row on desktop, collapsed behind one "Actions" button on phones. */
+:root .hero-actions { display: contents; }
+:root .hero-actions-trigger { display: none; }
+:root .hero-actions-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+@media (max-width: 760px) {
+  :root .hero-actions { display: flex; position: relative; }
+  :root .hero-actions-trigger { display: inline-flex; background: rgba(255,255,255,.85); }
+  :root .hero-actions-row {
+    display: none; position: absolute; right: 0; top: calc(100% + 8px); z-index: 12;
+    flex-direction: column; align-items: stretch; gap: 4px; min-width: 220px; padding: 8px;
+    border-radius: 14px; background: var(--surface); box-shadow: var(--shadow-lift), 0 0 0 1px var(--border-soft);
+  }
+  :root .hero-actions-row[data-open] { display: flex; }
+  :root .hero-actions-row .btn { width: 100%; justify-content: flex-start; background: var(--surface) !important; color: var(--text) !important; height: 40px; }
+  :root .hero-actions-row .btn:hover { background: var(--hover) !important; }
+}

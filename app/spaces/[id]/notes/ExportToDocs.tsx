@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Editor } from "@tiptap/react";
-import { ChevronDown, ClipboardCopy, FileDown, Loader2, Share } from "lucide-react";
+import { ChevronDown, ClipboardCopy, FileDown, Loader2, Printer, Share } from "lucide-react";
 import { noteToDocx } from "@/app/export-actions";
 import { toast } from "@/components/Toaster";
 import { noteBlocksOf } from "./editorBlocks";
@@ -50,6 +50,28 @@ export function ExportToDocs({ editor, noteTitle }: { editor: Editor; noteTitle:
     toast("Downloaded. Open it in Word, or upload it to Google Drive and open it with Google Docs.");
   };
 
+  // A PDF via the browser's own print dialog ("Save as PDF"): no server work, and it matches what
+  // the note actually looks like. Opens a plain print-styled copy in a new tab rather than printing
+  // the whole app chrome.
+  const downloadPdf = () => {
+    setOpen(false);
+    const html = editor.getHTML();
+    const w = window.open("", "_blank");
+    if (!w) { toast("Your browser blocked the new tab. Allow pop-ups for Logia and try again.", "error"); return; }
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${noteTitle || "Note"}</title><style>
+      body { font-family: Georgia, 'Times New Roman', serif; max-width: 680px; margin: 48px auto; padding: 0 24px; color: #1a1a1a; line-height: 1.55; }
+      h1, h2, h3 { font-family: system-ui, sans-serif; line-height: 1.2; }
+      img { max-width: 100%; }
+      @media print { body { margin: 0 auto; } }
+    </style></head><body><h1>${noteTitle || "Untitled note"}</h1>${html}</body></html>`);
+    w.document.close();
+    let printed = false;
+    const go = () => { if (printed) return; printed = true; try { w.focus(); w.print(); } catch { /* window may already be closed */ } };
+    w.onload = go;
+    // Some browsers fire onload before the written content settles; a short fallback covers them.
+    setTimeout(go, 400);
+  };
+
   return (
     <div ref={wrap} style={{ position: "relative" }}>
       <button type="button" className="btn btn-ghost" onClick={() => setOpen((o) => !o)} aria-haspopup="menu" aria-expanded={open}
@@ -66,7 +88,11 @@ export function ExportToDocs({ editor, noteTitle }: { editor: Editor; noteTitle:
             <FileDown size={15} aria-hidden="true" style={{ marginTop: 2, flexShrink: 0 }} />
             <span><strong style={{ display: "block", fontSize: 13.5 }}>Download a Word file (.docx)</strong><span style={{ fontSize: 12.5, color: "var(--muted)" }}>Opens in Word, or in Google Docs after you upload it to Drive.</span></span>
           </button>
-          <p style={{ margin: "4px 10px 6px", fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>This makes a copy. Changes you make later in Docs or Word do not come back here.</p>
+          <button type="button" role="menuitem" className="btn btn-ghost" onClick={downloadPdf} style={{ height: "auto", justifyContent: "flex-start", textAlign: "left", padding: "9px 10px", alignItems: "flex-start", gap: 10 }}>
+            <Printer size={15} aria-hidden="true" style={{ marginTop: 2, flexShrink: 0 }} />
+            <span><strong style={{ display: "block", fontSize: 13.5 }}>Download as PDF</strong><span style={{ fontSize: 12.5, color: "var(--muted)" }}>Opens your browser&apos;s print dialog — choose &ldquo;Save as PDF&rdquo;.</span></span>
+          </button>
+          <p style={{ margin: "4px 10px 6px", fontSize: 12, color: "var(--muted)", lineHeight: 1.45 }}>This makes a copy. Changes you make later in Docs, Word or the PDF do not come back here.</p>
         </div>
       )}
     </div>

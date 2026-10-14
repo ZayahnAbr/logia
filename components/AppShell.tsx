@@ -13,7 +13,6 @@ import {
   CalendarDays,
   Layers,
   Library,
-  Boxes,
   Compass,
   FileText,
   Files,
@@ -30,6 +29,7 @@ import {
   Timer,
   Workflow,
   X,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -195,6 +195,36 @@ function Sidebar({
   );
 }
 
+// Persistent bottom tab bar for phones: the four pages students reach for constantly, plus a
+// "Menu" tab that opens the same drawer as before for everything else (space tools, settings).
+const TABS: { label: string; icon: LucideIcon; href: string }[] = [
+  { label: "Home", icon: LayoutDashboard, href: "/spaces" },
+  { label: "Library", icon: Library, href: "/library" },
+  { label: "Discover", icon: Compass, href: "/discover" },
+  { label: "Timetable", icon: CalendarDays, href: "/timetable" },
+];
+
+function MobileTabBar({ onMenu, menuOpen }: { onMenu: () => void; menuOpen: boolean }) {
+  const pathname = usePathname();
+  return (
+    <nav aria-label="Main" className="app-tabbar">
+      {TABS.map((t) => {
+        const active = t.href === "/spaces" ? pathname === "/spaces" : pathname.startsWith(t.href);
+        return (
+          <Link key={t.href} href={t.href} className={`app-tab${active ? " active" : ""}`} aria-current={active ? "page" : undefined}>
+            <t.icon size={20} strokeWidth={active ? 2.1 : 1.75} aria-hidden="true" />
+            <span>{t.label}</span>
+          </Link>
+        );
+      })}
+      <button type="button" className={`app-tab${menuOpen ? " active" : ""}`} onClick={onMenu} aria-expanded={menuOpen} aria-label="More">
+        <MoreHorizontal size={20} strokeWidth={menuOpen ? 2.1 : 1.75} aria-hidden="true" />
+        <span>Menu</span>
+      </button>
+    </nav>
+  );
+}
+
 export function AppShell({
   children,
   spaceId,
@@ -248,13 +278,13 @@ export function AppShell({
         />
       )}
 
-      {/* ── Mobile sidebar drawer ── */}
+      {/* ── Mobile sidebar drawer (above the tab bar's z-index 41, so it isn't clipped at the bottom) ── */}
       <aside
         style={{
           position: "fixed", inset: "0 auto 0 0",
           width: 272,
           borderRight: "1px solid var(--sidebar-border)",
-          zIndex: 40,
+          zIndex: 42,
           transform: open ? "translateX(0)" : "translateX(-100%)",
           transition: "transform .25s cubic-bezier(.2,.8,.2,1)",
           display: "block",
@@ -311,6 +341,9 @@ export function AppShell({
         </main>
       </div>
 
+      {/* ── Mobile bottom tab bar: the primary way to move around on a phone ── */}
+      <MobileTabBar onMenu={() => setOpen((o) => !o)} menuOpen={open} />
+
       {/* Responsive styles injected inline so no extra CSS file needed */}
       <style>{`
         @media (min-width: 1024px) {
@@ -318,6 +351,7 @@ export function AppShell({
           .app-sidebar-mobile { display: none !important; }
           .app-content-area { padding-left: var(--sidebar-w); }
           .app-mobile-header { display: none !important; }
+          .app-tabbar { display: none !important; }
           html[data-sidebar="hidden"] .app-sidebar-desktop { display: none !important; }
           html[data-sidebar="hidden"] .app-content-area { padding-left: 0; }
           html[data-sidebar="hidden"] .app-page-main { margin: 0 auto; }
@@ -326,7 +360,21 @@ export function AppShell({
         @media (max-width: 1023px) {
           .app-sidebar-desktop { display: none !important; }
           .app-mobile-header { display: flex !important; }
-          .app-page-main { padding: 20px 16px 80px !important; }
+          .app-page-main { padding: 16px 16px calc(78px + env(safe-area-inset-bottom, 0px)) !important; }
+          .app-tabbar {
+            display: flex; position: fixed; inset: auto 0 0 0; z-index: 41;
+            padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+            background: var(--surface); border-top: 1px solid var(--border-soft);
+            box-shadow: 0 -2px 10px rgba(0,0,0,.05);
+          }
+          .app-tab {
+            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; padding: 6px 2px; border: 0; background: none; color: var(--muted);
+            font-size: 10.5px; font-weight: 500; text-decoration: none; cursor: pointer; border-radius: 10px;
+          }
+          .app-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .app-tab.active { color: var(--accent-text); }
+          .app-tab:active { background: var(--hover, var(--surface-2)); }
         }
       `}</style>
     </div>

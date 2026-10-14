@@ -1,14 +1,14 @@
 "use client";
 
-import { useState, useId } from "react";
-import { Loader2, Upload } from "lucide-react";
+import { useState, useId, useRef } from "react";
+import { Loader2, Move, Upload } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/Toaster";
 import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
 import { CoverArt } from "@/components/NotebookCover";
 import {
   COVER_COLORS, COVER_PATTERNS, COVER_EMOJIS, COVER_BUCKET, COVER_MAX_BYTES, COVER_TYPES,
-  DEFAULT_COVER_COLOR, parseCover, patternValue, emojiValue, type Cover, type CoverKind,
+  DEFAULT_COVER_COLOR, DEFAULT_COVER_POS, parseCover, patternValue, emojiValue, imageValue, type Cover, type CoverKind, type CoverPos,
 } from "@/lib/notebookCovers";
 
 const KINDS: { key: CoverKind; label: string }[] = [
@@ -28,7 +28,10 @@ export function CoverPicker({ spaceId, userId, value, urls, onChange, onUploaded
   const [emoji, setEmoji] = useState<string>(cur?.emoji ?? COVER_EMOJIS[0]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [pos, setPos] = useState<CoverPos>(cur?.kind === "image" ? cur.pos ?? DEFAULT_COVER_POS : DEFAULT_COVER_POS);
   const imagePath = cur?.kind === "image" ? cur.path : undefined;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
 
   const emit = (k: CoverKind, c = color, p = pattern, e = emoji) => {
     if (k === "color") onChange({ kind: "color", value: c });
@@ -55,9 +58,29 @@ export function CoverPicker({ spaceId, userId, value, urls, onChange, onUploaded
       if (checked.message) toast(checked.message, checked.state === "unsafe" ? "error" : "success");
       const signed = await sb.storage.from(COVER_BUCKET).createSignedUrl(path, 3600);
       if (signed.data?.signedUrl) onUploaded(path, signed.data.signedUrl);
-      onChange({ kind: "image", value: path });
+      setPos(DEFAULT_COVER_POS);
+      onChange({ kind: "image", value: imageValue(path, DEFAULT_COVER_POS) });
     } finally { setBusy(false); }
   };
+
+  // Drag inside the frame to choose which part of the picture shows in the cover crop.
+  const movePos = (clientX: number, clientY: number) => {
+    const r = frameRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const x = Math.min(100, Math.max(0, ((clientX - r.left) / r.width) * 100));
+    const y = Math.min(100, Math.max(0, ((clientY - r.top) / r.height) * 100));
+    const next = { x: Math.round(x), y: Math.round(y) };
+    setPos(next);
+    if (imagePath) onChange({ kind: "image", value: imageValue(imagePath, next) });
+  };
+  const onFrameDown = (e: React.PointerEvent) => {
+    if (!imagePath) return;
+    dragging.current = true;
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    movePos(e.clientX, e.clientY);
+  };
+  const onFrameMove = (e: React.PointerEvent) => { if (dragging.current) movePos(e.clientX, e.clientY); };
+  const onFrameUp = () => { dragging.current = false; };
 
   const shown: Cover | null = value;
   return (
@@ -109,6 +132,16 @@ export function CoverPicker({ spaceId, userId, value, urls, onChange, onUploaded
             <input id={`${uid}-file`} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={busy}
               onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ""; }} />
             <p className="nbk-hint">JPG, PNG or WebP, up to 5 MB. Only members of this space can see it.</p>
+            {imagePath && urls[imagePath] && (
+              <div className="nbk-reposition">
+                <p className="nbk-hint" style={{ display: "flex", alignItems: "center", gap: 4 }}><Move size={13} aria-hidden="true" /> Drag the picture to choose what shows on the cover.</p>
+                <div ref={frameRef} className="nbk-reposition-frame" onPointerDown={onFrameDown} onPointerMove={onFrameMove} onPointerUp={onFrameUp} onPointerCancel={onFrameUp}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={urls[imagePath]} alt="" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${pos.x}% ${pos.y}%` }} />
+                  <span className="nbk-reposition-dot" style={{ left: `${pos.x}%`, top: `${pos.y}%` }} aria-hidden="true" />
+                </div>
+              </div>
+            )}
           </div>
         )}
         {err && <p role="alert" className="nbk-err">{err}</p>}

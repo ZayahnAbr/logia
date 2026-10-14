@@ -116,6 +116,7 @@ export function EpubReader({ bookId, title, initialCfi, initialHighlights, initi
     const onContent = (contents: Contents) => {
       const doc = contents.document;
       doc.addEventListener("keydown", onKey);
+      doc.addEventListener("contextmenu", (e) => { if (doc.getSelection()?.toString().trim()) e.preventDefault(); });
       doc.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
       doc.addEventListener("touchend", (e) => {
         const dx = e.changedTouches[0].clientX - touchX;

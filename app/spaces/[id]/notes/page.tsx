@@ -2,7 +2,7 @@ import "../learn-layout.css";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSpace, getNotes, getNotebooks } from "@/lib/queries";
-import { COVER_BUCKET } from "@/lib/notebookCovers";
+import { COVER_BUCKET, parseCover } from "@/lib/notebookCovers";
 import { NotesBoard } from "./NotesBoard";
 
 export default async function NotesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,11 +13,12 @@ export default async function NotesPage({ params }: { params: Promise<{ id: stri
 
   const [space, notes, nb] = await Promise.all([getSpace(id), getNotes(id), getNotebooks(id)]);
 
-  // Uploaded covers live in a private bucket: hand the browser short-lived signed links.
+  // Uploaded covers live in a private bucket: hand the browser short-lived signed links. cover_value may carry
+  // a "#x,y" drag-to-reposition suffix (lib/notebookCovers.ts), so sign the underlying path, not the raw value.
   const paths = [...new Set([
-    ...nb.rows.filter((b: any) => b.cover_kind === "image").map((b: any) => b.cover_value as string),
-    ...notes.filter((n: any) => n.cover_kind === "image").map((n: any) => n.cover_value as string),
-  ].filter(Boolean))];
+    ...nb.rows.filter((b: any) => b.cover_kind === "image").map((b: any) => parseCover({ kind: b.cover_kind, value: b.cover_value })?.path),
+    ...notes.filter((n: any) => n.cover_kind === "image").map((n: any) => parseCover({ kind: n.cover_kind, value: n.cover_value })?.path),
+  ].filter(Boolean) as string[])];
   const coverUrls: Record<string, string> = {};
   if (paths.length) {
     const { data } = await supabase.storage.from(COVER_BUCKET).createSignedUrls(paths, 60 * 60);

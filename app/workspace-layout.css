@@ -279,7 +279,7 @@ html[data-theme="dark"] .cw-tinted { background: color-mix(in oklab, var(--tint)
 .cw-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cw-mode .btn { height: 40px; justify-content: center; white-space: nowrap; padding: 0 14px; }
 .cw-drop { display: grid; justify-items: center; gap: 4px; padding: 26px 18px; text-align: center; border: 1.5px dashed var(--border-input); border-radius: 12px; background: var(--surface-2); cursor: pointer; transition: border-color .15s, background-color .15s; }
-.cw-drop:hover { border-color: var(--text); background: var(--surface); }
+.cw-drop:hover { border-color: var(--text); background: #fff; }
 .cw-drop:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
 .cw-drop.is-set { border-style: solid; border-color: var(--success); }
 .cw-drop-ic { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; background: var(--ink); color: var(--on-ink); margin-bottom: 6px; }
@@ -310,16 +310,23 @@ html[data-theme="dark"] .dash-widget.cw-tinted:has(.cw-textcard) .cw-text { colo
 /* ---------- free stickers (images and text placed anywhere on the space home) ---------- */
 .st-root { position: relative; }
 .st { position: relative; box-sizing: border-box; max-width: 100%; border-radius: 8px; background: transparent; }
+.st-root .st { display: block; grid-template-columns: none; max-width: none; }
+.st-root .st-text:hover, .st-root .st-text:focus-within { z-index: 100001 !important; }
 .st.is-abs { position: absolute; }
 .st:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .st-image.is-abs { touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 .st-image img, .st-image canvas { -webkit-user-drag: none; user-select: none; }
 .st-fig { margin: 0; display: grid; gap: 4px; }
+.st-image .st-fig, .st-image .st-fig .cw-media { width: 100% !important; }
 .st-fig .cw-media { display: block; }
-.st-fig .cw-img { width: 100%; height: auto; max-width: 100%; max-height: none; border-radius: 8px; box-shadow: none; border: 0; background: transparent; }
+.st-fig .cw-img { width: 100% !important; height: auto; max-width: 100%; max-height: none; border-radius: 8px; box-shadow: none; border: 0; background: transparent; }
 .st-fig figcaption { font-size: 12.5px; color: var(--muted); }
-.st-flow { display: grid; gap: 16px; justify-items: start; margin-bottom: 16px; }
-.st-flow .st { width: 100%; }
+/* Mobile sticker board: headings/text run full width; sticky notes and pictures pair up two-to-a-row
+   instead of each stretching edge to edge, so a small square note isn't blown up to the full screen width. */
+.st-flow { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+.st-flow .st { width: 100%; min-width: 0; }
+.st-flow .st-text { grid-column: 1 / -1; }
+.st-flow .st-room { grid-column: 1 / -1; }
 .st-text .cw-textcard { width: 100%; }
 
 /* Small toolbar: only on hover or focus (always on touch devices and on mobile). */
@@ -332,6 +339,10 @@ html[data-theme="dark"] .dash-widget.cw-tinted:has(.cw-textcard) .cw-text { colo
 .st-btn:focus-visible, .st-resize:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 .st-grip { cursor: grab; touch-action: none; }
 .st-resize { position: absolute; right: -6px; bottom: -6px; z-index: 2; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--text); box-shadow: var(--shadow-card); cursor: nwse-resize; touch-action: none; opacity: 0; transition: opacity .15s; }
+.st-resize-layer { position: absolute; inset: 0; z-index: 100002; pointer-events: none; }
+.st-resize-layer .st-resize { pointer-events: auto; opacity: 0; }
+.st-resize-layer .st-resize:hover, .st-resize-layer .st-resize:focus-visible, .st-resize-layer .st-resize.is-active { opacity: 1; }
+.st-resize-layer .st-resize.is-text-resize.is-focused { opacity: 1; }
 .st:hover .st-resize, .st:focus-within .st-resize { opacity: 1; }
 @media (hover: none) { .st-resize { opacity: 1; } }
 .st-notice { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 50; margin: 0; padding: 8px 14px; border-radius: 8px; background: var(--ink); color: var(--on-ink); font-size: 13.5px; }
@@ -352,7 +363,7 @@ html[data-theme="dark"] .st-tinted .cw-text { color: color-mix(in oklab, var(--t
 /* Caret hint so an empty text sticker is still findable */
 .st .cw-text::placeholder { color: var(--faint); }
 /* Bigger, clearer resize handle: shows on hover, always on touch */
-.st-resize { width: 34px; height: 34px; right: -10px; bottom: -10px; background: var(--ink); color: var(--on-ink); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+.st-resize { width: 34px; height: 34px; right: 6px; bottom: 6px; background: var(--ink); color: var(--on-ink); box-shadow: 0 2px 8px rgba(0,0,0,.25); }
 .st-image:hover .st-resize { opacity: 1; }
 .st-image .st-fig .cw-img { pointer-events: none; }
 
@@ -361,6 +372,7 @@ html[data-theme="dark"] .st-tinted .cw-text { color: color-mix(in oklab, var(--t
    - Size/alignment: a compact strip below, only while the text is being edited.
    - Save status and character count are not shown (autosave is silent; errors still show). */
 .st-text .st-bar { top: -30px; padding: 1px; gap: 0; background: var(--surface); box-shadow: 0 0 0 1px var(--border), 0 2px 6px rgba(0,0,0,.08); }
+.st-text .st-bar .st-grip { opacity: 1; pointer-events: auto; }
 .st-text .st-btn { width: 28px; height: 28px; }
 .st-text:focus-within .st-bar { opacity: 0; pointer-events: none; }
 .st-text:hover:not(:focus-within) .st-bar, .st-text.is-open .st-bar { opacity: 1; pointer-events: auto; }
@@ -408,12 +420,12 @@ html[data-theme="dark"] .stk-stage { background-color: #3a3a3a; background-image
 .st-text .cw-text-heading { font-size: max(16px, calc(var(--st-w) / 9)) !important; line-height: 1.15; }
 .st-flow .st-text .cw-text { font-size: max(14px, min(calc(var(--st-w, 280px) / 16), 22px)) !important; }
 
-/* Text sticker box hugs the text, so the resize handle sits at the corner of the words.
-   Width still drives the font size via --st-w; the box just shrink-wraps the content. */
+/* Text sticker box: pinned to the width the student drags (--st-w), so the resize handle and the
+   visible edge of the text box always agree, and the box reliably grows and shrinks on drag. */
 .st-text.is-abs { max-width: none; }
-.st-text .cw-textcard { width: auto; }
-.st-text .cw-text { field-sizing: content; width: auto; min-width: 3ch; max-width: min(90vw, 1200px); white-space: pre; overflow: hidden; }
-.st-text .st-resize { right: -14px; bottom: -10px; width: 22px; height: 22px; }
+.st-text .cw-textcard { width: var(--st-w) !important; max-width: 100%; }
+.st-text .cw-text { width: 100% !important; min-width: 3ch; max-width: 100%; white-space: pre-wrap; overflow: hidden; box-sizing: border-box; }
+.st-text .st-resize { right: 0; bottom: 4px; width: 30px; height: 30px; }
 .cw-drop.is-over { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
 /* Text resize clipping: the old autosize set a fixed inline height; let the box grow with the scaled font */
 .st-text .cw-text { min-height: 1.3em; overflow: hidden; }
@@ -425,7 +437,7 @@ html[data-theme="dark"] .stk-stage { background-color: #3a3a3a; background-image
 .stk-size input[type="range"] { width: 100%; }
 .stk-touch kbd { font: inherit; font-size: 11px; padding: 0 5px; margin-left: 4px; border: 1px solid var(--border-input); border-radius: 4px; background: var(--surface-2); }
 /* Text resize handle tucked onto the bottom-right corner of the words */
-.st-text .st-resize { right: -2px; bottom: -2px; width: 20px; height: 20px; transform: translate(35%, 35%); }
+.st-text .st-resize { right: 6px; bottom: 6px; width: 30px; height: 30px; }
 .st-text .cw-text { padding: 2px 4px; }
 /* Keep the handle visible and the cursor steady while a sticker is being resized or moved */
 .st.is-resize .st-resize, .st.is-resize:focus-within .st-resize { opacity: 1 !important; }
@@ -444,7 +456,7 @@ html[data-theme="dark"] .stk-lib-pick { background-color: #3a3a3a; background-im
 
 /* Sticky note stickers (migration 28): square paper, dark ink on pastel paper in both themes (AA) */
 .st-sticky { --st-w: 200px; }
-.stn { position: relative; display: flex; flex-direction: column; width: 100%; aspect-ratio: 1; padding: calc(var(--st-w) * 0.07); border-radius: 3px 3px 14px 3px; box-shadow: 0 1px 1px rgba(64,38,28,.08), 0 8px 18px -10px rgba(64,38,28,.4); transform: rotate(var(--tilt, 0deg)); color: #2a2620; overflow: hidden; }
+.stn { position: relative; display: flex; flex-direction: column; width: 100%; aspect-ratio: 1; padding: calc(var(--st-w) * 0.07); border-radius: 3px 3px 14px 3px; box-shadow: 0 1px 1px rgba(64,38,28,.08), 0 8px 18px -10px rgba(64,38,28,.4); filter: brightness(.94); transform: rotate(var(--tilt, 0deg)); color: #2a2620; overflow: hidden; }
 .stn-text { flex: 1; min-height: 0; width: 100%; resize: none; border: 0; outline: none; background: transparent; color: #2a2620; font: inherit; font-size: max(12px, calc(var(--st-w) * 0.08)); line-height: 1.35; padding: 0; overflow: auto; overflow-wrap: anywhere; }
 .stn-text::placeholder { color: rgba(42,38,32,.68); }
 .stn:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
@@ -453,7 +465,7 @@ html[data-theme="dark"] .stk-lib-pick { background-color: #3a3a3a; background-im
 @media (hover: none) { .stn-bar { opacity: 1; } }
 .stn-dots { display: flex; gap: 6px; }
 .stn-err { font-size: 12px; font-weight: 600; color: #8a1c10; }
-.st-sticky .st-resize { right: -6px; bottom: -6px; }
+.st-sticky .st-resize { right: 6px; bottom: 6px; }
 @media (prefers-reduced-motion: reduce) { .stn { transform: none; } .stn-bar { transition: none; } }
 /* Sticky note colour dots: only on hover or while the note is selected; never while typing */
 .st-sticky .stn-bar { opacity: 0; pointer-events: none; transition: opacity .15s; }
@@ -469,7 +481,7 @@ html[data-theme="dark"] .stk-lib-pick { background-color: #3a3a3a; background-im
 .st-text:hover .st-bar, .st-text:hover .cw-textbar,
 .st-text .st-bar:hover, .st-text .cw-textbar:hover,
 .st-text .st-bar:focus-within, .st-text .cw-textbar:focus-within,
-.st-text.is-open .st-bar { opacity: 1 !important; pointer-events: auto !important; }
+.st-text.is-open .st-bar, .st-text:focus-within .st-bar { opacity: 1 !important; pointer-events: auto !important; }
 
 /* Course outline setup, mark calculator and topic checklist (co-) */
 .co-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--border); border-radius: 14px; background: var(--paper, var(--surface)); flex-wrap: wrap; }
@@ -622,6 +634,7 @@ html body .space-hero.sh-band .btn:focus-visible { outline: 3px solid #111; outl
 .shr-page h3 { margin: 0 0 8px; font-size: 16px; }
 .shr-text { margin: 0 0 8px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 .shr-credit { margin: 4px 0 0; font-size: 13px; font-weight: 600; opacity: .85; }
+.space-hero .shr-credit { color: #fff; opacity: 1; }
 .shr-page:focus-visible, .shr-check input:focus-visible { outline: 2px solid var(--focus, var(--accent-text)); outline-offset: 2px; }
 @media (max-width: 560px) {
   .shr-row { flex-wrap: wrap; }
@@ -743,3 +756,8 @@ html[data-theme="dark"] .ce-drop.is-over, html[data-theme="dark"] .ce-drop:hover
 .st.is-abs { overflow: visible; }
 .st.is-abs:focus-within .st-resize, .st.is-abs:hover .st-resize, .st.is-abs.is-resize .st-resize { opacity: 1 !important; pointer-events: auto; z-index: 6; }
 .st.is-abs.is-resize, .st.is-abs.is-move { user-select: none; }
+
+/* Mobile board images: a consistent square crop, matching the sticky notes beside them, instead of
+   each picture keeping its own natural height and making the two-column grid look ragged. */
+.st-flow .st-image .st-fig { aspect-ratio: 1; }
+.st-flow .st-image .cw-img { width: 100% !important; height: 100% !important; object-fit: cover !important; max-height: none !important; }

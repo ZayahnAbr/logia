@@ -46,7 +46,7 @@ function MotionImage({ src, still, alt, animated, noReferrer }: { src: string; s
   }, [useCanvas, src, noReferrer]);
 
   return (
-    <div className="cw-media">
+    <div className="cw-media" style={{ width: "100%" }}>
       {useCanvas ? <canvas ref={canvas} className="cw-img" role="img" aria-label={alt} />
         : // eslint-disable-next-line @next/next/no-img-element
         <img className="cw-img" src={animated && !playing && still ? still : src} alt={alt} loading="lazy" decoding="async" referrerPolicy={noReferrer ? "no-referrer" : undefined} />}
@@ -89,7 +89,7 @@ export function GifWidgetView({ spaceId, id, data }: { spaceId: string; id: stri
 // The picture itself: no card, background, border or shadow. Placement is handled by StickerLayer.
 export function ImageStickerBody({ data, src }: { data: ImageData; src: string | null }) {
   return src ? (
-    <figure className="cw-fig st-fig">
+    <figure className="cw-fig st-fig" style={{ width: "100%" }}>
       <MotionImage src={src} alt={data.alt} animated={data.animated} noReferrer />
       {data.caption && <figcaption>{data.caption}</figcaption>}
     </figure>
@@ -109,23 +109,25 @@ export function TextStickerBody({ id, data }: { id: string; data: TextData }) {
     return () => window.clearTimeout(t);
   }, [val, id]);
 
-  // Size the box to exactly fit the words (every render, so it follows font scaling from resize),
-  // which keeps the resize handle right at the corner of the text.
+  // Keep the editor constrained to the sticker's width.
+  // Only autosize its height so resizing the sticker can change
+  // the text width without the editor overriding it.
   useLayoutEffect(() => {
     const a = area.current;
     if (!a) return;
-    a.style.width = "0px"; a.style.height = "0px";
-    a.style.width = `${a.scrollWidth + 2}px`;
+
+    a.style.height = "0px";
     a.style.height = `${a.scrollHeight}px`;
   });
 
+
   return (
-    <div className="cw-textcard">
+    <div className="cw-textcard" style={{ width: "fit-content", maxWidth: "100%" }}>
       <textarea ref={area} className={`cw-text cw-text-${val.size}`} style={{ textAlign: val.align }} rows={val.size === "heading" ? 1 : 3}
         aria-label="Text" placeholder="Type here" maxLength={MAX_TEXT} value={val.text}
         onChange={(e) => setVal({ ...val, text: e.target.value })} />
       <div className="cw-foot cw-textbar">
-        <button type="button" className="st-btn" aria-pressed={val.size === "heading"} aria-label="Heading size" title="Heading size"
+        <button type="button" className="st-btn" aria-pressed={val.size === "heading"} aria-label={`Font size: ${val.size === "heading" ? "large" : "body"}. Click to change`} title="Change font size"
           onClick={() => setVal({ ...val, size: val.size === "heading" ? "body" : "heading" })}><Heading size={14} aria-hidden="true" /></button>
         <button type="button" className="st-btn" aria-label={`Alignment: ${val.align}. Click to change`} title="Alignment"
           onClick={() => setVal({ ...val, align: val.align === "left" ? "center" : val.align === "center" ? "right" : "left" })}>

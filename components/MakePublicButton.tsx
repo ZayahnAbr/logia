@@ -10,7 +10,7 @@ import { FORMAT_TAGS, LEVELS, MAX_TAGS, SUBJECT_TAGS, normaliseTags } from "@/li
 import { hasBlockedWord } from "@/lib/moderation";
 import { setCloneOptions, saveDesignLayout } from "@/app/shared-items-actions";
 
-// Shown to a space's creator only. Lists the space on Discover so anyone on Logia can join.
+// Shown to a space's creator only. Lists the space on Discover so anyone on Logia can look around and copy it.
 export function MakePublicButton({ spaceId, isPublic, description, cloneReady = false, allowDesign = true, allowContent = false }: {
   spaceId: string; isPublic: boolean; description: string; cloneReady?: boolean; allowDesign?: boolean; allowContent?: boolean;
 }) {
@@ -93,9 +93,9 @@ export function MakePublicButton({ spaceId, isPublic, description, cloneReady = 
         <Dialog title={isPublic ? "Public space settings" : "Make this space public"} onClose={() => setOpen(false)} width={460}>
           <p style={{ margin: "0 0 12px", color: "var(--muted)", fontSize: 14 }}>
             {isPublic
-              ? "Anyone on Logia can find and join this space from Discover. Making it private hides it from Discover. Current members stay."
+              ? "Anyone on Logia can find this space on Discover, look around, and copy it into a space of their own. They can never change your original. Making it private hides it from Discover."
               : status === "pending" ? "We're checking your space before it appears on Discover. It stays private until then. You can update the details below and send it again."
-              : "Anyone on Logia will be able to find this space on Discover and join it. They will see your notes, files and decks like any member. Only make it public if you are happy with that. We check public spaces before they appear on Discover."}
+              : "Anyone on Logia will be able to find this space on Discover, look around, and copy it into a space of their own to edit. They can never change your original. Only make it public if you are happy with that. We check public spaces before they appear on Discover."}
           </p>
           <p className="field-hint" role="note" style={{ marginTop: 0 }}>
             Public spaces are only visible to people signed in to Logia, never to search engines. Even so, don&rsquo;t

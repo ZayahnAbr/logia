@@ -19,7 +19,7 @@ export function RoomStickerBody({ room }: { room: RoomInfo }) {
   const ph = now ? getPhase({ focus_minutes: room.focus, break_minutes: room.brk, anchor: room.anchor }, now) : null;
 
   return (
-    <div className="rs" data-phase={ph?.phase}>
+    <div className="rs" data-phase={ph?.phase} style={{ width: "100%" }}>
       <div className="rs-scene" style={room.color ? { background: room.color } : room.poster ? { backgroundImage: `url(${room.poster})` } : undefined} aria-hidden="true">
         {room.video && motion && <video className="rs-video" src={room.video} poster={room.poster ?? undefined} autoPlay muted loop playsInline />}
       </div>

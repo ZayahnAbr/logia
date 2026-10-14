@@ -310,7 +310,7 @@ export async function getDashboardData(userId: string) {
   const [books, pains, papers, focus, attempts, layout] = await Promise.all([
     supabase.from("library_books").select("*").not("opened_at", "is", null).order("opened_at", { ascending: false }).limit(4),
     supabase.from("pain_points").select("id, title, topic, hits, space_id").eq("user_id", userId).eq("resolved", false).order("hits", { ascending: false }).order("updated_at", { ascending: false }).limit(5),
-    supabase.from("past_papers").select("id, title, space_id, created_at").order("created_at", { ascending: false }).limit(4),
+    supabase.from("past_papers").select("id, title, space_id, created_at").eq("created_by", userId).order("created_at", { ascending: false }).limit(4),
     supabase.from("focus_analytics").select("duration_minutes, created_at").eq("user_id", userId).gte("created_at", monthAgo),
     supabase.from("question_attempts").select("is_correct, created_at").eq("user_id", userId).gte("created_at", monthAgo),
     supabase.from("profiles").select("dashboard_widgets").eq("id", userId).maybeSingle(),

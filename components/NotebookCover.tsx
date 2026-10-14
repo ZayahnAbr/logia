@@ -12,8 +12,9 @@ export function CoverArt({ cover, imageUrl, className }: {
   const fallback = "#6B7785";
 
   if (c?.kind === "image" && imageUrl) {
+    const pos = c.pos ?? { x: 50, y: 50 };
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={imageUrl} alt="" className={className} loading="lazy" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />;
+    return <img src={imageUrl} alt="" className={className} loading="lazy" draggable={false} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: `${pos.x}% ${pos.y}%`, display: "block" }} />;
   }
   const bg = c?.color ?? fallback;
   const ink = "rgba(255,255,255,.55)";

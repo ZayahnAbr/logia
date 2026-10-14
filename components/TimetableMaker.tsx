@@ -227,6 +227,17 @@ export function TimetableMaker({ initial, spaces, loadError }: { initial: Timeta
     const hi = Math.max(prefs.endH, ...outside.map((c) => Math.ceil(c.end_min / 60)));
     setPref({ days: outside.some((c) => c.weekday >= 5) ? 7 : prefs.days, startH: lo, endH: hi });
   };
+  // A class after the default 8pm cutoff (or before the default 7am start) widens the grid on its own the
+  // first time it's seen, instead of silently hiding it behind the "Show everything" link.
+  const widenedFor = useRef(new Set<string>());
+  useEffect(() => {
+    if (outside.length === 0) return;
+    const key = outside.map((c) => c.id).sort().join(",");
+    if (widenedFor.current.has(key)) return;
+    widenedFor.current.add(key);
+    showAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outside.length, classes]);
 
   const print = () => {
     setBusy(true); setPrinting(true);

@@ -154,9 +154,11 @@ function Editor({ mapId, root: initialRoot, docTitle, spaceId, onClose }: { mapI
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<"map" | "outline">("map");
   const [save, setSave] = useState<SaveState>("saved");
-  const [chunks, setChunks] = useState<any>(null);
+  // Extracted key points, kept per map topic so switching between topics (or closing and reopening
+  // the panel) never throws away work already done — only an explicit re-extract replaces them.
+  const [chunksByNode, setChunksByNode] = useState<Record<string, any>>({});
   const [extracting, setExtracting] = useState(false);
-  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [pickedByNode, setPickedByNode] = useState<Record<string, Set<string>>>({});
   const [exporting, setExporting] = useState(false);
   const { fitView } = useReactFlow();
   const firstRender = useRef(true);
@@ -251,14 +253,15 @@ function Editor({ mapId, root: initialRoot, docTitle, spaceId, onClose }: { mapI
 
   const selected = selectedId ? locate(tree, selectedId)?.node ?? null : null;
   const sourceText = selected ? textFor(selected) : "";
-
-  useEffect(() => { setChunks(null); setPicked(new Set()); }, [selectedId]);
+  const chunks = selectedId ? chunksByNode[selectedId] ?? null : null;
+  const picked = (selectedId && pickedByNode[selectedId]) || new Set<string>();
+  const setPicked = (next: Set<string>) => { if (selectedId) setPickedByNode((m) => ({ ...m, [selectedId]: next })); };
 
   const extract = async () => {
-    if (!selected) return;
+    if (!selected || !selectedId) return;
     setExtracting(true);
     const out = await chunkText(sourceText, selected.label);
-    if ("error" in out) toast(out.error, "error"); else setChunks(out);
+    if ("error" in out) toast(out.error, "error"); else setChunksByNode((m) => ({ ...m, [selectedId]: out }));
     setExtracting(false);
   };
 
@@ -271,6 +274,27 @@ function Editor({ mapId, root: initialRoot, docTitle, spaceId, onClose }: { mapI
     if (res.id) await updateNote(spaceId, res.id, title, `<p>${text.replace(/\n\n/g, "</p><p>")}</p>`, "From mind maps");
     setExporting(false); setPicked(new Set());
     toast(res.id ? "Saved to a new note in the “From mind maps” folder." : "Couldn't create the note. Try again.", res.id ? "success" : "error");
+  };
+
+  // Adds each checked key point as its own sub-topic under the topic it was extracted from, so it shows
+  // right on the map, not just in an exported note.
+  const addPickedAsSubtopics = () => {
+    if (!chunks?.chunks || picked.size === 0 || !selected) return;
+    const sentences = chunks.chunks.flatMap((c: any, i: number) => c.sentences.filter((_: string, j: number) => picked.has(`${i}-${j}`))) as string[];
+    const targetId = selected.id;
+    let lastId = targetId;
+    mutate((r) => {
+      const hit = locate(r, targetId); if (!hit) return;
+      hit.node.collapsed = false;
+      for (const s of sentences) {
+        const nid = newId();
+        hit.node.children.push({ id: nid, label: s.length > 160 ? `${s.slice(0, 157)}…` : s, page: hit.node.page, y: 0, level: hit.node.level + 1, children: [], sourceText: "" });
+        lastId = nid;
+      }
+    });
+    setPicked(new Set());
+    setSelectedId(lastId);
+    toast(`Added ${sentences.length} sub-topic${sentences.length === 1 ? "" : "s"} to the map.`, "success");
   };
 
   const editBtn = (label: string, icon: React.ReactNode, onClick: () => void, disabled: boolean, danger = false) => (
@@ -405,9 +429,14 @@ function Editor({ mapId, root: initialRoot, docTitle, spaceId, onClose }: { mapI
                           <ShieldCheck size={14} aria-hidden="true" /> Every sentence is quoted from the source
                         </div>
                         {picked.size > 0 && (
-                          <button type="button" className="btn btn-primary" style={{ width: "100%", justifyContent: "center", marginBottom: 14 }} disabled={exporting} onClick={exportSelected}>
-                            <FileText size={14} aria-hidden="true" /> {exporting ? "Saving…" : `Save ${picked.size} selected to a note`}
-                          </button>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+                            <button type="button" className="btn btn-primary" style={{ width: "100%", justifyContent: "center" }} disabled={exporting} onClick={addPickedAsSubtopics}>
+                              <Plus size={14} aria-hidden="true" /> Add {picked.size} selected as sub-topics
+                            </button>
+                            <button type="button" className="btn" style={{ width: "100%", justifyContent: "center" }} disabled={exporting} onClick={exportSelected}>
+                              <FileText size={14} aria-hidden="true" /> {exporting ? "Saving…" : `Save ${picked.size} selected to a note`}
+                            </button>
+                          </div>
                         )}
                         {chunks.chunks.map((c: any, i: number) => (
                           <div key={i} style={{ marginBottom: 18 }}>
@@ -418,7 +447,7 @@ function Editor({ mapId, root: initialRoot, docTitle, spaceId, onClose }: { mapI
                               return (
                                 <label key={j} style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer", padding: "6px 8px", borderRadius: 8, background: checked ? "var(--accent-soft)" : "transparent" }}>
                                   <input type="checkbox" checked={checked} style={{ marginTop: 4 }}
-                                    onChange={() => setPicked((prev) => { const next = new Set(prev); if (checked) next.delete(key); else next.add(key); return next; })} />
+                                    onChange={() => { const next = new Set(picked); if (checked) next.delete(key); else next.add(key); setPicked(next); }} />
                                   <span style={{ fontSize: 13.5, lineHeight: 1.55 }}>{s}</span>
                                 </label>
                               );

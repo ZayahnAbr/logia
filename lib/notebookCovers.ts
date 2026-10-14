@@ -31,7 +31,23 @@ const isHex = (s: string) => HEX.test(s);
 export function patternValue(key: string, hex: string) { return `${key}|${hex}`; }
 export function emojiValue(hex: string, emoji: string) { return `${hex}|${emoji}`; }
 
-export function parseCover(c: { kind: string | null; value: string | null } | null | undefined): { kind: CoverKind; color: string; pattern?: PatternKey; emoji?: string; path?: string } | null {
+// Which part of an image cover shows under the crop, as a focal point (0 to 100, left/top origin).
+// Encoded onto the end of the image's value as "path#x,y" so no database column or migration is needed.
+export type CoverPos = { x: number; y: number };
+export const DEFAULT_COVER_POS: CoverPos = { x: 50, y: 50 };
+function splitImageValue(value: string): { path: string; pos: CoverPos } {
+  const i = value.lastIndexOf("#");
+  if (i < 0) return { path: value, pos: DEFAULT_COVER_POS };
+  const [xs, ys] = value.slice(i + 1).split(",");
+  const x = Number(xs), y = Number(ys);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || x > 100 || y < 0 || y > 100) return { path: value.slice(0, i), pos: DEFAULT_COVER_POS };
+  return { path: value.slice(0, i), pos: { x, y } };
+}
+export function imageValue(path: string, pos: CoverPos = DEFAULT_COVER_POS) {
+  return `${path}#${Math.round(pos.x)},${Math.round(pos.y)}`;
+}
+
+export function parseCover(c: { kind: string | null; value: string | null } | null | undefined): { kind: CoverKind; color: string; pattern?: PatternKey; emoji?: string; path?: string; pos?: CoverPos } | null {
   if (!c || !c.kind || !c.value) return null;
   if (c.kind === "color") return isHex(c.value) ? { kind: "color", color: c.value } : null;
   if (c.kind === "pattern") {
@@ -45,7 +61,7 @@ export function parseCover(c: { kind: string | null; value: string | null } | nu
     if (i < 0 || !isHex(hex) || !emoji) return null;
     return { kind: "emoji", color: hex, emoji };
   }
-  if (c.kind === "image") return { kind: "image", color: "#6B7785", path: c.value };
+  if (c.kind === "image") { const { path, pos } = splitImageValue(c.value); return { kind: "image", color: "#6B7785", path, pos }; }
   return null;
 }
 
@@ -53,8 +69,9 @@ export function parseCover(c: { kind: string | null; value: string | null } | nu
 export function validateCover(c: Cover, userId: string, spaceId: string): { cover: Cover } | { error: string } {
   const kind = c.kind, value = String(c.value ?? "");
   if (kind === "image") {
-    if (!value.startsWith(`${userId}/${spaceId}/`) || value.includes("..") || value.length > 250) return { error: "That image can't be used as a cover." };
-    return { cover: { kind, value } };
+    const { path, pos } = splitImageValue(value);
+    if (!path.startsWith(`${userId}/${spaceId}/`) || path.includes("..") || path.length > 250) return { error: "That image can't be used as a cover." };
+    return { cover: { kind, value: imageValue(path, pos) } };
   }
   if (kind === "color" || kind === "pattern" || kind === "emoji") {
     if (!parseCover({ kind, value })) return { error: "That cover isn't valid." };
