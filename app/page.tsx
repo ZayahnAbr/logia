@@ -83,7 +83,7 @@ export default async function LandingPage() {
               <li><b>Arrange it your way</b><span>Choose which cards show, colour the header, and drop sticky notes, headings and cut-out stickers anywhere.</span></li>
               <li><b>Share what helps</b><span>Show your notebooks and decks to classmates, or make the space public on Discover for others to copy.</span></li>
             </ul>
-            <Link href="/features" className="btn l-see-all" style={{ marginTop: 8 }}>See everything Logia can do</Link>
+            <Link href="/features" className="btn" style={{ marginTop: 8 }}>See everything Logia can do</Link>
           </Reveal>
         </section>
 

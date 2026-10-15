@@ -197,8 +197,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     // Dragging right or down grows it; at the container edge, keep the right edge fixed and grow leftward.
     else {
       const delta = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
-      const isText = list.find((s) => s.id === g.id)?.kind === "text";
-      const nextW = clamp(g.w + (isText ? Math.abs(delta) : delta), STICKER_MIN_W, Math.min(STICKER_MAX_W, W));
+      const nextW = clamp(g.w + delta, STICKER_MIN_W, Math.min(STICKER_MAX_W, W));
       const nextLeft = nextW > W - g.left ? Math.max(0, W - nextW) : g.left;
       update(g.id, { left: nextLeft, w: nextW });
     }
