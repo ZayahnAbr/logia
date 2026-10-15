@@ -66,7 +66,7 @@ function resultToBlocks(result: Result): Block[] {
 }
 
 function downloadBlob(filename: string, bytes: Uint8Array, type: string) {
-  const url = URL.createObjectURL(new Blob([bytes], { type }));
+  const url = URL.createObjectURL(new Blob([new Uint8Array(bytes).buffer as ArrayBuffer], { type }));
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   URL.revokeObjectURL(url);
