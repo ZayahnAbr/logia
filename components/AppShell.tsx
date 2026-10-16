@@ -315,7 +315,7 @@ export function AppShell({
             type="button"
             onClick={() => setOpen(!open)}
             className="btn btn-ghost"
-            style={{ width: 36, height: 36, padding: 0, flexShrink: 0 }}
+            style={{ width: 36, height: 36, padding: 0, flexShrink: 0, border: "none", outline: "none", boxShadow: "none", background: "transparent", WebkitTapHighlightColor: "transparent" }}
             aria-label="Toggle navigation"
           >
             {open ? <X size={16} /> : <Menu size={16} />}

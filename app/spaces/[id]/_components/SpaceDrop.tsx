@@ -40,12 +40,17 @@ export function SpaceDrop({ spaceId }: { spaceId: string }) {
     try {
       const t = await extractFileText(f);
       if (!t.trim()) { setError("Couldn't find any text in that file."); setFile(null); } else setText(t);
-    } catch { setError("Couldn't read that file. Please try another."); setFile(null); }
+    } catch (e) {
+      console.error("SpaceDrop: reading file failed", f.name, f.type, f.size, e);
+      setError("Couldn't read that file. Please try another."); setFile(null);
+    }
     setBusy(null);
   }
 
   async function upload(f: File, prefix = "") {
-    const path = `${spaceId}/${prefix}${crypto.randomUUID()}-${f.name.replace(/[^\w.\-]/g, "_")}`;
+    // crypto.randomUUID is missing on iOS Safari before 15.4.
+    const id = typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    const path = `${spaceId}/${prefix}${id}-${f.name.replace(/[^\w.\-]/g, "_")}`;
     const { error: e } = await createClient().storage.from("space-files").upload(path, f, { contentType: f.type || undefined, upsert: false });
     if (e) throw e;
     return path;

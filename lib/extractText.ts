@@ -8,7 +8,17 @@ export async function extractFileText(file: File): Promise<string> {
   if (name.endsWith(".pdf")) {
     const pdfjsLib = await loadPdfjs();
     const stuck = "Reading that PDF is taking too long on this device. Try a smaller file, or upload it from a computer.";
-    const pdf = await withTimeout(pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise, 30_000, stuck);
+    const bytes = await file.arrayBuffer();
+    let pdf;
+    try {
+      pdf = await withTimeout(pdfjsLib.getDocument({ data: bytes.slice(0) }).promise, 12_000, stuck);
+    } catch (err) {
+      // iPhone Safari sometimes can't start the PDF.js worker. Retry with the reader running on the page itself.
+      console.warn("PDF worker failed, retrying without it", err);
+      // @ts-expect-error no type declarations for the worker bundle
+      (globalThis as any).pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.min.mjs");
+      pdf = await withTimeout(pdfjsLib.getDocument({ data: bytes.slice(0) }).promise, 30_000, stuck);
+    }
     const parts: string[] = [];
     for (let p = 1; p <= pdf.numPages; p++) {
       const content = await withTimeout((async () => (await pdf.getPage(p)).getTextContent())(), 20_000, stuck);
