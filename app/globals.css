@@ -3333,6 +3333,8 @@ html[data-theme="dark"] .dc-spaces .dc-filters, html[data-theme="dark"] .dc-empt
 .try-drop:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
 .try-drop-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .try-drop-title { font-weight: 600; margin-bottom: 4px; }
+.try-touch { display: none; }
+@media (hover: none) and (pointer: coarse) { .try-desk { display: none; } .try-touch { display: inline; } }
 .try-drop-sub { color: var(--muted); font-size: 13px; }
 .try-drop-file { margin-top: 10px; font-size: 13px; color: var(--coral); font-weight: 600; }
 .try-or { text-align: center; color: var(--muted); font-size: 13px; margin: 16px 0; }

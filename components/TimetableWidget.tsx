@@ -7,14 +7,14 @@ import { Dialog } from "@/components/Dialog";
 import { toast } from "@/components/Toaster";
 import { TimetableDialog } from "@/components/TimetableDialog";
 import { listTimetable, deleteTimetable } from "@/app/calendar-actions";
-import { DAY_NAMES, TYPE_LABEL, classesOn, countdown, fmtMin, gaps, nextClass, weekdayOf, type TimetableClass } from "@/lib/timetable";
+import { DAY_NAMES, typeLabel, classesOn, countdown, fmtMin, gaps, nextClass, weekdayOf, type TimetableClass } from "@/lib/timetable";
 
 function Line({ c }: { c: TimetableClass }) {
   return (
     <li className="tt-item">
       <span className="tt-time">{fmtMin(c.start_min)} to {fmtMin(c.end_min)}</span>
       <span className="tt-title">{c.title}</span>
-      <span className="tt-meta"><span className="tt-badge">{TYPE_LABEL[c.class_type]}</span>{c.course_code ? ` ${c.course_code}` : ""}{c.venue ? ` · ${c.venue}` : ""}</span>
+      <span className="tt-meta"><span className="tt-badge">{typeLabel(c.class_type)}</span>{c.course_code ? ` ${c.course_code}` : ""}{c.venue ? ` · ${c.venue}` : ""}</span>
     </li>
   );
 }
@@ -81,7 +81,7 @@ export function TimetableWidget({ spaceId }: { spaceId?: string }) {
         : classes.length === 0 ? <p className="tt-empty">Photograph your timetable and Logia lists your lectures, labs and venues here. You check it before it is saved.</p>
         : (
           <>
-            {next && <p className="tt-next"><b>Next class:</b> {next.c.title} {countdown(next.start, now)}{next.c.venue ? `, ${next.c.venue}` : ""}</p>}
+            {next && <p className="tt-next"><b>Next up:</b> {next.c.title} {countdown(next.start, now)}{next.c.venue ? `, ${next.c.venue}` : ""}</p>}
             <DayList label="Today" day={classesOn(classes, now)} />
             <DayList label="Tomorrow" day={classesOn(classes, tomorrow)} />
           </>

@@ -1,7 +1,17 @@
 // Shared timetable types and helpers (no "use client"/"use server", safe for both sides).
-export const CLASS_TYPES = ["lecture", "tutorial", "lab", "practical", "seminar", "other"] as const;
-export type ClassType = (typeof CLASS_TYPES)[number];
-export const TYPE_LABEL: Record<ClassType, string> = { lecture: "Lecture", tutorial: "Tutorial", lab: "Lab", practical: "Practical", seminar: "Seminar", other: "Class" };
+// An entry's type is free text: these are only suggestions, so a meeting, appointment or anything else works.
+export const CLASS_TYPES = ["lecture", "tutorial", "lab", "practical", "seminar", "meeting", "appointment", "study session", "exam", "work", "personal", "other"] as const;
+/** What the timetable reads from a photo: the AI only picks from the school-class types. */
+export const AI_CLASS_TYPES = ["lecture", "tutorial", "lab", "practical", "seminar", "other"] as const;
+export type ClassType = string;
+export const TYPE_MAX = 30;
+export const TYPE_LABEL: Record<string, string> = { lecture: "Lecture", tutorial: "Tutorial", lab: "Lab", practical: "Practical", seminar: "Seminar", meeting: "Meeting", appointment: "Appointment", "study session": "Study session", exam: "Exam", work: "Work", personal: "Personal", other: "Event" };
+/** Display name for any type, including ones the student typed themselves. */
+export const typeLabel = (t: string | null | undefined) => {
+  const k = (t ?? "").trim();
+  if (!k) return TYPE_LABEL.other;
+  return TYPE_LABEL[k.toLowerCase()] ?? k.charAt(0).toUpperCase() + k.slice(1);
+};
 
 // weekday: 0 = Monday ... 6 = Sunday
 export const DAY_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
@@ -25,11 +35,11 @@ export const PALETTE: { name: string; hex: string }[] = [
   { name: "Teal", hex: "#7fc0b9" }, { name: "Sky", hex: "#9fc4e2" }, { name: "Lavender", hex: "#c3b6e4" },
   { name: "Rose", hex: "#e9aab6" }, { name: "Stone", hex: "#c4bfba" }, { name: "Slate", hex: "#4f5d73" }, { name: "Plum", hex: "#6e4c7a" },
 ];
-export const DEFAULT_COLOR: Record<ClassType, string> = { lecture: "#9fc4e2", tutorial: "#a9cdb0", lab: "#e6cf9a", practical: "#7fc0b9", seminar: "#c3b6e4", other: "#c4bfba" };
+export const DEFAULT_COLOR: Record<string, string> = { lecture: "#9fc4e2", tutorial: "#a9cdb0", lab: "#e6cf9a", practical: "#7fc0b9", seminar: "#c3b6e4", meeting: "#e9aab6", appointment: "#f0a283", "study session": "#a9cdb0", exam: "#6e4c7a", work: "#4f5d73", personal: "#e6cf9a", other: "#c4bfba" };
 const lin = (v: number) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
 const lum = (hex: string) => { const n = parseInt(hex.slice(1), 16); return 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255); };
 export const isHex = (s: unknown): s is string => typeof s === "string" && /^#[0-9a-f]{6}$/i.test(s);
-export const classColor = (c: { color?: string | null; class_type: ClassType }) => (isHex(c.color) ? c.color : DEFAULT_COLOR[c.class_type] ?? DEFAULT_COLOR.other);
+export const classColor = (c: { color?: string | null; class_type: ClassType }) => (isHex(c.color) ? c.color : DEFAULT_COLOR[(c.class_type ?? "").toLowerCase()] ?? DEFAULT_COLOR.other);
 /** Ink colour with the best contrast on the given background (always at least 4.5:1 for the palette). */
 export const inkOn = (bg: string) => { const L = lum(bg); return (L + 0.05) / 0.05 > 1.05 / (L + 0.05) ? "#1b1a19" : "#ffffff"; };
 

@@ -12,7 +12,10 @@ type Action = "notes" | "flashcards";
 type Result = TryResult | { kind: "transcript"; transcript: string };
 const DOC_EXT = [".pdf", ".pptx", ".docx", ".txt", ".md"];
 const AV_EXT = [".mp3", ".wav", ".m4a", ".mp4", ".webm", ".ogg"];
-const ACCEPT = [...DOC_EXT, ...AV_EXT].join(",");
+// Extensions alone are unreliable in mobile file pickers (files can be greyed out), so MIME types go alongside.
+const DOC_MIME = ["application/pdf", "application/vnd.openxmlformats-officedocument.presentationml.presentation", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "text/markdown"];
+const ACCEPT = [...DOC_EXT, ...AV_EXT, ...DOC_MIME, "audio/*", "video/mp4", "video/webm"].join(",");
+const MAX_AV_BYTES = 15 * 1024 * 1024;
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -90,13 +93,16 @@ export default function TryLogia() {
   async function handleFile(file: File) {
     reset();
     const name = file.name.toLowerCase();
-    const av = AV_EXT.some((e) => name.endsWith(e));
+    // Phones sometimes hand over files with no extension in the name, so fall back to the MIME type.
+    const av = AV_EXT.some((e) => name.endsWith(e)) || /^(audio|video)\//.test(file.type);
+    const doc = DOC_EXT.some((e) => name.endsWith(e)) || DOC_MIME.includes(file.type);
+    if (av && file.size > MAX_AV_BYTES) { setError("That clip is over 15 MB. Try a shorter one for the demo."); return; }
     setFileName(file.name);
     setIsAv(av);
     setAvFile(av ? file : null);
     setText("");
     if (av) return; // transcribe happens on demand, below
-    if (!DOC_EXT.some((e) => name.endsWith(e))) { setError("That file type isn't supported here. Try a PDF, PowerPoint, Word doc, audio or video clip."); setFileName(null); return; }
+    if (!doc) { setError("That file type isn't supported here. Try a PDF, PowerPoint, Word doc, audio or video clip."); setFileName(null); return; }
     setBusy("Reading your file…");
     try {
       const extracted = await extractFileText(file);
@@ -180,9 +186,9 @@ export default function TryLogia() {
           type="file"
           accept={ACCEPT}
           className="try-drop-input"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void handleFile(f); }}
         />
-        <p className="try-drop-title">Drop a file here, or click to choose one</p>
+        <p className="try-drop-title"><span className="try-desk">Drop a file here, or click to choose one</span><span className="try-touch">Tap to choose a file</span></p>
         <p className="try-drop-sub">PDF, PowerPoint, Word, audio or video</p>
         {fileName && <p className="try-drop-file">{fileName}</p>}
       </div>

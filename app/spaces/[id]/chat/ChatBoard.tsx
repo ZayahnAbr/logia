@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Send, Loader2, BookOpen, FileText, Mic, ShieldCheck, RefreshCw, Copy, Check, Sparkles, Globe, Search, Trash2 } from "lucide-react";
+import { Send, Loader2, BookOpen, FileText, Mic, ShieldCheck, RefreshCw, Copy, Check, Globe, Search, Trash2 } from "lucide-react";
 import { ThinkingSteps } from "@/components/ThinkingSteps";
 import { chatWithSpace, reindexSpace, getAskSuggestions, type AskSource } from "@/app/actions";
 import { loadChat, appendChat, clearChat } from "@/app/chat-history-actions";
@@ -136,7 +136,6 @@ export function ChatBoard({ spaceId, indexedCount }: { spaceId: string; indexedC
       <div ref={threadRef} className="ai-thread" aria-live="polite">
         {messages.length === 0 && loaded && (
           <div className="ai-empty">
-            <span className="ai-empty-ico" aria-hidden="true"><Sparkles size={22} /></span>
             <h2>Ask about anything in this space</h2>
             <p>Answers come from your notes, lectures and files, with the source of every claim.</p>
             {suggestions.length > 0 && (

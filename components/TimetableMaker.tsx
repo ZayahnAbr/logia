@@ -7,7 +7,7 @@ import { toast } from "@/components/Toaster";
 import { TimetableDialog } from "@/components/TimetableDialog";
 import { deleteClass, listTimetable, saveClass } from "@/app/calendar-actions";
 import {
-  CLASS_TYPES, DAY_NAMES, DAY_SHORT, PALETTE, TYPE_LABEL, classColor, fmtMin, findClashes, inkOn, parseHM, weekdayOf,
+  CLASS_TYPES, DAY_NAMES, DAY_SHORT, PALETTE, TYPE_MAX, typeLabel, classColor, fmtMin, findClashes, inkOn, parseHM, weekdayOf,
   type ClassType, type TimetableClass,
 } from "@/lib/timetable";
 
@@ -257,7 +257,7 @@ export function TimetableMaker({ initial, spaces, loadError }: { initial: Timeta
     <div className="tm">
       <div className="tm-bar">
         <button type="button" className="btn" onClick={() => setEditing({ init: { weekday: days[0] ?? 0, start_min: Math.max(startMin, 9 * 60), end_min: Math.max(startMin, 9 * 60) + 60 } })}>
-          <CalendarPlus size={15} aria-hidden="true" /> Add class
+          <CalendarPlus size={15} aria-hidden="true" /> Add event
         </button>
         <button type="button" className="btn btn-ghost" onClick={() => setPhoto(true)}><Camera size={15} aria-hidden="true" /> Add from a photo</button>
         <button type="button" className="btn btn-ghost" onClick={print} disabled={busy || classes.length === 0}>
@@ -308,9 +308,9 @@ export function TimetableMaker({ initial, spaces, loadError }: { initial: Timeta
       {classes.length === 0 ? (
         <div className="tm-empty">
           <h2>Build your weekly timetable</h2>
-          <p>Add your lectures, tutorials and labs once. They show on your dashboard, with a countdown to your next class and gaps you could study in. Add them by hand or read them from a photo, a PDF or pasted text.</p>
+          <p>Add your lectures, meetings and anything else that repeats each week, once. They show on your dashboard, with a countdown to what is next and gaps you could study in. Add them by hand or read them from a photo, a PDF or pasted text.</p>
           <div className="tm-empty-actions">
-            <button type="button" className="btn" onClick={() => setEditing({ init: { weekday: 0, start_min: 9 * 60, end_min: 10 * 60 } })}><CalendarPlus size={15} aria-hidden="true" /> Add a class</button>
+            <button type="button" className="btn" onClick={() => setEditing({ init: { weekday: 0, start_min: 9 * 60, end_min: 10 * 60 } })}><CalendarPlus size={15} aria-hidden="true" /> Add an event</button>
             <button type="button" className="btn btn-ghost" onClick={() => setPhoto(true)}><Camera size={15} aria-hidden="true" /> Add from a photo</button>
           </div>
         </div>
@@ -323,7 +323,7 @@ export function TimetableMaker({ initial, spaces, loadError }: { initial: Timeta
               ))}
             </div>
           )}
-          <p id="tm-help" className="tm-hint">Click an empty slot to add a class, click a class to edit it, or drag it to move it. Drag its bottom edge to change its length. With the keyboard, focus a class then use the arrow keys to move it, Shift with the up and down arrows to resize, Enter to edit and Delete to remove. Changes snap to 5 minutes.</p>
+          <p id="tm-help" className="tm-hint">Click an empty slot to add an event, click an event to edit it, or drag it to move it. Drag its bottom edge to change its length. With the keyboard, focus a class then use the arrow keys to move it, Shift with the up and down arrows to resize, Enter to edit and Delete to remove. Changes snap to 5 minutes.</p>
           <div className={`tm-print-area${printing ? " is-printing" : ""}`}>
             <h2 className="tm-print-title">My timetable</h2>
             <div className="tm-grid" style={{ ["--tm-n" as string]: days.length }}>
@@ -348,14 +348,14 @@ export function TimetableMaker({ initial, spaces, loadError }: { initial: Timeta
                       return (
                         <div
                           key={c.id} role="button" tabIndex={0} aria-describedby="tm-help"
-                          aria-label={`${describe(c)}, ${TYPE_LABEL[c.class_type]}${c.course_code ? " " + c.course_code : ""}${c.venue ? ", " + c.venue : ""}${clash ? `. Clashes with ${clash.join(" and ")}` : ""}`}
+                          aria-label={`${describe(c)}, ${typeLabel(c.class_type)}${c.course_code ? " " + c.course_code : ""}${c.venue ? ", " + c.venue : ""}${clash ? `. Clashes with ${clash.join(" and ")}` : ""}`}
                           className={`tm-block${clash ? " clash" : ""}`}
                           style={{ top: (s - startMin) * ppm, height: h, left: `calc(${di * (100 / days.length) + ln.lane * w}% + 2px)`, width: `calc(${w}% - 4px)`, background: bg, color: inkOn(bg) }}
                           onPointerDown={(e) => startDrag(e, c, "move")}
                           onKeyDown={(e) => onBlockKey(e, c)}
                         >
                           <span className="tm-b-title">{clash && <AlertTriangle size={12} aria-hidden="true" />} {c.title}</span>
-                          {h >= 34 && <span className="tm-b-sub">{c.course_code ? `${c.course_code} · ` : ""}{TYPE_LABEL[c.class_type]}</span>}
+                          {h >= 34 && <span className="tm-b-sub">{c.course_code ? `${c.course_code} · ` : ""}{typeLabel(c.class_type)}</span>}
                           {h >= 50 && <span className="tm-b-sub">{fmtTime(c.start_min, prefs.h24)} to {fmtTime(c.end_min, prefs.h24)}</span>}
                           {h >= 66 && prefs.venues && c.venue && <span className="tm-b-sub">{c.venue}</span>}
                           <span className="tm-resize" aria-hidden="true" onPointerDown={(e) => startDrag(e, c, "resize")} />
@@ -397,7 +397,7 @@ function ClassDialog({ editing, spaces, onClose, onSaved, onDelete }: {
   const c = editing.cls, init = editing.init;
   const [title, setTitle] = useState(c?.title ?? "");
   const [code, setCode] = useState(c?.course_code ?? "");
-  const [type, setType] = useState<ClassType>(c?.class_type ?? "lecture");
+  const [type, setType] = useState<ClassType>(c?.class_type ?? "");
   const [day, setDay] = useState(c?.weekday ?? init?.weekday ?? 0);
   const [start, setStart] = useState(fmtMin(c?.start_min ?? init?.start_min ?? 540));
   const [end, setEnd] = useState(fmtMin(Math.min(c?.end_min ?? init?.end_min ?? 600, 1439)));
@@ -411,26 +411,27 @@ function ClassDialog({ editing, spaces, onClose, onSaved, onDelete }: {
   const submit = async (ev: React.FormEvent) => {
     ev.preventDefault();
     const s = parseHM(start), e = parseHM(end);
-    if (!title.trim()) { setErr("Give the class a title."); return; }
+    if (!title.trim()) { setErr("Give it a title."); return; }
     if (s === null || e === null) { setErr("Enter a start and end time."); return; }
     if (e <= s) { setErr("The end time must be after the start time."); return; }
     setSaving(true); setErr(null);
-    const res = await saveClass({ id: c?.id, title, course_code: code, class_type: type, weekday: day, start_min: s, end_min: e, venue, space_id: spaceId || null, color, notes });
+    const res = await saveClass({ id: c?.id, title, course_code: code, class_type: type.trim() || "other", weekday: day, start_min: s, end_min: e, venue, space_id: spaceId || null, color, notes });
     setSaving(false);
     if ("error" in res) { setErr(res.error); return; }
     onSaved(res.cls, res.warning);
   };
 
   return (
-    <Dialog title={c ? "Edit class" : "Add class"} onClose={onClose} width={520}>
+    <Dialog title={c ? "Edit event" : "Add event"} onClose={onClose} width={520}>
       <form className="tm-form" onSubmit={submit} noValidate>
         <label className="field"><span className="field-label">Title</span>
           <input className="input" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} aria-invalid={!!err && !title.trim()} required /></label>
         <div className="tm-form-row">
-          <label className="field"><span className="field-label">Course code <span className="field-hint">(optional)</span></span>
+          <label className="field"><span className="field-label">Code <span className="field-hint">(optional)</span></span>
             <input className="input" value={code} maxLength={30} onChange={(e) => setCode(e.target.value)} /></label>
           <label className="field"><span className="field-label">Type</span>
-            <select className="input" value={type} onChange={(e) => setType(e.target.value as ClassType)}>{CLASS_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}</select></label>
+            <input className="input" list="tm-types" value={type} maxLength={TYPE_MAX} placeholder="e.g. Lecture, Meeting, Gym" onChange={(e) => setType(e.target.value)} />
+            <datalist id="tm-types">{CLASS_TYPES.map((t) => <option key={t} value={typeLabel(t)} />)}</datalist></label>
         </div>
         <div className="tm-form-row three">
           <label className="field"><span className="field-label">Day</span>
@@ -440,7 +441,7 @@ function ClassDialog({ editing, spaces, onClose, onSaved, onDelete }: {
           <label className="field"><span className="field-label">End</span>
             <input className="input" type="time" step={300} value={end} onChange={(e) => setEnd(e.target.value)} /></label>
         </div>
-        <label className="field"><span className="field-label">Venue <span className="field-hint">(optional)</span></span>
+        <label className="field"><span className="field-label">Venue or link <span className="field-hint">(optional)</span></span>
           <input className="input" value={venue} maxLength={80} onChange={(e) => setVenue(e.target.value)} /></label>
         <fieldset className="tm-colors">
           <legend className="field-label">Colour</legend>
@@ -460,7 +461,7 @@ function ClassDialog({ editing, spaces, onClose, onSaved, onDelete }: {
           {onDelete && <button type="button" className="btn btn-ghost" style={{ color: "var(--danger)" }} onClick={onDelete}><Trash2 size={14} aria-hidden="true" /> Delete</button>}
           <span style={{ flex: 1 }} />
           <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button type="submit" className="btn" disabled={saving}>{saving ? <Loader2 size={14} className="spin" aria-hidden="true" /> : null} {c ? "Save" : "Add class"}</button>
+          <button type="submit" className="btn" disabled={saving}>{saving ? <Loader2 size={14} className="spin" aria-hidden="true" /> : null} {c ? "Save" : "Add event"}</button>
         </div>
       </form>
     </Dialog>

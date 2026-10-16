@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Keyboard, PenLine, Loader2, Sparkles, Check, Triangle, X, RotateCcw, Eye, EyeOff, Eraser, AlertCircle } from "lucide-react";
+import { Mic, Keyboard, PenLine, Loader2, Check, Triangle, X, RotateCcw, Eye, EyeOff, Eraser, AlertCircle } from "lucide-react";
 import { transcribeAnswer, readHandwriting, checkRecall, type RecallResult } from "@/app/flashcard-actions";
 import type { Card } from "@/lib/types";
 
@@ -143,55 +143,48 @@ export function RecallAnswer({ spaceId, deckId, card, onResult }: {
   if (result) {
     const v = VERDICT[result.verdict];
     return (
-      <section className="recall-result" aria-labelledby="recall-heading" aria-live="polite">
-        <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", fontSize: 13, fontWeight: 600 }}>
-          <Sparkles size={15} aria-hidden="true" style={{ color: "var(--accent-text)" }} /> <span id="recall-heading">Recall check</span>
+      <section className="recall-result" aria-labelledby="recall-heading" aria-live="polite" style={{ ["--v" as string]: v.color }}>
+        <div className="rc-head">
+          <h2 id="recall-heading" className="rc-verdict"><span className="rc-dot" aria-hidden="true" /> {v.label}</h2>
+          <span className="rc-score"><b>{result.score}%</b> aligned</span>
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: v.color, margin: "6px 0 14px" }}>{v.label}</div>
+        <div className="rc-meter" role="meter" aria-label="Answer alignment" aria-valuenow={result.score} aria-valuemin={0} aria-valuemax={100}><i style={{ width: `${result.score}%` }} /></div>
 
-        {result.included.length > 0 && (
-          <div className="recall-group">
-            <div className="recall-group-title">You included</div>
-            <ul>{result.included.map((x) => <li key={x}><Check size={15} aria-label="Included" style={{ color: "var(--success)" }} /> {x}</li>)}</ul>
-          </div>
-        )}
-        {result.missed.length > 0 && (
-          <div className="recall-group">
-            <div className="recall-group-title">You missed</div>
-            <ul>{result.missed.map((x) => <li key={x}><Triangle size={13} aria-label="Missed" style={{ color: "var(--warning)" }} /> {x}</li>)}</ul>
-          </div>
-        )}
-        {result.incorrect.length > 0 && (
-          <div className="recall-group">
-            <div className="recall-group-title">Not quite right</div>
-            <ul>{result.incorrect.map((x) => <li key={x}><X size={15} aria-label="Incorrect" style={{ color: "var(--danger)" }} /> {x}</li>)}</ul>
-          </div>
-        )}
-
-        <div style={{ marginTop: 14 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, marginBottom: 6 }}>
-            <span>Your answer</span><strong>{result.score}% aligned</strong>
-          </div>
-          <div role="meter" aria-label="Answer alignment" aria-valuenow={result.score} aria-valuemin={0} aria-valuemax={100}
-            style={{ height: 8, borderRadius: 8, background: "var(--surface-3)", overflow: "hidden" }}>
-            <div style={{ width: `${result.score}%`, height: "100%", background: v.color, transition: "width .4s" }} />
-          </div>
+        <div className="rc-groups">
+          {result.included.length > 0 && (
+            <div className="rc-group">
+              <h3>Covered</h3>
+              <ul>{result.included.map((x) => <li key={x}><Check size={15} aria-label="Included" style={{ color: "var(--success)" }} /> {x}</li>)}</ul>
+            </div>
+          )}
+          {result.missed.length > 0 && (
+            <div className="rc-group">
+              <h3>Missed</h3>
+              <ul>{result.missed.map((x) => <li key={x}><Triangle size={13} aria-label="Missed" style={{ color: "var(--warning)" }} /> {x}</li>)}</ul>
+            </div>
+          )}
+          {result.incorrect.length > 0 && (
+            <div className="rc-group">
+              <h3>Not quite right</h3>
+              <ul>{result.incorrect.map((x) => <li key={x}><X size={15} aria-label="Incorrect" style={{ color: "var(--danger)" }} /> {x}</li>)}</ul>
+            </div>
+          )}
         </div>
-        {result.tip && <p style={{ fontSize: 13.5, color: "var(--muted)", margin: "12px 0 0" }}>{result.tip}</p>}
+        {result.tip && <p className="rc-tip">{result.tip}</p>}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+        <div className="rc-actions">
           <button type="button" className="btn" onClick={retry}><RotateCcw size={14} aria-hidden="true" /> Try again</button>
           <button type="button" className="btn" onClick={() => setShowFull((s) => !s)} aria-expanded={showFull}>
             {showFull ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />} {showFull ? "Hide full answer" : "See full answer"}
           </button>
         </div>
         {showFull && (
-          <div style={{ marginTop: 12, padding: "12px 14px", borderRadius: "var(--r-md)", background: "var(--surface-2)" }}>
-            <div className="recall-group-title" style={{ marginBottom: 4 }}>Full answer</div>
-            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{result.modelAnswer}</p>
-            <details style={{ marginTop: 10 }}>
-              <summary style={{ fontSize: 13, color: "var(--muted)", cursor: "pointer" }}>What you answered</summary>
-              <p style={{ margin: "6px 0 0", fontSize: 13.5, color: "var(--muted)" }}>{text}</p>
+          <div className="rc-full">
+            <h3>Full answer</h3>
+            <p>{result.modelAnswer}</p>
+            <details>
+              <summary>What you answered</summary>
+              <p style={{ marginTop: 6, color: "var(--muted)" }}>{text}</p>
             </details>
           </div>
         )}

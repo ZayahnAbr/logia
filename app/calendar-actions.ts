@@ -3,11 +3,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { callChat, callVision } from "@/lib/server/aiRoute";
 import { enforceRateLimit, friendlyError, isUnmetered } from "@/lib/server/llm";
-import { CLASS_TYPES, DAY_KEYS, fmtMin, isHex, parseHM, type ClassInput, type ClassType, type DraftClass, type TimetableClass } from "@/lib/timetable";
+import { AI_CLASS_TYPES, TYPE_MAX, DAY_KEYS, fmtMin, isHex, parseHM, type ClassInput, type ClassType, type DraftClass, type TimetableClass } from "@/lib/timetable";
 
 export type CalEvent = {
   id: string; space_id: string | null; title: string; kind: "test" | "assignment" | "task" | "other";
-  due_at: string; all_day: boolean; urgency: "low" | "medium" | "high" | "urgent"; color: string; notes: string; done: boolean;
+  due_at: string; all_day: boolean; urgency: "low" | "medium" | "high" | "urgent"; color: string; notes: string; done: boolean; meeting_url?: string;
 };
 export type CalInput = Omit<CalEvent, "id" | "done"> & { done?: boolean };
 
@@ -22,7 +22,14 @@ async function authed() {
   return { supabase, user };
 }
 
-function clean(i: CalInput) {
+/** The first http(s) link in whatever was typed or pasted (a whole Teams invite works). Empty if none. */
+export async function meetingUrlFrom(raw: string | undefined): Promise<string> {
+  const m = (raw ?? "").match(/https?:\/\/[^\s<>"')]+/i);
+  if (!m) return "";
+  try { const u = new URL(m[0]); return u.protocol === "https:" || u.protocol === "http:" ? u.toString().slice(0, 600) : ""; } catch { return ""; }
+}
+
+async function clean(i: CalInput) {
   const due = new Date(i.due_at);
   if (!i.title?.trim()) throw new Error("Give it a title.");
   if (Number.isNaN(due.getTime())) throw new Error("Pick a valid date.");
@@ -30,6 +37,7 @@ function clean(i: CalInput) {
     space_id: i.space_id || null, title: i.title.trim().slice(0, 160), kind: KINDS.includes(i.kind) ? i.kind : "task",
     due_at: due.toISOString(), all_day: !!i.all_day, urgency: URGENCY.includes(i.urgency) ? i.urgency : "medium",
     color: /^#[0-9a-fA-F]{6}$/.test(i.color) ? i.color : "#f2836b", notes: (i.notes ?? "").slice(0, 1000), done: !!i.done,
+    meeting_url: await meetingUrlFrom(i.meeting_url),
   };
 }
 
@@ -45,12 +53,19 @@ export async function listEvents(fromIso: string, toIso: string, spaceId?: strin
 export async function saveEvent(input: CalInput, id?: string) {
   try {
     const { supabase, user } = await authed();
-    const row = clean(input);
-    const res = id
-      ? await supabase.from("calendar_events").update(row).eq("id", id).select("*").single()
-      : await supabase.from("calendar_events").insert({ ...row, user_id: user.id }).select("*").single();
+    const row = await clean(input);
+    const run = (r: Record<string, unknown>) => id
+      ? supabase.from("calendar_events").update(r).eq("id", id).select("*").single()
+      : supabase.from("calendar_events").insert({ ...r, user_id: user.id }).select("*").single();
+    let res = await run(row), warning: string | undefined;
+    if (res.error && /meeting_url/i.test(res.error.message)) {
+      // Migration 53 not run yet: save everything else and say so.
+      const { meeting_url: _drop, ...rest } = row; void _drop;
+      res = await run(rest);
+      if (row.meeting_url) warning = "Saved without the meeting link. Run supabase/migration-53-calendar-meeting-link.sql to keep it.";
+    }
     if (res.error) return { error: nice(res.error.message) };
-    return { event: res.data as CalEvent };
+    return { event: res.data as CalEvent, warning };
   } catch (e) { return { error: e instanceof Error ? e.message : "Couldn't save that." }; }
 }
 
@@ -101,12 +116,17 @@ export async function parseTimetable(images: string[], text: string): Promise<{ 
       const wd = DAY_KEYS.indexOf(String(c?.day ?? "").toLowerCase().slice(0, 3) as (typeof DAY_KEYS)[number]);
       const s = parseHM(String(c?.start ?? "")), e = parseHM(String(c?.end ?? ""));
       if (wd < 0 || s === null || e === null || e <= s || !String(c?.title ?? "").trim()) continue;
-      const type = (CLASS_TYPES as readonly string[]).includes(c.type) ? (c.type as ClassType) : "other";
+      const type = (AI_CLASS_TYPES as readonly string[]).includes(c.type) ? (c.type as ClassType) : "other";
       classes.push({ key: crypto.randomUUID(), title: String(c.title).trim().slice(0, 120), course_code: String(c.courseCode ?? "").trim().slice(0, 30), class_type: type, weekday: wd, start: fmtMin(s), end: fmtMin(e), venue: String(c.venue ?? "").trim().slice(0, 80) });
     }
     const dt = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : undefined);
     return { classes, termStart: dt(out.terms?.startDate), termEnd: dt(out.terms?.endDate) };
   } catch (e) { return { error: friendlyError(e, "read your timetable") }; }
+}
+
+/** Any short label the student chose (meeting, dentist, ...); blank falls back to "other". */
+function cleanType(t: unknown): string {
+  return String(t ?? "").replace(/\s+/g, " ").trim().slice(0, TYPE_MAX) || "other";
 }
 
 async function ttAuthed() {
@@ -135,7 +155,7 @@ export async function saveTimetable(rows: DraftClass[], opts: { replace: boolean
     for (const r of rows.slice(0, 80)) {
       const s = parseHM(r.start), e = parseHM(r.end);
       if (!r.title.trim() || s === null || e === null || e <= s || r.weekday < 0 || r.weekday > 6) return { error: `Check "${r.title || "a class"}": it needs a title and an end time after the start.` };
-      data.push({ user_id: user.id, space_id: opts.spaceId || null, title: r.title.trim().slice(0, 120), course_code: r.course_code.trim().slice(0, 30), class_type: (CLASS_TYPES as readonly string[]).includes(r.class_type) ? r.class_type : "other", weekday: r.weekday, start_min: s, end_min: e, venue: r.venue.trim().slice(0, 80), term_start: dt(opts.termStart), term_end: dt(opts.termEnd) });
+      data.push({ user_id: user.id, space_id: opts.spaceId || null, title: r.title.trim().slice(0, 120), course_code: r.course_code.trim().slice(0, 30), class_type: cleanType(r.class_type), weekday: r.weekday, start_min: s, end_min: e, venue: r.venue.trim().slice(0, 80), term_start: dt(opts.termStart), term_end: dt(opts.termEnd) });
     }
     if (!data.length) return { error: "Add at least one class to save." };
     if (opts.replace) {
@@ -157,7 +177,7 @@ export async function saveClass(i: ClassInput): Promise<{ cls: TimetableClass; w
     if (!Number.isInteger(i.start_min) || !Number.isInteger(i.end_min) || i.start_min < 0 || i.end_min > 1440 || i.end_min <= i.start_min) return { error: "The end time must be after the start time." };
     const row = {
       title: title.slice(0, 120), course_code: String(i.course_code ?? "").trim().slice(0, 30),
-      class_type: (CLASS_TYPES as readonly string[]).includes(i.class_type) ? i.class_type : "other",
+      class_type: cleanType(i.class_type),
       weekday: i.weekday, start_min: i.start_min, end_min: i.end_min, venue: String(i.venue ?? "").trim().slice(0, 80), space_id: i.space_id || null,
     };
     const style = { color: isHex(i.color) ? i.color : null, notes: String(i.notes ?? "").slice(0, 500) };

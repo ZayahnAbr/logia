@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AuthShell } from "@/components/AuthShell";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { RefCapture } from "@/components/site/Referral";
 import { nextFromLocation, withNext } from "@/lib/safeNext";
 
@@ -69,8 +68,6 @@ export default function SignUpPage() {
           </button>
         </form>
 
-        <div className="auth-divider">or</div>
-        <GoogleSignInButton label="Sign up with Google" />
 
         <div className="auth-alt">
           Already have an account?{" "}

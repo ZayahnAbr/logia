@@ -308,7 +308,7 @@ html[data-theme="dark"] .cw-tinted { background: color-mix(in oklab, var(--tint)
 html[data-theme="dark"] .dash-widget.cw-tinted:has(.cw-textcard) .cw-text { color: color-mix(in oklab, var(--tint) 70%, #ffffff); }
 
 /* ---------- free stickers (images and text placed anywhere on the space home) ---------- */
-.st-root { position: relative; }
+.st-root { position: relative; overflow-x: clip; }
 .st { position: relative; box-sizing: border-box; max-width: 100%; border-radius: 8px; background: transparent; }
 .st-root .st { display: block; grid-template-columns: none; max-width: none; }
 .st-root .st-text:hover, .st-root .st-text:focus-within { z-index: 100001 !important; }
@@ -567,6 +567,10 @@ html[data-theme="dark"] .stk-lib-pick { background-color: #3a3a3a; background-im
 /* ── Space header customisation (sh-) ── */
 .space-hero.sh-band { position: relative; overflow: hidden; isolation: isolate; }
 .space-hero.sh-band > * { position: relative; z-index: 2; }
+/* .hero-actions is display: contents on desktop, so its row (the buttons) must sit above the scrim itself. */
+@media (min-width: 761px) { .space-hero.sh-band .hero-actions-row { position: relative; z-index: 2; } }
+/* In the crop overlay the picture sits underneath, so the clone must not paint its own opaque base colour. */
+.sh-frame-over .space-hero.sh-image { background-color: transparent; }
 .space-hero.sh-color { background: var(--sh-bg); }
 html[data-theme="dark"] .space-hero.sh-color { box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); }
 .space-hero.sh-image { background-color: #2b2522; background-image: var(--sh-img, none); background-size: cover; background-position: center; }
@@ -575,6 +579,7 @@ html[data-theme="dark"] .space-hero.sh-color { box-shadow: inset 0 0 0 1px rgba(
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
   background: linear-gradient(to top, rgba(0,0,0,.66) 0%, rgba(0,0,0,.58) 55%, rgba(0,0,0,.55) 100%);
 }
+html body .space-hero.sh-image.sh-scrimmed::before { background: rgba(0,0,0,var(--sh-scrim, 0)); }
 html[data-theme="dark"] .space-hero.sh-image::before { background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.64) 55%, rgba(0,0,0,.6) 100%); }
 html body .space-hero.sh-band.sh-tone-light :is(.eyebrow, .space-hero-h, .space-hero-p) { color: #fff !important; text-shadow: 0 1px 3px rgba(0,0,0,.45); }
 html body .space-hero.sh-band.sh-tone-dark :is(.eyebrow, .space-hero-h, .space-hero-p) { color: #111 !important; text-shadow: none; }
@@ -605,6 +610,14 @@ html body .space-hero.sh-band .btn:focus-visible { outline: 3px solid #111; outl
 .sh-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 .sh-custom { position: relative; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 6px; border-radius: 999px; box-shadow: 0 0 0 1px var(--border-soft); font-size: 13px; font-weight: 600; cursor: pointer; }
 .sh-custom input { width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; }
+.sh-look { display: grid; gap: 10px; }
+.sh-look-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sh-look-label { width: 96px; flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--muted); }
+.sh-look-val { min-width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.sh-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--surface-3); }
+.sh-seg-b { min-height: 32px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.sh-seg-b[aria-pressed="true"] { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(27,26,25,.14); }
+.sh-seg-b:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sh-drop { display: grid; justify-items: center; gap: 8px; padding: 26px 16px; text-align: center; border-radius: 14px; border: 2px dashed var(--border-soft); }
 .sh-drop p { margin: 0; }
 .sh-drop.is-over { border-color: var(--accent); background: var(--surface-2); }

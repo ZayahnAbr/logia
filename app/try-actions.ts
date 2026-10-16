@@ -12,6 +12,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { hasBlockedWord } from "@/lib/moderation";
 import { blocksToDocx } from "@/lib/server/wordExport";
+import { transcriptProblem } from "@/lib/server/transcriptCheck";
 import type { Block } from "@/lib/gdocBlocks";
 
 const MISSING = "This isn't switched on yet. Run supabase/migration-52-try-logia.sql in Supabase first.";
@@ -108,6 +109,27 @@ export async function tryExportDocx(title: string, blocks: Block[]): Promise<{ b
   }
 }
 
+// Second pass: a language model checks that the sentences actually make sense and fixes obvious
+// mishearings (wrong homophones, broken punctuation, split words). It may not add or drop content.
+// If the check itself fails, the raw transcript is returned rather than blocking the visitor.
+async function proofreadTranscript(transcript: string): Promise<{ transcript: string } | { error: string }> {
+  const unclear = "That recording didn't come out as sentences that make sense. Try a clearer clip.";
+  try {
+    const out = await groqJson(
+      `You check a speech-to-text transcript. Decide whether it reads as coherent human speech made of sentences that make sense. If it is mostly gibberish, random unrelated words, or looks like a transcription error, set "coherent" to false. Otherwise set it to true and return "text": the transcript with only clear mis-hearings fixed (wrong homophones, broken words, punctuation, capitalisation). Never add, remove, summarise or reorder content, and keep the original language. If unsure whether something is an error, leave it as it is.
+Reply with ONLY a JSON object: {"coherent": true or false, "text": "the corrected transcript"}.`,
+      transcript, 6000,
+    );
+    if (out.coherent === false) return { error: unclear };
+    const fixed = typeof out.text === "string" ? out.text.trim() : "";
+    // Reject "fixes" that dropped or invented a lot: keep the original unless the length is close.
+    if (fixed && fixed.length > transcript.length * 0.8 && fixed.length < transcript.length * 1.2) return { transcript: fixed };
+    return { transcript };
+  } catch {
+    return { transcript };
+  }
+}
+
 export async function tryTranscribeAudio(input: { base64: string; mime: string; filename: string }): Promise<{ transcript: string } | { error: string }> {
   const key = process.env.GROQ_API_KEY;
   if (!key) return { error: "Logia's demo isn't fully set up yet (missing GROQ_API_KEY)." };
@@ -127,7 +149,9 @@ export async function tryTranscribeAudio(input: { base64: string; mime: string; 
     if (!res.ok) return { error: res.status === 429 ? "Busy right now. Please try again in a minute." : "Couldn't transcribe that. Try a clearer recording." };
     const transcript = (await res.text()).trim();
     if (!transcript) return { error: "Couldn't hear anything to transcribe in that file." };
-    return { transcript: transcript.slice(0, 20_000) };
+    const problem = transcriptProblem(transcript);
+    if (problem) return { error: problem };
+    return await proofreadTranscript(transcript.slice(0, 20_000));
   } catch {
     return { error: "Couldn't reach the transcription service. Please try again." };
   }

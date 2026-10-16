@@ -106,7 +106,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
     try {
       sessionStorage.setItem("logia.ob", "tour");
       // Leave the right half of the first row free, so the demo stickers sit in clear space.
-      localStorage.setItem(`logia.space.${r.id}.layout`, JSON.stringify([{ id: "outline", visible: false }, { id: "stats", visible: true, half: true }, { id: "tools", visible: true }]));
+      localStorage.setItem(`logia.space.${r.id}.layout`, JSON.stringify([{ id: "drop", visible: true, half: true }, { id: "outline", visible: false }, { id: "stats", visible: false }, { id: "tools", visible: false }]));
     } catch { /* private mode */ }
     setStage("loading");
     router.push(`/spaces/${r.id}`);
@@ -145,6 +145,10 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
             d.moveNext();
           };
         }
+        if (s.reveal) {
+          step.onHighlightStarted = () => document.body.classList.add("tour-reveal");
+          step.onDeselected = () => document.body.classList.remove("tour-reveal");
+        }
         if (s.inSidebar || s.click) {
           // The sidebar scrolls on its own, so bring the item into view before it is spotlighted.
           step.onHighlightStarted = (el) => {
@@ -154,7 +158,7 @@ export function OnboardingTour({ show }: { show: boolean; askPersona?: boolean }
         }
         return step;
       }),
-      onDestroyed: () => setStage("invite"),
+      onDestroyed: () => { document.body.classList.remove("tour-reveal"); setStage("invite"); },
       onCloseClick: () => d.destroy(),
     });
     d.drive();

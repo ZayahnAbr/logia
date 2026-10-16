@@ -26,7 +26,10 @@ export default async function DiscoverAdminPage() {
         <h1>Reports, rooms and streams</h1>
         <div className="sub">Review reported content, approve hosted rooms and choose which study-with-me streams people see.</div>
       </div>
-      <Link href="/discover" className="btn btn-sm" style={{ marginBottom: 16 }}><ArrowLeft size={14} aria-hidden="true" /> Back to Discover</Link>
+      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+        <Link href="/discover" className="btn btn-sm"><ArrowLeft size={14} aria-hidden="true" /> Back to Discover</Link>
+        <Link href="/admin/users" className="btn btn-sm">Users and sign-ups</Link>
+      </div>
       <AdminPanel
         reports={"reports" in reports ? reports.reports : []}
         reportsError={"error" in reports ? reports.error : ""}

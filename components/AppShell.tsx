@@ -131,7 +131,7 @@ function Sidebar({
       <nav aria-label="Main" style={{ flex: 1, overflowY: "auto", marginTop: 24, display: "flex", flexDirection: "column", gap: 20 }}>
         {/* General — identical on every page */}
         <div className="sidebar-nav-list">
-          <Link href="/spaces" onClick={onClose} data-tour="overview"
+          <Link href="/spaces" onClick={onClose} data-tour="all-spaces"
             className={`sidebar-nav-item${pathname === "/spaces" ? " active" : ""}`} aria-current={pathname === "/spaces" ? "page" : undefined}>
             <LayoutDashboard size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>Dashboard</span>

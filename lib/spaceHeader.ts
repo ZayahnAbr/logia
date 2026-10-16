@@ -36,16 +36,27 @@ export function shadeForWhite(hex: string): number {
   return 0.9;
 }
 
+/** The student's choice of overlay (percent of black, 0 to 80; null = automatic) and text colour (null = light). */
+export type HeaderStyle = { overlay: number | null; tone: "light" | "dark" | null };
+export const NO_STYLE: HeaderStyle = { overlay: null, tone: null };
+export const OVERLAY_MAX = 80;
+export const cleanOverlay = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? Math.min(OVERLAY_MAX, Math.max(0, Math.round(v))) : null);
+export const cleanTone = (v: unknown): "light" | "dark" | null => (v === "dark" || v === "light" ? v : null);
+
 /** Class names and inline variables for the header band. */
-export function headerLook(kind: HeaderKind | null | undefined, color: string | null | undefined, imageUrl: string | null | undefined) {
+export function headerLook(kind: HeaderKind | null | undefined, color: string | null | undefined, imageUrl: string | null | undefined, style: HeaderStyle = NO_STYLE) {
+  const tone = style.tone === "dark" ? "sh-tone-dark" : "sh-tone-light";
+  const overlay = cleanOverlay(style.overlay);
   if (kind === "color" && color && HEX_RE.test(color)) {
     // Header text is always white. On pale colours a soft shade sits behind the text, only as dark as
     // needed for the text to stay readable, so the chosen colour still shows across the band.
-    const shade = shadeForWhite(color);
-    return { className: "sh-band sh-color sh-tone-light", style: { ["--sh-bg" as string]: color, ["--sh-shade" as string]: String(shade) } as Record<string, string>, mesh: false };
+    const shade = overlay !== null ? overlay / 100 : shadeForWhite(color);
+    return { className: `sh-band sh-color ${tone}`, style: { ["--sh-bg" as string]: color, ["--sh-shade" as string]: String(shade) } as Record<string, string>, mesh: false };
   }
   if (kind === "image" && imageUrl) {
-    return { className: "sh-band sh-image sh-tone-light", style: { ["--sh-img" as string]: `url("${imageUrl}")` } as Record<string, string>, mesh: false };
+    const vars: Record<string, string> = { ["--sh-img"]: `url("${imageUrl}")` };
+    if (overlay !== null) vars["--sh-scrim"] = String(overlay / 100);
+    return { className: `sh-band sh-image ${tone}${overlay !== null ? " sh-scrimmed" : ""}`, style: vars, mesh: false };
   }
   return { className: "", style: {} as Record<string, string>, mesh: true };
 }

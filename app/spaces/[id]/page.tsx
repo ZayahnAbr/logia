@@ -13,7 +13,8 @@ import { StickyNotes } from "@/components/StickyNotes";
 import { CalendarWidget } from "@/components/CalendarWidget";
 import { TimetableWidget } from "@/components/TimetableWidget";
 import { SpaceHeaderEditor } from "./_components/SpaceHeaderEditor";
-import { HEADER_BUCKET, headerLook, type HeaderKind } from "@/lib/spaceHeader";
+import { SpaceDrop } from "./_components/SpaceDrop";
+import { HEADER_BUCKET, headerLook, cleanOverlay, cleanTone, type HeaderKind } from "@/lib/spaceHeader";
 import "../../workspace-layout.css";
 import { SpaceDashboard } from "./_components/SpaceDashboard";
 import { DashboardGrid, type Widget } from "../_components/DashboardGrid";
@@ -126,6 +127,10 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const row = { display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", minWidth: 0 } as const;
 
   const allWidgets: Widget[] = [
+    {
+      id: "drop", title: "Add anything", description: "Drop a file or paste text to make notes or flashcards",
+      node: <SpaceDrop spaceId={id} />,
+    },
     {
       id: "library", title: "Library", description: "Your textbooks, with covers and reading progress", empty: books.length === 0,
       node: books.length === 0 ? empty("Add a textbook PDF to your Library to read, highlight and bookmark it.", "/library", "Open Library") : (
@@ -322,7 +327,7 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
   const noStickies = (ids: string[]) => (stickyReady ? ids.filter((x) => x !== "stickies") : ids);
 
   // Custom header (migration 38). Without the columns the header stays the default and the button is hidden.
-  const sp = space as unknown as { header_kind?: HeaderKind | null; header_color?: string | null; header_image_path?: string | null };
+  const sp = space as unknown as { header_kind?: HeaderKind | null; header_color?: string | null; header_image_path?: string | null; header_overlay?: number | null; header_tone?: string | null };
   const headerReady = "header_kind" in sp;
   const headerKind: HeaderKind = sp.header_kind ?? "default";
   const headerColor = sp.header_color ?? null;
@@ -331,7 +336,8 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
     const { data: signed } = await supabase.storage.from(HEADER_BUCKET).createSignedUrl(sp.header_image_path, 6 * 3600);
     headerUrl = signed?.signedUrl ?? null;
   }
-  const look = headerLook(headerReady ? headerKind : "default", headerColor, headerUrl);
+  const headerStyle = { overlay: cleanOverlay(sp.header_overlay), tone: cleanTone(sp.header_tone) };
+  const look = headerLook(headerReady ? headerKind : "default", headerColor, headerUrl, headerStyle);
   // Study spaces: any member. Class hubs: only the creator (same rule as set_space_header).
   const canEditHeader = space.type === "teacher_hub" ? space.created_by === user.id : true;
   const heroTexts = {
@@ -349,7 +355,7 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
         {space.copied_from_name && <p className="shr-credit">Copied from {space.copied_from_name}</p>}
         </div>
         <MobileActionsMenu>
-          {headerReady && canEditHeader && <SpaceHeaderEditor spaceId={id} kind={headerKind} color={headerColor} imageUrl={headerUrl} texts={{ ...heroTexts, name: space.name }} />}
+          {headerReady && canEditHeader && <SpaceHeaderEditor spaceId={id} kind={headerKind} color={headerColor} imageUrl={headerUrl} style={headerStyle} texts={{ ...heroTexts, name: space.name }} />}
           {space.created_by === user.id && <MakePublicButton spaceId={id} isPublic={!!space.is_public} description={space.public_description ?? ""} cloneReady={cloneReady} allowDesign={cloneFlags.allow_design_clone ?? true} allowContent={cloneFlags.allow_content_clone ?? false} />}
           {viewLinksReady && (space.created_by === user.id || canEditHeader) && <ViewLinkButton spaceId={id} />}
           {space.is_public && space.created_by !== user.id && <CloneSpaceButton spaceId={id} spaceName={space.name} className="btn btn-sm" />}
@@ -360,9 +366,9 @@ export default async function SpacePage({ params }: { params: Promise<{ id: stri
         <DashboardGrid
           widgets={widgets}
           storageKey={`logia.space.${id}.layout`}
-          defaultOrder={noStickies(["outline", "stats", "marks", "checklist", "tools", "calendar", "notes", "pain", "decks", "shared", "papers", "stickies", "library", "rooms", "music"])}
-          defaultVisible={noStickies(["outline", "shared", "stats", "tools", "calendar", "notes"])}
-          defaultHalf={noStickies(["marks", "checklist", "calendar", "notes", "pain", "papers", "stickies", "music"])}
+          defaultOrder={noStickies(["drop", "decks", "notes", "outline", "stats", "marks", "checklist", "tools", "calendar", "pain", "shared", "papers", "stickies", "library", "rooms", "music"])}
+          defaultVisible={noStickies(["drop", "notes"])}
+          defaultHalf={noStickies(["marks", "checklist", "calendar", "pain", "papers", "stickies", "music"])}
           syncToAccount={false}
           toolbarExtra={<AddWidgetButton key="add-widget" spaceId={id} stickyReady={stickyReady} />}
           colorSpaceId={id}

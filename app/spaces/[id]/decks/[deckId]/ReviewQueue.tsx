@@ -10,9 +10,9 @@ import { RecallAnswer } from "@/components/RecallAnswer";
 import type { RecallResult } from "@/app/flashcard-actions";
 
 const RATING_BUTTONS: { rating: Rating; label: string; style: string }[] = [
-  { rating: "missed", label: "Missed it", style: "var(--destructive)" },
-  { rating: "fuzzy", label: "Fuzzy", style: "var(--amber)" },
-  { rating: "got", label: "Got it", style: "var(--emerald)" },
+  { rating: "missed", label: "Missed it", style: "" },
+  { rating: "fuzzy", label: "Fuzzy", style: "" },
+  { rating: "got", label: "Got it", style: "" },
 ];
 
 type RelatedNote = { spaceId: string; spaceName: string; sourceTitle: string; sourceType: string; snippet: string };
@@ -81,104 +81,61 @@ export function ReviewQueue({ spaceId, deckId, initialCards, frontLanguage, back
     if ("votes" in res && typeof res.votes === "number") setVotes(res.votes);
   };
 
+  const total = done + queue.length;
   return (
-    <div className="pr-stage">
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div className="pr-bar" style={{ flex: 1 }} role="progressbar" aria-label="Session progress" aria-valuemin={0} aria-valuemax={done + queue.length} aria-valuenow={done}>
-          <i style={{ width: `${Math.round((done / (done + queue.length)) * 100)}%` }} />
+    <div className="fcs">
+      <div className="fcs-progress">
+        <div className="fcs-bar" role="progressbar" aria-label="Session progress" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}>
+          <i style={{ width: `${Math.round((done / total) * 100)}%` }} />
         </div>
-        <div style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap" }}>
-          {queue.length} card{queue.length === 1 ? "" : "s"} left
-        </div>
-      </div>
-      <div className="pr-stage-grid">
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-      <div className="card pr-bigcard">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-          <div style={{ fontSize: 12, color: "var(--faint)", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 10 }}>
-            {card.concept}
-          </div>
-          <button className="btn btn-ghost" style={{ height: 26, fontSize: 12, padding: "0 8px" }} onClick={upvote}>
-            <ThumbsUp size={11} /> {votes > 0 ? votes : ""}
-          </button>
-        </div>
-        <div className="pr-q">{card.question}</div>
-        <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-          <button className="btn btn-ghost" style={{ height: 28, fontSize: 12 }} onClick={() => speak(card.question, frontLanguage)}><Volume2 size={12} /> Listen</button>
-          {card.answer && <button className="btn btn-ghost" style={{ height: 28, fontSize: 12 }} onClick={() => speak(card.answer!, backLanguage)}><Volume2 size={12} /> Listen to answer</button>}
-        </div>
-
-        {card.hint && (
-          showHint ? (
-            <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: 10, background: "var(--surface-2)", fontSize: 13, color: "var(--muted)", display: "flex", gap: 8, alignItems: "flex-start" }}>
-              <Lightbulb size={14} style={{ flexShrink: 0, marginTop: 1 }} /> {card.hint}
-            </div>
-          ) : (
-            <button className="btn btn-ghost" style={{ marginTop: 16, alignSelf: "flex-start", fontSize: 12.5 }} onClick={() => setShowHint(true)}>
-              <Lightbulb size={13} /> Show hint
-            </button>
-          )
-        )}
+        <span className="fcs-count">{done + 1} of {total}</span>
       </div>
 
-      <div>
-        <div id="rate-label" style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          {recall ? "How well did you know it? We've suggested a rating from your answer." : "Or skip the check and rate yourself:"}
+      <div className="fcs-card">
+        <div className="fcs-topic">{card.concept}</div>
+        <p className="fcs-q">{card.question}</p>
+        <div className="fcs-tools">
+          <button type="button" className="fcs-link" onClick={() => speak(card.question, frontLanguage)}><Volume2 size={14} aria-hidden="true" /> Listen</button>
+          {card.answer && <button type="button" className="fcs-link" onClick={() => speak(card.answer!, backLanguage)}><Volume2 size={14} aria-hidden="true" /> Listen to answer</button>}
+          {card.hint && !showHint && <button type="button" className="fcs-link" onClick={() => setShowHint(true)}><Lightbulb size={14} aria-hidden="true" /> Show hint</button>}
+          <button type="button" className="fcs-link" onClick={upvote} aria-label="Mark this card as useful"><ThumbsUp size={14} aria-hidden="true" />{votes > 0 ? ` ${votes}` : ""}</button>
         </div>
-        <div role="group" aria-labelledby="rate-label" style={{ display: "flex", gap: 10 }}>
+        {card.hint && showHint && <div className="fcs-hint"><Lightbulb size={14} aria-hidden="true" /> {card.hint}</div>}
+      </div>
+
+      <RecallAnswer key={card.id} spaceId={spaceId} deckId={deckId} card={card} onResult={setRecall} />
+
+      <div className="fcs-section">
+        <div id="rate-label" className="fcs-label">
+          {recall ? "How well did you know it? A rating is suggested from your answer." : "Or skip the check and rate yourself"}
+        </div>
+        <div role="group" aria-labelledby="rate-label" className="fcs-rate">
           {RATING_BUTTONS.map((b) => {
             const isSuggested = suggested === b.rating;
             return (
-              <button key={b.rating} type="button" className={isSuggested ? "btn btn-primary" : "btn"}
-                style={{ flex: 1, justifyContent: "center", flexDirection: "column", gap: 2, minHeight: 48, ...(isSuggested ? {} : { color: b.style }) }}
-                onClick={() => rate(b.rating)} aria-describedby={isSuggested ? "suggested-note" : undefined}>
+              <button key={b.rating} type="button" className={isSuggested ? "btn btn-primary" : "btn"} onClick={() => rate(b.rating)}>
                 {b.label}
-                {isSuggested && <span id="suggested-note" style={{ fontSize: 12, fontWeight: 500, opacity: .9 }}>Suggested</span>}
+                {isSuggested && <small>Suggested</small>}
               </button>
             );
           })}
         </div>
       </div>
 
-      </div>
-      <div style={{ minWidth: 0 }}>
-      <RecallAnswer key={card.id} spaceId={spaceId} deckId={deckId} card={card} onResult={setRecall} />
-
-      <div style={{ marginTop: 14 }}>
-        <button className="btn btn-ghost" style={{ fontSize: 12.5 }} onClick={explain} disabled={eli5Loading}>
-          {eli5Loading ? <><Loader2 size={13} className="spin" /> Simplifying…</> : <><Sparkles size={13} /> Explain like I&apos;m 5</>}
+      <div className="fcs-more">
+        <button type="button" className="fcs-link" onClick={explain} disabled={eli5Loading}>
+          {eli5Loading ? <><Loader2 size={14} className="spin" aria-hidden="true" /> Simplifying…</> : <><Sparkles size={14} aria-hidden="true" /> Explain simply</>}
         </button>
-        {eli5 && (
-          <div style={{ marginTop: 8, padding: "10px 14px", borderRadius: 10, background: "var(--surface-2)", fontSize: 13, color: "var(--muted)" }}>
-            {eli5}
-          </div>
-        )}
-      </div>
-
-      <div style={{ marginTop: 14 }}>
-        {related === null ? (
-          <button className="btn btn-ghost" style={{ fontSize: 12.5 }} onClick={findRelated} disabled={relatedLoading}>
-            {relatedLoading ? <><Loader2 size={13} className="spin" /> Searching your other spaces…</> : <><Link2 size={13} /> Find related notes</>}
+        {related === null && (
+          <button type="button" className="fcs-link" onClick={findRelated} disabled={relatedLoading}>
+            {relatedLoading ? <><Loader2 size={14} className="spin" aria-hidden="true" /> Searching…</> : <><Link2 size={14} aria-hidden="true" /> Find related notes</>}
           </button>
-        ) : related.length === 0 ? (
-          <div style={{ fontSize: 12, color: "var(--faint)" }}>No related notes found in your other spaces.</div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {related.map((r, i) => (
-              <div key={i} style={{ fontSize: 12.5, padding: "8px 10px", borderRadius: 8, background: "var(--surface-2)" }}>
-                <span style={{ fontWeight: 600 }}>{r.spaceName}</span> · {r.sourceTitle}
-                <div style={{ color: "var(--muted)", marginTop: 2 }}>{r.snippet}…</div>
-              </div>
-            ))}
-          </div>
         )}
       </div>
-
-      <div style={{ fontSize: 12, color: "var(--faint)", marginTop: 10, textAlign: "center" }}>
-        Explain it without looking. If you can, you probably understand it.
-      </div>
-      </div>
-      </div>
+      {eli5 && <div className="fcs-note">{eli5}</div>}
+      {related !== null && (related.length === 0
+        ? <div className="fcs-note">No related notes found in your other spaces.</div>
+        : related.map((r, i) => <div key={i} className="fcs-note"><b>{r.spaceName}</b> · {r.sourceTitle}<br />{r.snippet}…</div>))}
     </div>
   );
 }
@@ -188,28 +145,26 @@ function SessionSummary({ spaceId, deckId, done, checked }: { spaceId: string; d
   const avg = checked.length ? Math.round(checked.reduce((a, c) => a + c.score, 0) / checked.length) : null;
   const weak = checked.filter((c) => c.score < 70);
   return (
-    <div className="card" style={{ padding: 28, maxWidth: 760, margin: "8vh auto 0" }} role="status">
-      <CheckCircle2 size={28} aria-hidden="true" style={{ color: "var(--success)", marginBottom: 10 }} />
-      <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>Session complete</h2>
-      <p style={{ fontSize: 14, color: "var(--muted)", margin: "6px 0 0" }}>
-        You reviewed {done} card{done === 1 ? "" : "s"}{avg !== null ? ` and remembered ${avg}% on average when explaining them` : ""}.
-      </p>
+    <div className="fcs-done" role="status">
+      <CheckCircle2 size={24} aria-hidden="true" style={{ color: "var(--success)" }} />
+      <h2>Session complete</h2>
+      <p>You reviewed {done} card{done === 1 ? "" : "s"}{avg !== null ? ` and recalled ${avg}% on average` : ""}.</p>
 
       {weak.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", marginBottom: 6 }}>Worth another go</div>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 14, display: "grid", gap: 4 }}>
+        <div style={{ marginTop: 20 }}>
+          <div className="fcs-label">Worth another go</div>
+          <ul>
             {weak.slice(0, 4).map((w) => <li key={w.q}>{w.q} <span style={{ color: "var(--muted)" }}>· {w.score}%</span></li>)}
           </ul>
-          <p style={{ fontSize: 13.5, color: "var(--muted)", margin: "8px 0 0" }}>They&apos;ll come back sooner in your schedule.</p>
+          <p>These will come back sooner in your schedule.</p>
         </div>
       )}
       {avg === null && (
-        <p style={{ fontSize: 14, margin: "14px 0 0" }}>Next time, try answering out loud with <strong>Hold to answer</strong>. Logia shows exactly what you remembered and what you missed.</p>
+        <p>Next time, try answering out loud with <strong>Hold to answer</strong> to see what you remembered and what you missed.</p>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 20, flexWrap: "wrap" }}>
-        <Link href={`/spaces/${spaceId}/decks/${deckId}/quiz`} className="btn btn-primary">Test yourself with a quiz</Link>
+      <div className="rc-actions">
+        <Link href={`/spaces/${spaceId}/decks/${deckId}/quiz`} className="btn btn-primary">Take a quiz</Link>
         <Link href={`/spaces/${spaceId}/decks`} className="btn">Back to flashcards</Link>
       </div>
     </div>

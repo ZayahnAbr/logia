@@ -1,0 +1,98 @@
+/* ============================================================
+   Flashcards: study session, recall result and flip practice.
+   One quiet column, hairline surfaces, a single dark action. Uses existing tokens only.
+   ============================================================ */
+
+/* ── Study session ─────────────────────────────────────── */
+.fcs { width: 100%; max-width: 720px; margin: 0 auto; display: grid; gap: 20px; }
+.fcs-progress { display: flex; align-items: center; gap: 14px; }
+.fcs-bar { flex: 1; height: 3px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.fcs-bar > i { display: block; height: 100%; background: var(--text); border-radius: inherit; transition: width .3s var(--ease, ease); }
+.fcs-count { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.fcs-card { display: grid; gap: 28px; padding: clamp(24px, 5vw, 44px); border-radius: 20px; background: var(--surface); border: 1px solid var(--border-soft); box-shadow: var(--shadow-card); }
+.fcs-topic { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.fcs-q { margin: 0; font-size: clamp(1.25rem, 2.6vw, 1.7rem); font-weight: 600; line-height: 1.35; letter-spacing: -.015em; color: var(--text); text-wrap: balance; overflow-wrap: anywhere; }
+.fcs-tools { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: -10px -8px -8px; }
+.fcs-link { white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color .15s, color .15s; }
+.fcs-link:hover:not(:disabled) { background: var(--btn-hover, var(--hover)); color: var(--text); }
+.fcs-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fcs-link:disabled { opacity: .5; cursor: progress; }
+.fcs-hint { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.fcs-hint svg { flex-shrink: 0; margin-top: 2px; }
+
+.fcs-section { display: grid; gap: 12px; }
+.fcs-label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.fcs-rate { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fcs-rate .btn { height: 48px; justify-content: center; flex-direction: column; gap: 0; font-size: 14px; }
+.fcs-rate .btn small { font-size: 11.5px; font-weight: 500; opacity: .75; line-height: 1.1; }
+.fcs-more { display: flex; flex-wrap: wrap; gap: 4px; margin-left: -10px; }
+.fcs-note { padding: 12px 14px; border-radius: 12px; background: var(--surface-2); font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+.fcs-note b { color: var(--text); font-weight: 600; }
+
+/* ── Answer input ──────────────────────────────────────── */
+.recall-input, .recall-result { margin-top: 0; padding: 20px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border-soft); box-shadow: none; }
+.recall-modes { display: inline-flex; padding: 3px; gap: 2px; margin-bottom: 16px; border-radius: 10px; background: var(--surface-3); }
+.recall-modes button { min-height: 34px; padding: 0 14px; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.recall-modes button.on { box-shadow: 0 1px 2px rgba(27,26,25,.1); }
+.recall-mic { width: 64px; height: 64px; background: var(--text); color: var(--bg); box-shadow: none; }
+.recall-mic[data-recording] { background: var(--danger); color: #fff; transform: none; box-shadow: 0 0 0 8px var(--danger-soft); }
+
+/* ── Recall result ─────────────────────────────────────── */
+.rc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rc-verdict { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; font-weight: 600; color: var(--text); }
+.rc-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--v); flex-shrink: 0; }
+.rc-score { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rc-score b { font-size: 20px; font-weight: 650; color: var(--text); letter-spacing: -.02em; }
+.rc-meter { height: 3px; margin: 12px 0 20px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
+.rc-meter > i { display: block; height: 100%; background: var(--v); border-radius: inherit; transition: width .4s var(--ease, ease); }
+.rc-groups { display: grid; gap: 16px; }
+.rc-group h3 { margin: 0 0 6px; font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.rc-group ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.rc-group li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.45; color: var(--text); }
+.rc-group li svg { flex-shrink: 0; margin-top: 3px; }
+.rc-tip { margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--border-soft); font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.rc-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.rc-full { margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: var(--surface-2); }
+.rc-full h3 { margin: 0 0 4px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.rc-full p { margin: 0; font-size: 14px; line-height: 1.6; color: var(--text); }
+.rc-full summary { margin-top: 10px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+
+/* ── Session complete ──────────────────────────────────── */
+.fcs-done { max-width: 560px; margin: 8vh auto 0; padding: 32px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border-soft); box-shadow: var(--shadow-card); }
+.fcs-done h2 { margin: 12px 0 0; font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
+.fcs-done p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.fcs-done ul { margin: 8px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.fcs-done .rc-actions { margin-top: 24px; }
+
+/* ── Flip practice (full screen) ───────────────────────── */
+.fd { background: var(--bg) !important; color: var(--text) !important; }
+.fd-top { gap: 16px; padding-left: 24px; padding-right: 24px; }
+.fd-progress { height: 3px !important; background: var(--surface-3) !important; }
+.fd-progress span { background: var(--text) !important; }
+.fd-count { font-size: 12.5px; }
+.fd-close { border-radius: 10px; width: 36px; height: 36px; box-shadow: none !important; border: 1px solid var(--border); }
+.fd-next { background: var(--surface-3) !important; border-radius: 20px; }
+.fd-face { border-radius: 20px !important; gap: 16px; background: var(--surface) !important; border: 1px solid var(--border-soft); box-shadow: var(--shadow-lift) !important; }
+.fd-back { background: var(--surface) !important; }
+.fd-tag { font-size: 12.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.fd-back .fd-tag { color: var(--accent-text); }
+.fd-q { font-size: clamp(1.3rem, 3vw, 1.8rem); font-weight: 600; letter-spacing: -.015em; color: var(--text); }
+.fd-a { color: var(--text); font-size: clamp(1.05rem, 2.4vw, 1.35rem); }
+.fd-hint { font-size: 12.5px; color: var(--faint) !important; }
+.fd-stamp { border-width: 2px; border-radius: 8px; font-size: 14px; font-weight: 650; background: var(--surface); }
+.fd-actions { gap: 10px; }
+.fd-btn { height: 46px; padding: 0 20px; border-radius: 12px; font-size: 14px; font-weight: 550; border: 1px solid var(--border) !important; box-shadow: none !important; }
+.fd-btn.got { background: var(--text) !important; color: var(--bg) !important; border-color: var(--text) !important; }
+.fd-btn kbd { background: var(--hover) !important; border: 0; }
+@media (hover: none) { .fd-btn kbd { display: none; } }
+.fd-done strong { font-weight: 650; }
+.fd-tally span { border: 1px solid var(--border-soft); box-shadow: none !important; }
+.fd-tally b { font-weight: 650; }
+
+@media (max-width: 760px) {
+  .fcs { gap: 16px; }
+  .fcs-card { padding: 22px; gap: 22px; border-radius: 16px; }
+  .fcs-rate .btn { height: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { .fcs-bar > i, .rc-meter > i { transition: none; } }

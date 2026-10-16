@@ -31,7 +31,12 @@ export function HeaderCropper({ file, aspect, handle, overlay, onError }: {
     const u = URL.createObjectURL(file);
     setUrl(u); setNat(null); setZoom(1); setOff({ x: 0, y: 0 });
     const img = new Image();
+    // The cleanup below revokes this URL. A load that was started before the cleanup (React re-runs
+    // effects in development, or the file changes) fails afterwards; that stale failure must not
+    // be reported as "couldn't be opened" or clear the file the student just picked.
+    let stale = false;
     img.onload = () => {
+      if (stale) return;
       imgRef.current = img;
       setNat({ w: img.naturalWidth, h: img.naturalHeight });
       try {
@@ -40,9 +45,9 @@ export function HeaderCropper({ file, aspect, handle, overlay, onError }: {
         if (g) { g.drawImage(img, 0, 0, 1, 1); const d = g.getImageData(0, 0, 1, 1).data; setAvg(`rgb(${d[0]},${d[1]},${d[2]})`); }
       } catch { /* keep default */ }
     };
-    img.onerror = () => onError("That image couldn't be opened. Try a JPG, PNG or WebP.");
+    img.onerror = () => { if (!stale) onError("That image couldn't be opened. Try a JPG, PNG or WebP."); };
     img.src = u;
-    return () => URL.revokeObjectURL(u);
+    return () => { stale = true; img.onload = null; img.onerror = null; URL.revokeObjectURL(u); };
   }, [file, onError]);
 
   useEffect(() => {

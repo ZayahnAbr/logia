@@ -46,7 +46,7 @@ export function DeckTabs({ spaceId, deckId, title, folder, dueCards, allCards, f
         </p>
       </header>
 
-      <div className="pr-split">
+      <div className="pr-split pr-deckpage">
         <aside className="pr-side" aria-label="Study modes">
           <div className="pr-panel">
             <h2>Study</h2>

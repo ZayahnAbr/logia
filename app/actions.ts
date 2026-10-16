@@ -9,6 +9,7 @@ import { retrieve, reindexSource, noteText } from "@/lib/server/rag";
 import { friendlyError, authed, enforceRateLimit, groqChat, isUnmetered, parseLooseJson } from "@/lib/server/llm";
 import { callChat, callVision, callAudio } from "@/lib/server/aiRoute";
 import type { Plan } from "@/lib/server/plans";
+import { transcriptProblem, transcriptSample, COHERENCE_UNCLEAR } from "@/lib/server/transcriptCheck";
 
 
 export async function createSpace(name: string, subject: string, type: SpaceType) {
@@ -178,6 +179,23 @@ export async function transcribeLecture(spaceId: string, lectureId: string, audi
     if (dlErr || !blob) throw new Error(dlErr?.message || "Could not read audio from storage.");
     // callAudio reserves the slot, picks the key for the plan and logs usage once.
     const { text: transcript } = await callAudio({ file: blob, filename: audioPath.split("/").pop() || "audio", purpose: "batch", task: "transcribe a lecture", supabase, userId: user.id, unmetered: isUnmetered(user.email), plan });
+    // Sense check: cheap rules for silence/noise hallucinations, then a language-model read of a few
+    // samples to confirm the sentences make sense. A failed model check never blocks the lecture.
+    const problem = transcriptProblem(transcript);
+    if (problem) {
+      await supabase.from("lectures_audio").update({ status: "failed" }).eq("id", lectureId);
+      return { error: problem };
+    }
+    try {
+      const { content } = await callChat({
+        purpose: "batch", system: `You check a speech-to-text transcript (shown as excerpts joined by [...]). Decide whether it reads as coherent human speech made of sentences that make sense. If it is mostly gibberish, random unrelated words, or looks like a transcription error, "coherent" is false. Reply with ONLY a JSON object: {"coherent": true or false}.`,
+        user: transcriptSample(transcript), maxTokens: 50, temperature: 0, json: true, supabase, userId: user.id, unmetered: isUnmetered(user.email), plan,
+      });
+      if (parseLooseJson(content)?.coherent === false) {
+        await supabase.from("lectures_audio").update({ status: "failed" }).eq("id", lectureId);
+        return { error: COHERENCE_UNCLEAR };
+      }
+    } catch { /* fail open */ }
     await supabase.from("lectures_audio").update({ transcript, status: "done" }).eq("id", lectureId);
     try {
       const { data: lec } = await supabase.from("lectures_audio").select("title").eq("id", lectureId).maybeSingle();

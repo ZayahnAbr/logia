@@ -47,7 +47,8 @@ export function LecturesBoard({ spaceId, lectures }: { spaceId: string; lectures
   };
 
   const transcribe = (id: string, path: string) => start(async () => {
-    await transcribeLecture(spaceId, id, path);
+    const res = await transcribeLecture(spaceId, id, path);
+    if (res.error) setErr(res.error);
     router.refresh();
   });
 

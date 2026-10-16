@@ -1,0 +1,489 @@
+/* ============================================================
+   Logia polish: one type scale, one radius scale, one rhythm.
+   Loaded LAST (after globals.css and refresh.css). No colours are defined here; every colour is an
+   existing token, so the palette is unchanged. The app had ~25 font sizes and ~14 corner radii
+   across pages; this layer pulls the shared building blocks onto a small set of steps.
+
+   Type scale   12 meta / 13 control / 14 body / 15 card title / 18 sub-heading / 26-34 page title
+   Text colour  --text titles and body, --muted supporting copy, --faint meta and placeholders
+   Radius       8 small / 10 control / 16 card / 20 dialog and hero bands
+   Spacing      4 / 8 / 12 / 16 / 24 / 32
+   ============================================================ */
+
+:root {
+  --fs-meta: 12px;
+  --fs-control: 13px;
+  --fs-body: 14px;
+  --fs-title: 15px;
+  --fs-sub: 18px;
+  --r-s: 8px;
+  --r-c: 10px;
+  --r-card: 16px;
+  --r-band: 20px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+}
+
+/* ── Base text ──────────────────────────────────────────── */
+:root:root body { font-size: var(--fs-body); line-height: 1.5; color: var(--text); }
+:root:root :is(h1, h2, h3, h4) { color: var(--text); text-wrap: balance; }
+:root:root p { text-wrap: pretty; }
+
+/* ── Page titles: the same size and weight everywhere ───── */
+:root:root :is(.phead h1, .phead.mesh-warm h1, .phead-grad h1, .space-hero-h, .dash-hero-h) {
+  font-size: clamp(26px, 2.8vw, 34px) !important; font-weight: 650; letter-spacing: -.03em; line-height: 1.1; margin: 4px 0 0 !important; text-shadow: none;
+}
+:root:root :is(.phead, .phead.mesh-warm, .phead-grad) { padding: 24px 28px; border-radius: var(--r-band); margin-bottom: var(--sp-5); }
+:root:root :is(.space-hero, .dash-hero) { padding: 24px 28px; border-radius: var(--r-band); margin-bottom: var(--sp-5); }
+:root:root :is(.phead .eyebrow, .space-hero .eyebrow, .dash-hero .eyebrow) { font-size: var(--fs-meta); font-weight: 600; letter-spacing: .02em; text-transform: none; }
+:root:root :is(.phead .sub, .space-hero-p, .dash-hero-p) { font-size: var(--fs-body) !important; line-height: 1.5; max-width: 62ch; margin-top: var(--sp-2) !important; font-weight: 450; }
+
+/* ── Section and card titles ────────────────────────────── */
+:root:root :is(.sec-title, .dc-h2, .dash-widget h2, .dash-widget > header h2, .card > h2, .card > h3, .card-title, .cal-head h3, .cal-side-head h3) {
+  font-size: var(--fs-title); font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--text);
+}
+:root:root :is(.section-label, .sidebar-section-label, .eyebrow:not(.phead .eyebrow)) { font-size: var(--fs-meta); font-weight: 600; letter-spacing: .02em; text-transform: none; }
+
+/* ── Supporting text: muted copy and quiet meta lines ───── */
+:root:root :is(.db-sub, .auth-sub, .ai-allow-sub, .sh-lead, .cw-note, .ln-lead) { font-size: var(--fs-body); line-height: 1.5; color: var(--muted); }
+:root:root :is(.ln-item-s, .cal-item-meta, .fx-meta-line, .sh-help, .field-hint, .cal-empty, .cw-count) { font-size: var(--fs-meta); line-height: 1.4; color: var(--faint); }
+:root:root :is(.ln-item-t, .cal-item-title) { font-size: var(--fs-body); font-weight: 550; color: var(--text); }
+
+/* ── Controls: one height, one radius ───────────────────── */
+:root:root .btn { height: 36px; border-radius: var(--r-c); font-size: var(--fs-control); font-weight: 500; }
+:root:root .btn-sm { height: 32px; border-radius: var(--r-s); font-size: var(--fs-control); }
+:root:root .btn-lg { height: 44px; border-radius: var(--r-c); font-size: var(--fs-body); }
+/* Primary: a flat, solid key. Same colour as before, without the gloss. */
+:root:root:not([data-theme="dark"]) .btn-primary { background: var(--primary-bg, #1b1a19); border-color: var(--primary-bg, #1b1a19); box-shadow: 0 1px 2px rgba(27,26,25,.18); }
+:root:root:not([data-theme="dark"]) .btn-primary:hover:not(:disabled) { background: #2b2927; border-color: #2b2927; }
+:root:root :is(.input, .auth-input, .fx-select, select.ln-select):not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]) { border-radius: var(--r-c); font-size: var(--fs-body); }
+:root:root :is(textarea.input) { line-height: 1.5; padding-top: 10px; padding-bottom: 10px; }
+:root:root .field-label { font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
+:root:root :is(.dc-tab, .cw-tab, .sh-tab) { font-size: var(--fs-control); }
+:root:root :is(.dc-tags li, .tag-pill, .sp-kind, .cal-urg, .fx-badge) { font-size: 11.5px; border-radius: 6px; }
+
+/* ── Surfaces: cards, tiles and dialogs share a radius and a calm shadow ── */
+:root:root :is(.card, .co-card, .sp-card, .dc-card, .fx-summary, .fx-list, .think) { border-radius: var(--r-card); }
+:root:root [role="dialog"].card { border-radius: var(--r-band); }
+:root:root :is(a.card, .sp-card, .dc-card):hover { transform: none; }
+
+/* ── Rhythm: consistent gaps between blocks on a page ───── */
+:root:root :is(.dash-list, .wk-home) { gap: var(--sp-5); }
+:root:root .dash-widget-head { margin-bottom: var(--sp-3); }
+:root:root .cal-form { gap: var(--sp-4); }
+
+/* ── Focus: one visible ring everywhere ─────────────────── */
+:root:root :is(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ── Phones: 16px fields stop iOS zooming the page on focus; header bands tighten ── */
+@media (max-width: 760px) {
+  :root:root :is(.input, .auth-input, select, textarea) { font-size: 16px; }
+  :root:root :is(.phead, .phead.mesh-warm, .phead-grad, .space-hero, .dash-hero) { padding: 18px 18px; border-radius: 16px; margin-bottom: var(--sp-4); }
+  :root:root :is(.phead h1, .phead.mesh-warm h1, .phead-grad h1, .space-hero-h, .dash-hero-h) { font-size: 24px !important; }
+}
+
+/* ============================================================
+   Smooth: flat, tinted and quiet. Selection is a soft grey tint, not a white card with a shadow;
+   surfaces rely on a hairline instead of a drop shadow; labels are small and calm.
+   ============================================================ */
+:root:not([data-theme="dark"]) {
+  --shadow-card: 0 1px 2px rgba(27,26,25,.03);
+  --shadow-lift: 0 6px 20px rgba(27,26,25,.07);
+  --tint: color-mix(in oklab, var(--text) 5%, transparent);
+  --tint-soft: color-mix(in oklab, var(--text) 3%, transparent);
+  --tint-strong: color-mix(in oklab, var(--text) 8.5%, transparent);
+  --btn-hover: #f0eeea; /* a darker white for button hover (nav keeps the grey tint) */
+}
+html[data-theme="dark"] { --btn-hover: var(--surface-2); --tint: rgba(255,255,255,.08); --tint-soft: rgba(255,255,255,.05); --tint-strong: rgba(255,255,255,.16); }
+
+/* Sidebar: a slightly deeper panel than the page, quiet items, a flat grey selection */
+:root:root .app-sidebar { background: color-mix(in oklab, var(--bg) 93%, #000); border-right: 0; }
+html[data-theme="dark"] :root:root .app-sidebar, html[data-theme="dark"] .app-sidebar { background: color-mix(in oklab, var(--bg) 94%, #000); }
+:root:root:root .sidebar-nav-item { height: 38px; padding: 0 12px; gap: 11px; border: 0 !important; border-radius: 11px; font-size: var(--fs-body); font-weight: 500; color: var(--muted); background: transparent; box-shadow: none; transition: background-color .2s var(--ease), color .2s var(--ease); }
+:root:root:root .sidebar-nav-item svg { opacity: .75; transition: opacity .2s var(--ease), color .2s var(--ease); }
+:root:root:root .sidebar-nav-item:hover { background: var(--tint-soft); color: var(--text); }
+:root:root:root .sidebar-nav-item.active { background: var(--tint) !important; color: var(--text) !important; font-weight: 550; border: 0 !important; box-shadow: none !important; }
+:root:root:root .sidebar-nav-item.active svg { opacity: 1; color: var(--text); }
+:root:root :is(.sidebar-section-label, .sidebar-subgroup-label) { font-size: 11px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); padding: 0 12px; margin: 18px 0 6px; }
+
+/* Segmented controls and tabs: a flat tint, and the active segment is a deeper grey (never white) */
+:root:root :is(.dc-tabs, .host-seg, .seg, .tabs, .cw-tabs, .recall-modes, .sh-tabs, .sh-seg, .fx-view, .mm-seg) { background: var(--tint); box-shadow: none; }
+:root:root :is(.dc-tab[aria-selected="true"], .cw-tab.is-on, .cw-tab[aria-selected="true"], .recall-modes button.on, .sh-tab[aria-selected="true"], .sh-seg-b[aria-pressed="true"], .mm-seg button.on, .fx-view button[aria-pressed="true"]) { background: var(--tint-strong); color: var(--text); font-weight: 600; box-shadow: none; }
+
+/* Surfaces: hairline, no heavy shadow, hover only deepens the line */
+:root:root :is(.card, .co-card, .sp-card, .dc-card, .fx-summary, .fx-list, .pr-panel, .ln-side, .ln-detail, .think) { border: 1px solid var(--border-soft); box-shadow: none; }
+:root:root :is(a.card, .sp-card, .dc-card, .ln-item):hover { box-shadow: none; border-color: var(--border); }
+html[data-theme="dark"] :root:root :is(.card, .sp-card, .dc-card) { box-shadow: none; }
+:root:root [role="dialog"].card { box-shadow: 0 24px 64px rgba(27,26,25,.14); border-color: var(--border-soft); }
+:root:root .dash-widget { transition: opacity .2s; }
+
+/* Lists: rows tint on hover and selection, never a boxed shadow */
+:root:root :is(.ln-item, .dash-row, .row-link):hover { background: var(--tint-soft); }
+:root:root .ln-item[aria-current="true"] { background: var(--tint); box-shadow: none; }
+
+/* Pills and chips: flat grey, fully rounded */
+:root:root :is(.dc-tags li, .tag-pill, .sp-kind, .chip) { background: var(--tint); border-radius: 999px; padding-inline: 10px; font-weight: 500; color: var(--muted); box-shadow: none; }
+
+/* Buttons: outline buttons lose their shadow; ghost buttons tint on hover */
+:root:root .btn { box-shadow: none; }
+:root:root .btn:hover:not(:disabled) { background: var(--btn-hover); border-color: var(--border); }
+:root:root .btn-primary:hover:not(:disabled) { background: #2b2927; }
+:root:root .btn-ghost:hover:not(:disabled) { background: var(--btn-hover); }
+
+/* Motion: one smooth, short ease for interactive colour changes */
+:root:root :is(a, button, .btn, .card, .ln-item, .sidebar-nav-item) { transition-duration: .18s; transition-timing-function: var(--ease); }
+
+/* Selected pills and segments are a deeper grey everywhere, never white with a shadow */
+:root:root :is(.preset-b.on, .pt-tabs button.on, .pt-nav.on, .nb-folder.on, .fc.on, .st-seg button.on, .cal-kinds .on, .fx-sort .on) { background: var(--tint-strong); color: var(--text); font-weight: 600; box-shadow: none; }
+:root:root .fc:hover { background: var(--tint-soft); box-shadow: none; }
+
+/* Depth: a clearly deeper sidebar against a lighter page */
+:root:not([data-theme="dark"]) { --bg: #f7f6f4; }
+:root:root:root .app-sidebar { background: color-mix(in oklab, #f7f6f4 87%, #3a3025); border-right: 1px solid rgba(27,26,25,.05); }
+html[data-theme="dark"] .app-sidebar { background: color-mix(in oklab, var(--bg) 62%, #000); border-right: 1px solid rgba(255,255,255,.04); }
+
+/* The sidebar paints itself from --sidebar-bg (inline), so depth is set on the tokens. */
+:root:not([data-theme="dark"]) { --sidebar-bg: color-mix(in oklab, #f7f6f4 96.5%, #3a3025); --sidebar-border: rgba(27,26,25,.05); }
+html[data-theme="dark"] { --sidebar-bg: color-mix(in oklab, #161514 82%, #000); --sidebar-border: rgba(255,255,255,.05); }
+
+/* The current-space switcher: a flat grey tint like the nav selection, not a white box with a ring */
+:root:root:root .sidebar-space-pill { background: var(--tint); box-shadow: none; border: 0; color: var(--text); }
+:root:root:root .sidebar-space-pill:hover { background: var(--tint-strong); }
+:root:root .switcher-item:hover, :root:root .switcher-item:focus-visible { background: var(--tint-soft); }
+:root:root .switcher-item[aria-current="true"] { background: var(--tint); }
+
+/* ============================================================
+   Spaces home: one header, the spaces, then a single row for today, calendar and timetable.
+   ============================================================ */
+.hm { display: grid; gap: 40px; width: 100%; }
+.hm-hero { display: grid; gap: 8px; padding-top: 8px; max-width: 640px; }
+.hm-eyebrow { margin: 0; font-size: var(--fs-meta); font-weight: 600; color: var(--muted); }
+.hm-title { margin: 0; font-size: clamp(26px, 2.8vw, 34px); font-weight: 650; letter-spacing: -.03em; line-height: 1.12; color: var(--text); text-wrap: balance; }
+.hm-lead { margin: 4px 0 0; font-size: var(--fs-body); line-height: 1.55; color: var(--muted); max-width: 56ch; }
+.hm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.hm-section { display: grid; gap: 16px; min-width: 0; }
+.hm-sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.hm-sec-head h2 { margin: 0; font-size: var(--fs-sub); font-weight: 600; letter-spacing: -.02em; }
+.hm-sec-head span { font-size: var(--fs-meta); color: var(--faint); }
+.hm-today-row { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: start; gap: 16px; }
+.hm-more { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); align-items: start; gap: 16px; }
+
+/* Space cards: a slim colour band, name, subject, one quiet line of counts */
+:root:root .sp-grid { gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); }
+:root:root .sp-card { border-radius: var(--r-card); border: 1px solid var(--border-soft); box-shadow: none; transition: border-color .18s var(--ease); }
+:root:root .sp-card:hover { transform: none; box-shadow: none; border-color: var(--border); }
+:root:root .sp-cover { height: 64px !important; padding: 12px 14px; }
+:root:root .sp-cover::after, :root:root .sp-mono { display: none; }
+:root:root .sp-due { top: 10px; right: 10px; padding: 3px 9px; background: var(--surface); color: var(--text); font-size: 11.5px; font-weight: 600; box-shadow: none; }
+:root:root .sp-body { padding: 14px 16px 16px; gap: 3px; }
+:root:root .sp-body h3 { font-size: var(--fs-title); font-weight: 600; }
+:root:root .sp-body p { font-size: var(--fs-control); color: var(--muted); }
+:root:root .sp-body .sp-meta { margin-top: 8px; font-size: var(--fs-meta); color: var(--faint); font-variant-numeric: tabular-nums; }
+:root:root .sp-new { border-radius: var(--r-card); min-height: 0; height: 100%; background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
+:root:root .sp-new:hover { background: var(--tint-soft); box-shadow: inset 0 0 0 1px var(--border); }
+:root:root .sp-new-ico { box-shadow: none; background: var(--tint); }
+
+/* Today card: calm numbers, no accent shouting */
+:root:root .db-today { padding: 20px; gap: 14px; }
+:root:root .db-today .eyebrow { color: var(--muted); font-size: var(--fs-meta); }
+:root:root .db-today-num b { font-size: 36px; font-weight: 650; }
+:root:root .db-mini { box-shadow: none; border-top: 1px solid var(--border-soft); padding-top: 14px; }
+:root:root .db-mini dt { font-size: var(--fs-meta); }
+:root:root .db-mini dd { font-size: 15px; font-weight: 600; }
+:root:root .db-panel { padding: 18px; }
+:root:root .db-panel h2 { font-size: var(--fs-title); font-weight: 600; margin-bottom: 10px; }
+
+/* Today strip and the collapsed extras */
+.hm > .dash-hero { margin-bottom: 0; }
+.hm-strip { display: flex; align-items: center; gap: 12px 20px; flex-wrap: wrap; padding: 14px 18px; border-radius: var(--r-card); background: var(--tint-soft); font-size: var(--fs-body); color: var(--muted); }
+.hm-strip-n b { font-size: 18px; font-weight: 650; color: var(--text); margin-right: 4px; font-variant-numeric: tabular-nums; }
+.hm-strip-sub { font-size: var(--fs-control); color: var(--faint); }
+.hm-strip-btn { margin-left: auto; }
+.hm-more-box { display: grid; gap: 16px; }
+.hm-more-box > summary { cursor: pointer; list-style: none; width: fit-content; padding: 8px 12px; margin-left: -12px; border-radius: 10px; font-size: var(--fs-control); font-weight: 500; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; transition: background-color .18s var(--ease), color .18s var(--ease); }
+.hm-more-box > summary::-webkit-details-marker { display: none; }
+.hm-more-box > summary::before { content: ""; width: 7px; height: 7px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .18s var(--ease); }
+.hm-more-box[open] > summary::before { transform: rotate(45deg); }
+.hm-more-box > summary:hover { background: var(--tint-soft); color: var(--text); }
+.hm-more-box > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hm-more-box[open] { gap: 24px; }
+
+/* Quiet hero: the coral band with text and two buttons only */
+.dash-hero-quiet { display: block; padding: 32px 36px; }
+.dash-hero-quiet .dash-hero-copy { max-width: 620px; }
+.dash-hero-quiet .dash-hero-p { max-width: 54ch; }
+
+/* Hero secondary button: solid white, a warm off-white on hover (no transparency, ring or grey tint) */
+:root:root:root .dash-hero .btn.l-btn-soft { background: #ffffff; border: 0; box-shadow: none; color: #1b1a19; transition: background-color .18s var(--ease); }
+:root:root:root .dash-hero .btn.l-btn-soft:hover:not(:disabled) { background: #f0eeea; border: 0; box-shadow: none; }
+:root:root:root .dash-hero .btn.l-btn-soft:focus-visible { outline: 2px solid #1b1a19; outline-offset: 2px; }
+:root:root:root .dash-hero .btn-primary:hover:not(:disabled) { background: #2b2927; }
+
+/* Headings match the landing page: bold, tightly tracked sans with a regular-weight serif italic accent word */
+:root:root :is(.phead h1, .phead.mesh-warm h1, .phead-grad h1, .space-hero-h, .dash-hero-h, .hm-title) {
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif; font-weight: 700; letter-spacing: -.045em; line-height: 1;
+  font-size: clamp(30px, 3.6vw, 46px) !important;
+}
+:root:root .hm-sec-head h2 { font-weight: 700; letter-spacing: -.035em; line-height: 1.05; font-size: clamp(1.4rem, 2.4vw, 1.9rem); }
+:root:root em.serif { font-family: var(--font-serif), Georgia, serif; font-style: italic; font-weight: 400; letter-spacing: -.02em; }
+@media (max-width: 760px) {
+  :root:root :is(.phead h1, .phead.mesh-warm h1, .phead-grad h1, .space-hero-h, .dash-hero-h, .hm-title) { font-size: 28px !important; }
+}
+.dash-hero-quiet .dash-hero-h { margin-top: 10px; }
+.dash-hero-quiet .dash-hero-h em.serif { font-size: 1.06em; }
+
+.dash-hero-quiet .dash-hero-lead { margin: 14px 0 0; font-size: 17px; font-weight: 600; letter-spacing: -.01em; color: #1b1a19; }
+.dash-hero-quiet .dash-hero-lead + .dash-hero-p { margin-top: 4px; }
+
+/* Spaces hero greeting: large, like the landing headline */
+:root:root:root .dash-hero-quiet .dash-hero-h { font-size: clamp(2.6rem, 6vw, 4.6rem) !important; line-height: 1; letter-spacing: -.045em; margin-top: 0; }
+:root:root .dash-hero-quiet .dash-hero-h em.serif { font-size: 1.04em; }
+@media (max-width: 760px) { :root:root:root .dash-hero-quiet .dash-hero-h { font-size: 2.4rem !important; } }
+
+/* ============================================================
+   Feature pages (flashcards, notes): flat, quiet, no gloss.
+   Skeuomorphic touches (stacked deck layers, book spines, lifted paper, rotated stacks)
+   become simple hairline tiles. Same radius, same line, same hover everywhere.
+   ============================================================ */
+
+/* One hover/outline/focus language for every control */
+:root:root :is(.btn, .pr-chip, .nbk-emoji, .fx-select, .nb-search, .host-seg label, .nbk-choice) { border-color: var(--border); }
+:root:root .ln-notes-grid .nb-bar .btn:not(.btn-primary), :root:root .nb-bar .btn:not(.btn-primary) { border: 1px solid var(--border); background: var(--surface); color: var(--text); }
+:root:root .ln-notes-grid .nb-bar .btn:not(.btn-primary):hover, :root:root .nb-bar .btn:not(.btn-primary):hover:not(:disabled) { background: var(--btn-hover); border-color: var(--border); color: var(--text); }
+:root:root .nb-bar .btn { height: 36px; border-radius: var(--r-c); font-size: var(--fs-control); }
+:root:root .nb-search { height: 36px; border-radius: var(--r-c); background: var(--surface); box-shadow: none; border: 1px solid var(--border); }
+:root:root .nb-search:focus-within { border-color: color-mix(in oklab, var(--accent) 60%, transparent); }
+:root:root .nb-search input { font-size: var(--fs-body); }
+
+/* Flashcards: deck library */
+:root:root .pr-deck-layer { display: none; }
+:root:root .pr-deck-stack { padding-bottom: 0; }
+:root:root .pr-deck-face { min-height: 150px; border-radius: var(--r-card); box-shadow: none; border: 1px solid var(--border-soft); transition: border-color .18s var(--ease); }
+:root:root .pr-deck:hover .pr-deck-face { transform: none; box-shadow: none; border-color: var(--border); }
+:root:root .pr-deck-q { font-size: var(--fs-body); line-height: 1.5; color: var(--muted); background-image: none; }
+:root:root .pr-badge { background: var(--tint); color: var(--muted); border-radius: 999px; font-size: 11.5px; font-weight: 500; }
+:root:root .pr-badge.due { background: var(--text); color: var(--bg); font-weight: 600; }
+:root:root .pr-chip { font-size: var(--fs-control); font-weight: 500; background: transparent; }
+:root:root .pr-chip:hover { background: var(--btn-hover); }
+:root:root .pr-chip[aria-pressed="true"] { background: var(--tint-strong); color: var(--text); border-color: transparent; font-weight: 600; }
+:root:root .pr-panel { border-radius: var(--r-card); box-shadow: none; border: 1px solid var(--border-soft); }
+:root:root .pr-panel h2 { font-size: var(--fs-meta); font-weight: 600; }
+:root:root .pr-bar { height: 3px; background: var(--surface-3); }
+:root:root .pr-bar > i { background: var(--text); }
+
+/* Flip-card launcher: a plain row, no tilted card art */
+:root:root .flip-launch { background: var(--tint-soft) !important; box-shadow: none !important; border-radius: var(--r-card); padding: 14px 16px; transition: background-color .18s var(--ease); }
+:root:root .flip-launch:hover { transform: none; background: var(--tint) !important; box-shadow: none !important; }
+:root:root .flip-launch-art { display: none; }
+:root:root .flip-launch strong { font-size: var(--fs-body); font-weight: 600; }
+:root:root .flip-launch > span:nth-child(2) > span, :root:root .flip-launch span span { font-size: var(--fs-control); }
+
+/* Notes: notebook shelf and note tiles */
+:root:root .nbk-spine { display: none; }
+:root:root .nbk-book { border-radius: var(--r-s); box-shadow: none; border: 1px solid var(--border-soft); transition: border-color .18s var(--ease); }
+:root:root .nbk-open:hover .nbk-book { transform: none; box-shadow: none; border-color: var(--border); }
+:root:root .nbk-badge { box-shadow: none; border: 1px solid var(--border-soft); }
+:root:root .nbk-loose, :root:root .nbk-new { border: 1px solid var(--border); border-radius: var(--r-s); background: var(--tint-soft); }
+:root:root .nbk-stack i { box-shadow: none; border: 1px solid var(--border); }
+:root:root .nbk-stack i:nth-child(n) { transform: none; }
+:root:root .nbk-stack i:nth-child(2) { transform: translate(4px, 4px); } :root:root .nbk-stack i:nth-child(3) { transform: translate(8px, 8px); }
+:root:root .nbk-open:hover .nbk-new { color: var(--text); border-color: var(--border); }
+:root:root .nbk-name { font-size: var(--fs-body); font-weight: 600; }
+:root:root .nbk-count { font-size: var(--fs-meta); color: var(--faint); }
+:root:root .nbk-crumb-t { font-size: var(--fs-sub); font-weight: 700; letter-spacing: -.02em; }
+:root:root .nbk-crumb-n { font-size: var(--fs-meta); color: var(--faint); }
+:root:root .nbk-seg { background: var(--tint); }
+:root:root .nbk-seg button[aria-pressed="true"] { background: var(--tint-strong); box-shadow: none; font-weight: 600; }
+:root:root .nbk-emoji[aria-pressed="true"] { background: var(--tint-strong); border-color: var(--border); box-shadow: none; }
+:root:root .nb-page { background: var(--tint-soft); border: 1px solid var(--border-soft); border-radius: var(--r-c); transition: border-color .18s var(--ease), background-color .18s var(--ease); }
+:root:root .nb-page:hover { background: var(--tint); border-color: var(--border); }
+:root:root .nb-page:hover .nb-sheet { transform: none; }
+:root:root .nb-sheet { box-shadow: none; border: 1px solid var(--border-soft); border-bottom: 0; }
+:root:root .nb-meta .truncate:first-child, :root:root .nb-meta div > div:first-child { font-size: var(--fs-body); }
+
+/* Notes: the open note. Calm page on a calm canvas, a flat toolbar */
+:root:root .doc-shell { background: var(--tint-soft); box-shadow: none; border: 1px solid var(--border-soft); border-radius: var(--r-card); }
+:root:root .doc-bar { background: var(--surface); box-shadow: none; border-bottom: 1px solid var(--border-soft); padding: 8px 12px; gap: 4px; }
+:root:root .doc-page { box-shadow: 0 0 0 1px var(--border-soft); border-radius: var(--r-s); }
+:root:root .doc-page .note-title { font-weight: 700; letter-spacing: -.035em; }
+:root:root .ln-side { border-radius: var(--r-card); box-shadow: none; }
+:root:root .ln-side-head { border-bottom: 1px solid var(--border-soft); }
+:root:root .ln-item { border-radius: var(--r-c); }
+:root:root .ln-item-t { font-size: var(--fs-body); }
+
+/* Heading pairing: one even, medium weight. The serif italic is scaled up so its x-height matches the sans,
+   which stops the "bold next to thin" mismatch. */
+:root:root:root :is(.dash-hero-quiet .dash-hero-h, .hm-sec-head h2) { font-weight: 500; letter-spacing: -.04em; }
+:root:root:root :is(.dash-hero-quiet .dash-hero-h, .hm-sec-head h2) em.serif { font-weight: 400; font-size: 1.14em; letter-spacing: -.02em; line-height: .9; -webkit-text-stroke: .012em currentColor; }
+
+/* Space home "Add anything" tool: the landing drop zone, calm and centred inside a space */
+.sd { max-width: 640px; margin: 0 auto; }
+.sd .try-drop { padding: 40px 20px; border-radius: var(--r-card); }
+.sd .sd-text { min-height: 0; margin-top: 12px; }
+.sd .sd-actions { justify-content: center; margin-top: 14px; }
+.sd .try-status { display: flex; align-items: center; gap: 8px; justify-content: center; }
+
+/* ============================================================
+   One hover language everywhere:
+   outlined / light controls go a soft grey; the dark primary button goes slightly darker; nothing lifts,
+   glows or turns coral. Overrides every accent-coloured hover left in the page stylesheets.
+   ============================================================ */
+:root:root :is(.btn, .chip, .pr-chip, .fb-make, .fb-ai button, .ai-suggest button, .ai-cite, .chat-suggest button, .ln-chat-sug button, .dc-chip, .dc-spaces .dc-chip, .sp-new, .nbk-emoji, .cw-room, .host-vis label, .site-jump a, .ft-more a):hover:not(:disabled):not(.btn-primary) {
+  background: var(--btn-hover); border-color: var(--border); color: var(--text); box-shadow: none; transform: none;
+}
+:root:root :is(.dc-stream, .dc-spcard, .cw-pick, .nbk-open:hover .nbk-new):hover { border-color: var(--border); box-shadow: none; transform: none; }
+:root:root .nbk-open:hover .nbk-new { color: var(--text); border-color: var(--border); }
+:root:root .ai-cite:hover { background: var(--btn-hover); color: var(--text); }
+:root:root .fb-ai button:hover:not(:disabled) { color: var(--text) !important; background: var(--btn-hover) !important; }
+:root:root .ln-notes-grid .nb-bar .btn:not(.btn-primary):hover { background: var(--btn-hover); border-color: var(--border); color: var(--text); }
+:root:root .btn-ghost:hover:not(:disabled) { background: var(--tint); color: var(--text); }
+
+/* Primary: a touch darker on hover and active, same everywhere (dark theme: a touch dimmer) */
+:root:root:not([data-theme="dark"]) .btn-primary:hover:not(:disabled), :root:root:not([data-theme="dark"]) .btn-primary:active:not(:disabled) { background: #0f0e0d; border-color: #0f0e0d; filter: none; }
+html[data-theme="dark"] .btn-primary:hover:not(:disabled) { background: #e2dcd5 !important; filter: none; }
+:root:root .dash-hero .btn-primary:hover:not(:disabled) { background: #0f0e0d; }
+
+/* Selected / pressed states share the same grey as the rest */
+:root:root :is(.chat-suggest button.on, .pr-chip[aria-pressed="true"], .host-seg label.on, .fx-view button[aria-pressed="true"]) { background: var(--tint-strong); color: var(--text); box-shadow: none; }
+
+/* Less "AI": no hover lifts, no glow, no sparkle accent colour on helper links */
+:root:root :is(.card-i, .sp-card, .ft-tile, .deck, .fthumb, .dc-card, a.card):hover { transform: none; }
+:root:root :is(.ai-suggest svg, .ft-more svg, .fcs-link svg) { color: currentColor; }
+:root:root .fb-ai button, :root:root .ai-suggest button { background: var(--tint-soft); border: 1px solid transparent; box-shadow: none; color: var(--muted); }
+
+/* Space header buttons: solid white, a warm off-white on hover, in light and dark */
+:root:root:root .space-hero .btn:not(.btn-primary) { background: #ffffff !important; color: #1b1a19 !important; border: 0 !important; box-shadow: none !important; }
+:root:root:root .space-hero .btn:not(.btn-primary):hover:not(:disabled) { background: #f0eeea !important; color: #1b1a19 !important; }
+:root:root:root .space-hero .btn:not(.btn-primary):focus-visible { outline: 2px solid #1b1a19; outline-offset: 2px; }
+:root:root:root .space-hero .btn svg { color: currentColor; }
+
+/* "Add anything": a roomy default */
+.sd { max-width: 820px; }
+.sd .try-drop { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 6px; padding: 56px 24px; }
+.sd .try-drop-title { font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.sd .try-drop-sub { font-size: var(--fs-body); }
+.sd .sd-text { min-height: 96px; font-size: var(--fs-body); }
+
+/* Tour: show a hover-only handle while it is spotlighted */
+body.tour-reveal .st-resize { opacity: 1 !important; pointer-events: none; }
+
+/* ============================================================
+   Landing page: same controls, hover and focus as the app. The coral gradient bands are untouched.
+   ============================================================ */
+:root:root .landing .btn:not(.btn-primary):not(.l-btn-soft):hover:not(:disabled), :root:root .try-dialog-actions .btn:hover:not(:disabled) { background: var(--btn-hover); border-color: var(--border); }
+:root:root .landing .btn.l-btn-soft { background: #fff; border: 0; box-shadow: none; color: #1b1a19; }
+:root:root .landing .btn.l-btn-soft:hover:not(:disabled) { background: #f0eeea; box-shadow: none; }
+:root:root .landing .btn-primary:hover:not(:disabled) { background: #0f0e0d; }
+:root:root .landing .btn { border-radius: var(--r-c); font-weight: 500; }
+:root:root .landing .btn-lg { height: 44px; font-size: var(--fs-body); }
+:root:root .landing :is(a, button, input, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The try-it drop zone follows the same grey hover as everything else (no coral border or tint) */
+:root:root .try-drop:hover, :root:root .try-drop.is-over, :root:root .l-hero3-tool .try-drop:hover, :root:root .l-hero3-tool .try-drop.is-over { border-color: var(--border); background: var(--btn-hover); }
+:root:root .try-drop { border-radius: var(--r-card); transition: background-color .18s var(--ease), border-color .18s var(--ease); }
+:root:root .try-textarea { border-radius: var(--r-c); font-size: var(--fs-body); }
+:root:root:root .l-nav-dark :is(.l-nav-links a, .l-nav-signin):hover { color: #fff; background: rgba(255,255,255,.1); }
+
+/* ── Fixes ─────────────────────────────────────────────── */
+/* Ghost buttons never get an outline (the shared outline colour had boxed the mobile menu icon) */
+:root:root .btn-ghost, :root:root .btn-ghost:hover:not(:disabled), :root:root .btn-ghost:focus:not(:focus-visible) { border-color: transparent; }
+
+/* Landing header "Get Logia free": solid light button on the dark bar, in both themes */
+:root:root:root .l-nav-get { background: #f4f2f0 !important; color: #0d0d0f !important; border-color: transparent !important; }
+:root:root:root .l-nav-get:hover { background: #e4e1dc !important; }
+
+/* Greeting: two lines, like the landing headline: the plain phrase, then the name as the italic accent */
+:root:root:root .dash-hero-quiet .dash-hero-h { display: block; font-weight: 600; letter-spacing: -.045em; line-height: .98; }
+:root:root:root .dash-hero-quiet .dash-hero-h .hm-hi { display: block; font-size: .56em; font-weight: 500; letter-spacing: -.03em; line-height: 1.1; margin-bottom: .12em; color: rgba(27,26,25,.78); }
+:root:root:root .dash-hero-quiet .dash-hero-h em.serif { display: block; font-size: 1.22em; font-weight: 400; line-height: .95; letter-spacing: -.025em; -webkit-text-stroke: 0; }
+.dash-hero-quiet .dash-hero-lead { margin-top: 18px; font-size: 16px; font-weight: 500; color: rgba(27,26,25,.82); }
+
+/* Flashcards deck page: one centred column, no side panels */
+.pr-deckpage { grid-template-columns: minmax(0, 1fr); max-width: 760px; margin-inline: auto; gap: 20px; }
+.pr-deckpage .pr-side { position: static; flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 12px; }
+.pr-deckpage .pr-panel { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.pr-deckpage .pr-panel > h2 { display: none; }
+.pr-deckpage .pr-side > .pr-panel:first-child { flex: 1 1 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.pr-deckpage .pr-side > .pr-panel:first-child .flip-launch { flex: 1 1 260px; max-width: none; margin: 0; }
+.pr-deckpage .pr-side > .pr-panel:first-child > div { flex: 1 1 260px; display: flex; gap: 10px 14px; flex-wrap: wrap; align-items: center; }
+.pr-deckpage .pr-side > .pr-panel:first-child > div .btn-primary { width: auto !important; }
+.pr-deckpage .pr-side > .pr-panel:nth-child(2) { display: none; }
+.pr-deckpage .mm-seg { margin-bottom: 20px !important; }
+.pr-deckhead h1 { font-size: clamp(1.6rem, 3vw, 2.1rem) !important; font-weight: 700 !important; letter-spacing: -.035em !important; }
+
+/* Landing tabs and demo: hover is a solid darker white (grey tint in dark), selected a deeper grey */
+:root:root .pt-tabs button:hover:not(.on) { background: var(--btn-hover); color: var(--text); }
+:root:root .pt-tabs button.on { background: var(--tint-strong); box-shadow: none; }
+:root:root .pt-nav.on { background: var(--tint); box-shadow: none; }
+:root:root .landing .btn-primary:disabled, :root:root .try-actions .btn-primary:disabled { opacity: .45; }
+
+/* ── Landing demo window, dark theme: its chrome and sidebar had hard-coded light colours ── */
+html[data-theme="dark"] .pt-chrome { background: var(--surface-2); }
+html[data-theme="dark"] .pt-chrome i { background: var(--surface-3); }
+html[data-theme="dark"] .pt-side { background: var(--sidebar-bg); }
+html[data-theme="dark"] .pt-window { box-shadow: 0 0 0 1px var(--border-soft); }
+
+/* ── Welcome header: slim and wide. The greeting on the left, the next step on the right ── */
+.dash-hero-quiet { padding: 28px 36px; }
+.dash-hero-quiet .dash-hero-copy { max-width: none; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); column-gap: clamp(24px, 5vw, 80px); row-gap: 6px; align-items: center; }
+.dash-hero-quiet .dash-hero-copy > .dash-hero-h { grid-column: 1; grid-row: 1 / span 3; }
+.dash-hero-quiet .dash-hero-copy > :not(.dash-hero-h) { grid-column: 2; }
+.dash-hero-quiet .dash-hero-lead { margin: 0; font-size: 17px; }
+.dash-hero-quiet .dash-hero-p { margin: 0; max-width: 52ch; font-size: var(--fs-body); line-height: 1.5; }
+.dash-hero-quiet .l-actions { margin-top: 12px !important; }
+:root:root:root .dash-hero-quiet .dash-hero-h { font-size: clamp(2.2rem, 4.4vw, 3.6rem) !important; line-height: 1; }
+:root:root:root .dash-hero-quiet .dash-hero-h .hm-hi { display: inline; font-size: 1em; font-weight: 600; letter-spacing: -.045em; color: inherit; margin: 0; }
+:root:root:root .dash-hero-quiet .dash-hero-h em.serif { display: inline; font-size: 1.1em; line-height: 1; }
+@media (max-width: 900px) {
+  .dash-hero-quiet { padding: 22px 22px; }
+  .dash-hero-quiet .dash-hero-copy { grid-template-columns: 1fr; row-gap: 8px; }
+  .dash-hero-quiet .dash-hero-copy > .dash-hero-h, .dash-hero-quiet .dash-hero-copy > :not(.dash-hero-h) { grid-column: 1; grid-row: auto; }
+}
+
+/* ── Library, Discover and Timetable: the same flat surfaces, grey selection and radii ── */
+:root:root :is(.dc-tab[aria-selected="true"]) { background: var(--tint-strong); box-shadow: none; }
+:root:root .dc-tab { font-size: var(--fs-control); font-weight: 500; border-radius: var(--r-s); }
+:root:root .dc-tab[aria-selected="true"] { font-weight: 600; }
+:root:root :is(.dc-stream, .dc-spcard, .dc-about, .tm-view, .tm-grid, .tm-empty) { border: 1px solid var(--border-soft); box-shadow: none; border-radius: var(--r-card); }
+:root:root :is(.dc-stream, .dc-spcard):hover { border-color: var(--border); transform: none; }
+:root:root .dc-thumb { background: var(--tint); }
+:root:root .dc-live { border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0; }
+:root:root .dc-status { border-radius: 999px; font-weight: 500; letter-spacing: 0; background: var(--tint); }
+:root:root .tm-empty { border-style: solid; }
+:root:root .tm-tab { border-radius: 999px; border-color: var(--border); background: transparent; font-size: var(--fs-control); font-weight: 500; color: var(--muted); }
+:root:root .tm-tab:hover { background: var(--btn-hover); color: var(--text); }
+:root:root .tm-tab[aria-pressed="true"] { background: var(--tint-strong); color: var(--text); border-color: transparent; font-weight: 600; }
+:root:root .tm-head { background: transparent; }
+:root:root .tm-dayh { font-size: var(--fs-control); font-weight: 600; border-color: var(--border-soft); }
+:root:root .tm-dayh.today { color: var(--text); }
+:root:root .tm-col { border-color: var(--border-soft); }
+:root:root .tm-hint, :root:root .tm-total { font-size: var(--fs-control); }
+:root:root .shelf { gap: 28px 20px !important; }
+:root:root .shelf-link .book-cover { border-radius: var(--r-s); box-shadow: 0 0 0 1px var(--border-soft); }
+:root:root .shelf-title { font-size: var(--fs-body); font-weight: 600; }
+:root:root .shelf-meta { font-size: var(--fs-meta); color: var(--faint); }
+
+/* Greeting: the name sits on its own line */
+:root:root:root .dash-hero-quiet .dash-hero-h .hm-hi { display: block; }
+:root:root:root .dash-hero-quiet .dash-hero-h em.serif { display: block; margin-top: .04em; }
+
+/* Header spacing: even padding, a clear gap between greeting and next step, calm rhythm on the right */
+.dash-hero-quiet { padding: 36px 44px; }
+.dash-hero-quiet .dash-hero-copy { column-gap: clamp(32px, 6vw, 96px); row-gap: 0; align-items: center; }
+:root:root:root .dash-hero-quiet .dash-hero-h { line-height: 1.02; }
+:root:root:root .dash-hero-quiet .dash-hero-h .hm-hi { margin-bottom: .08em; }
+.dash-hero-quiet .dash-hero-lead { margin: 0 0 8px; font-size: 18px; line-height: 1.3; }
+.dash-hero-quiet .dash-hero-p { margin: 0; line-height: 1.55; }
+.dash-hero-quiet .l-actions { margin-top: 22px !important; gap: 10px; }
+@media (max-width: 900px) {
+  .dash-hero-quiet { padding: 26px 22px; }
+  .dash-hero-quiet .dash-hero-copy { row-gap: 14px; }
+  .dash-hero-quiet .dash-hero-lead { margin: 0 0 4px; }
+  .dash-hero-quiet .l-actions { margin-top: 14px !important; }
+}
+
+/* Header text sits in the vertical middle of the band */
+.dash-hero-quiet { display: flex; align-items: center; min-height: 0; }
+.dash-hero-quiet .dash-hero-copy { width: 100%; margin: 0; padding: 0; align-self: center; }
+.dash-hero-quiet .dash-hero-h { margin: 0 !important; }
+
+/* Hero next-step line: bold */
+:root:root:root .dash-hero-quiet .dash-hero-lead { font-weight: 700; color: #1b1a19; }

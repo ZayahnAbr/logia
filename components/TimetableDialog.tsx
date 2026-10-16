@@ -6,7 +6,7 @@ import { Dialog } from "@/components/Dialog";
 import { toast } from "@/components/Toaster";
 import { parseTimetable, saveTimetable } from "@/app/calendar-actions";
 import { extractFileText } from "@/lib/extractText";
-import { CLASS_TYPES, DAY_NAMES, TYPE_LABEL, type ClassType, type DraftClass } from "@/lib/timetable";
+import { CLASS_TYPES, DAY_NAMES, typeLabel, type ClassType, type DraftClass } from "@/lib/timetable";
 
 const MAX_W = 1800;
 function fileToJpeg(file: File) {
@@ -128,7 +128,7 @@ export function TimetableDialog({ spaceId, onClose, onSaved }: { spaceId?: strin
                   <input className="input" value={r.title} maxLength={120} onChange={(e) => patch(r.key, { title: e.target.value })} aria-label={`Title, class ${i + 1}`} /></label>
                 <label className="field"><span className="field-label">Type</span>
                   <select className="input" value={r.class_type} onChange={(e) => patch(r.key, { class_type: e.target.value as ClassType })}>
-                    {CLASS_TYPES.map((t) => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                    {CLASS_TYPES.map((t) => <option key={t} value={t}>{typeLabel(t)}</option>)}
                   </select></label>
                 <label className="field"><span className="field-label">Day</span>
                   <select className="input" value={r.weekday} onChange={(e) => patch(r.key, { weekday: +e.target.value })}>

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, CalendarClock, Loader2, CalendarDays, Clock, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, CalendarClock, Loader2, CalendarDays, Clock, ExternalLink, Video } from "lucide-react";
 import { Dialog } from "@/components/Dialog";
 import { toast } from "@/components/Toaster";
 import { listEvents, saveEvent, setEventDone, deleteEvent, listTimetable, type CalEvent, type CalInput } from "@/app/calendar-actions";
 import { TimetableDialog } from "@/components/TimetableDialog";
-import { TYPE_LABEL, classesOn, fmtMin, type TimetableClass } from "@/lib/timetable";
+import { typeLabel, classesOn, fmtMin, type TimetableClass } from "@/lib/timetable";
 import { listLmsItems, type LmsItem } from "@/app/lms-actions";
 import { platformLabel } from "@/lib/lmsPlatforms";
 
@@ -27,6 +27,15 @@ const KIND_LABEL: Record<CalEvent["kind"], string> = { test: "Test", assignment:
 const URGENCY: { id: CalEvent["urgency"]; label: string }[] = [
   { id: "low", label: "Low" }, { id: "medium", label: "Medium" }, { id: "high", label: "High" }, { id: "urgent", label: "Urgent" },
 ];
+const meetingLabel = (url: string) => {
+  try {
+    const h = new URL(url).hostname.toLowerCase();
+    if (h.includes("teams.microsoft") || h.includes("teams.live")) return "Microsoft Teams";
+    if (h.includes("zoom.")) return "Zoom";
+    if (h.includes("meet.google")) return "Google Meet";
+    return h.replace(/^www\./, "");
+  } catch { return "meeting"; }
+};
 const pad = (n: number) => String(n).padStart(2, "0");
 const ymd = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const sameDay = (a: Date, b: Date) => ymd(a) === ymd(b);
@@ -42,8 +51,8 @@ function relative(due: Date, allDay: boolean) {
   return `In ${days} days · ${due.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`;
 }
 
-type Draft = { id?: string; title: string; kind: CalEvent["kind"]; date: string; time: string; all_day: boolean; urgency: CalEvent["urgency"]; color: string; notes: string };
-const newDraft = (date = new Date()): Draft => ({ title: "", kind: "test", date: ymd(date), time: "09:00", all_day: false, urgency: "medium", color: COLORS[0], notes: "" });
+type Draft = { id?: string; title: string; kind: CalEvent["kind"]; date: string; time: string; all_day: boolean; urgency: CalEvent["urgency"]; color: string; notes: string; meeting_url: string };
+const newDraft = (date = new Date()): Draft => ({ title: "", kind: "test", date: ymd(date), time: "09:00", all_day: false, urgency: "medium", color: COLORS[0], notes: "", meeting_url: "" });
 
 // hideLms: the dashboard shows synced school items in their own "From your school" card instead.
 export function CalendarWidget({ spaceId, compact = false, hideLms = false }: { spaceId?: string; compact?: boolean; hideLms?: boolean }) {
@@ -91,18 +100,19 @@ export function CalendarWidget({ spaceId, compact = false, hideLms = false }: { 
   const openNew = (d?: Date) => setDraft(newDraft(d ?? selected ?? new Date()));
   const openEdit = (e: CalEvent) => {
     const d = new Date(e.due_at);
-    setDraft({ id: e.id, title: e.title, kind: e.kind, date: ymd(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, all_day: e.all_day, urgency: e.urgency, color: e.color, notes: e.notes });
+    setDraft({ id: e.id, title: e.title, kind: e.kind, date: ymd(d), time: `${pad(d.getHours())}:${pad(d.getMinutes())}`, all_day: e.all_day, urgency: e.urgency, color: e.color, notes: e.notes, meeting_url: e.meeting_url ?? "" });
   };
   const save = async () => {
     if (!draft) return;
     const [y, mo, da] = draft.date.split("-").map(Number);
     const [h, mi] = (draft.all_day ? "23:59" : draft.time || "09:00").split(":").map(Number);
     const due = new Date(y, mo - 1, da, h, mi);
-    const input: CalInput = { space_id: spaceId ?? null, title: draft.title, kind: draft.kind, due_at: due.toISOString(), all_day: draft.all_day, urgency: draft.urgency, color: draft.color, notes: draft.notes };
+    const input: CalInput = { space_id: spaceId ?? null, title: draft.title, kind: draft.kind, due_at: due.toISOString(), all_day: draft.all_day, urgency: draft.urgency, color: draft.color, notes: draft.notes, meeting_url: draft.meeting_url };
     setSaving(true);
     const res = await saveEvent(input, draft.id);
     setSaving(false);
     if ("error" in res && res.error) { toast(res.error, "error"); return; }
+    if ("warning" in res && res.warning) toast(res.warning, "error");
     setDraft(null); load();
   };
   const toggle = async (e: CalEvent) => {
@@ -153,6 +163,11 @@ export function CalendarWidget({ spaceId, compact = false, hideLms = false }: { 
             {KIND_LABEL[e.kind]} · {relative(due, e.all_day)}
           </span>
         </button>
+        {e.meeting_url && (
+          <a className="btn btn-sm" href={e.meeting_url} target="_blank" rel="noopener noreferrer" aria-label={`Join ${e.title} (${meetingLabel(e.meeting_url)}), opens in a new tab`}>
+            <Video size={13} aria-hidden="true" /> Join
+          </a>
+        )}
       </li>
     );
   };
@@ -211,7 +226,7 @@ export function CalendarWidget({ spaceId, compact = false, hideLms = false }: { 
               <li key={`tt:${c.id}`} className="cal-item tt-cal">
                 <div className="cal-item-main">
                   <span className="cal-item-title">{c.title}</span>
-                  <span className="cal-item-meta"><span className="tt-badge">Class</span>{TYPE_LABEL[c.class_type]} · {fmtMin(c.start_min)} to {fmtMin(c.end_min)}{c.venue ? ` · ${c.venue}` : ""}</span>
+                  <span className="cal-item-meta"><span className="tt-badge">Class</span>{typeLabel(c.class_type)} · {fmtMin(c.start_min)} to {fmtMin(c.end_min)}{c.venue ? ` · ${c.venue}` : ""}</span>
                 </div>
               </li>
             ))}
@@ -249,6 +264,9 @@ export function CalendarWidget({ spaceId, compact = false, hideLms = false }: { 
                 {COLORS.map((c) => <button key={c} type="button" className={`cal-color${draft.color === c ? " on" : ""}`} style={{ background: c }} aria-label={`Colour ${c}`} aria-pressed={draft.color === c} onClick={() => setDraft({ ...draft, color: c })} />)}
               </div>
             </fieldset>
+            <label className="field"><span className="field-label">Meeting link <span className="field-hint">(optional: Teams, Zoom or Meet)</span></span>
+              <input className="input" type="text" inputMode="url" maxLength={2000} placeholder="Paste the Teams link or the whole invite" value={draft.meeting_url} onChange={(e) => setDraft({ ...draft, meeting_url: e.target.value })} />
+            </label>
             <label className="field"><span className="field-label">Notes <span className="field-hint">(optional)</span></span>
               <textarea className="input" rows={2} maxLength={1000} placeholder="Chapters, venue, what to bring…" value={draft.notes} onChange={(e) => setDraft({ ...draft, notes: e.target.value })} />
             </label>

@@ -163,7 +163,20 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
     router.refresh();
   };
 
-  const openNote = (note: Note) => {
+  // Opening a note adds a browser history entry (?note=<id>), so the browser's and the phone's own back
+  // button return to the notes list instead of leaving the page. Switching notes replaces that entry.
+  const pushedRef = useRef(false);
+  const openNote = (note: Note, fromUrl = false) => {
+    if (!fromUrl) {
+      try {
+        const u = new URL(window.location.href);
+        if (u.searchParams.get("note") !== note.id) {
+          u.searchParams.set("note", note.id);
+          window.history[pushedRef.current ? "replaceState" : "pushState"](null, "", u.pathname + u.search + u.hash);
+          pushedRef.current = true;
+        }
+      } catch { /* history unavailable */ }
+    }
     void flush();
     setActive(note); setTitle(note.title); setBody(note.body); setSaved(true);
     setRecallPrompts(null); setRecallError(null); setGenMsg(null);
@@ -195,6 +208,15 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
   }, [flush]);
 
   const closeNote = async () => { await exitFull(); await flush(); setActive(null); router.refresh(); };
+  // Back out of a note to the general notes page (the shelf of notebooks), and drop ?note= from the URL
+  // so a refresh doesn't reopen the note.
+  const backToNotes = async () => {
+    setView("shelf"); setQ("");
+    // We added a history entry when the note opened: go back through it so Forward/Back stay sensible.
+    if (pushedRef.current) { window.history.back(); return; }
+    try { const u = new URL(window.location.href); if (u.searchParams.has("note")) { u.searchParams.delete("note"); window.history.replaceState(null, "", u.pathname + u.search + u.hash); } } catch { /* ignore */ }
+    await closeNote();
+  };
 
   // Full screen: the browser's Fullscreen API where available, plus a CSS fallback (iPhone Safari).
   const shellRef = useRef<HTMLDivElement>(null);
@@ -252,12 +274,29 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
   useEffect(() => () => clearTimeout(saveTimer.current), []);
 
   // Deep link: /notes?note=<id> opens that note (used by shared links).
+  // Re-checks when the notes list changes, so a note that was only just created (e.g. from a lecture
+  // transcript) still opens if the first render had a stale list.
+  const deepLinked = useRef(false);
+  // Browser/phone Back and Forward: no ?note= means the list, a note id means that note.
+  const popRef = useRef<() => void>(() => {});
+  popRef.current = () => {
+    const id = new URLSearchParams(window.location.search).get("note");
+    if (!id) { pushedRef.current = false; setView("shelf"); setQ(""); void closeNote(); return; }
+    const n = notes.find((x) => x.id === id);
+    if (n) openNote(n, true);
+  };
   useEffect(() => {
+    const on = () => popRef.current();
+    window.addEventListener("popstate", on);
+    return () => window.removeEventListener("popstate", on);
+  }, []);
+  useEffect(() => {
+    if (deepLinked.current) return;
     const id = new URLSearchParams(window.location.search).get("note");
     const n = id && notes.find((x) => x.id === id);
-    if (n) openNote(n);
+    if (n) { deepLinked.current = true; openNote(n, true); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [notes]);
 
   const plain = (html: string) => {
     const d = document.createElement("div"); d.innerHTML = html.replace(/<\/(p|h[1-6]|li)>/g, "\n");
@@ -320,7 +359,7 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
       <div ref={shellRef} className={`doc-shell${full ? " is-full" : ""}`}>
         {/* Toolbar */}
         <div className="doc-bar no-print">
-          <button className="btn btn-ghost" onClick={closeNote} style={{ height: 34 }}><X size={15} /> Close</button>
+          <button className="btn" onClick={backToNotes} style={{ height: 34 }}><ArrowLeft size={15} aria-hidden="true" /> All notes</button>
           <div style={{ flex: 1 }} />
           <span style={{ fontSize: 12, color: "var(--faint)" }}>{saved ? "Saved" : "Saving…"}</span>
           <ExportButtons filename={title} markdown={() => htmlToMarkdown(title, textBody)} />
@@ -485,12 +524,21 @@ export function NotesBoard({ spaceId, userId, notes, notebooks, notebooksReady, 
         <p className="nbk-warn" role="note">Notebooks need one database update before they work. Until then your notes show as loose notes. Run migration 26 in Supabase.</p>
       )}
 
-      {view !== "shelf" && (
+      {(view !== "shelf" || searching) && (
         <div className="nbk-crumb">
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setView("shelf"); setQ(""); }}><ArrowLeft size={14} aria-hidden="true" /> All notebooks</button>
-          <h2 className="nbk-crumb-t">{viewBook?.icon && <span aria-hidden="true">{viewBook.icon} </span>}{viewName}</h2>
-          <span className="nbk-crumb-n">{countIn(view === "loose" ? null : view)} note{countIn(view === "loose" ? null : view) === 1 ? "" : "s"}</span>
-          {viewBook && <button type="button" className="btn btn-sm" onClick={() => setDialog({ mode: "edit", id: viewBook.id })}><Pencil size={13} aria-hidden="true" /> Edit notebook</button>}
+          <button type="button" className="btn btn-sm" onClick={() => { setView("shelf"); setQ(""); }}><ArrowLeft size={14} aria-hidden="true" /> Back to notebooks</button>
+          {searching ? (
+            <>
+              <h2 className="nbk-crumb-t">Search results</h2>
+              <span className="nbk-crumb-n">{filtered.length} note{filtered.length === 1 ? "" : "s"}</span>
+            </>
+          ) : (
+            <>
+              <h2 className="nbk-crumb-t">{viewBook?.icon && <span aria-hidden="true">{viewBook.icon} </span>}{viewName}</h2>
+              <span className="nbk-crumb-n">{countIn(view === "loose" ? null : view)} note{countIn(view === "loose" ? null : view) === 1 ? "" : "s"}</span>
+              {viewBook && <button type="button" className="btn btn-sm" onClick={() => setDialog({ mode: "edit", id: viewBook.id })}><Pencil size={13} aria-hidden="true" /> Edit notebook</button>}
+            </>
+          )}
         </div>
       )}
 

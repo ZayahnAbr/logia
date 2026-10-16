@@ -132,17 +132,16 @@ export type RecallResult = {
   modelAnswer: string;
 };
 
-const RECALL_SYSTEM = `You check a student's recall of a flashcard like a strict but fair university marker. Paraphrases count: judge meaning, not exact wording.
+const RECALL_SYSTEM = `You check a student's recall of a flashcard like a strict but fair university marker. Paraphrases count: judge meaning, not exact wording. Never be generous: credit only what the student actually wrote.
 SPELLING depends on ANSWER SOURCE (given below):
-- typed or handwritten: KEY TERMS must be spelled correctly (names, technical/subject terms, keywords from the model answer). A misspelled key term does NOT count as covered: put it in "incorrect" as 'Spelling: "<what they wrote>" → <correct spelling>' and lower the score. Ignore small typos in ordinary everyday words.
+- typed or handwritten: KEY TERMS must be spelled correctly (names, technical/subject terms, keywords from the model answer). A misspelled key term does NOT count as covered: put it in "incorrect" as 'Spelling: "<what they wrote>" → <correct spelling>' and mark that idea not covered. Ignore small typos in ordinary everyday words.
 - spoken: the text is a speech transcript, so never penalise spelling.
-Steps: identify the 2-6 key ideas a complete answer needs (from the MODEL ANSWER; if it is empty, write a concise, accurate model answer first). Then compare the STUDENT ANSWER against them.
+Steps: identify the 2-6 key ideas a complete answer needs (from the MODEL ANSWER; if it is empty, write a concise, accurate model answer first). For EACH key idea decide whether the student's words actually state it.
+An idea is covered ONLY if you can copy, exactly as written, the words from the STUDENT ANSWER that express it into "evidence". The evidence must itself state the idea. Never infer, assume or give the benefit of the doubt. A fragment, a single unclear word, a partial or misspelled word, gibberish, a greeting, or text that merely sounds like the answer is NOT evidence: mark covered false with empty evidence. If the student says they don't know or answers off-topic, nothing is covered.
 Return ONLY valid JSON in exactly this shape:
-{ "model_answer": "2-4 sentence complete answer", "score": 0-100, "verdict": "strong" | "partial" | "weak",
-  "included": ["key idea the student covered, 2-8 words", ...], "missed": ["key idea they left out, 2-8 words", ...],
-  "incorrect": ["anything they stated that is wrong, 2-10 words", ...], "tip": "one short sentence on what to focus on next" }
-Rules: score = share of key ideas correctly covered, reduced for wrong statements. strong ≥ 80, partial 50-79, weak < 50.
-If the student says they don't know or answers off-topic, score 0 and list every key idea as missed.`;
+{ "model_answer": "2-4 sentence complete answer",
+  "ideas": [ { "idea": "key idea, 2-8 words", "covered": true or false, "evidence": "exact words copied from the student answer, or empty" } ],
+  "incorrect": ["anything they stated that is wrong, 2-10 words", ...], "tip": "one short sentence on what to focus on next" }`;
 
 export async function checkRecall(spaceId: string, deckId: string, cardId: string, studentAnswer: string, source: "typed" | "handwritten" | "spoken" = "typed") {
   const answer = studentAnswer.trim();
@@ -158,12 +157,28 @@ export async function checkRecall(spaceId: string, deckId: string, cardId: strin
       900,
     );
     const list = (v: unknown) => (Array.isArray(v) ? v.map((x) => String(x).slice(0, 120)).filter(Boolean).slice(0, 8) : []);
-    const score = Math.max(0, Math.min(100, Math.round(Number(parsed.score) || 0)));
+    // Marked here, not by the model: an idea only counts when the quoted evidence really appears in the
+    // student's answer. This stops confident but unsupported "100%" results for vague or mistyped answers.
+    const norm = (t: string) => t.toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    const hay = ` ${norm(answer)} `;
+    const rawIdeas: { idea: string; covered: boolean; evidence: string }[] = (Array.isArray(parsed.ideas) ? parsed.ideas : []).slice(0, 8).map((x: any) => ({
+      idea: String(x?.idea ?? "").slice(0, 120), covered: x?.covered === true, evidence: String(x?.evidence ?? ""),
+    })).filter((x: { idea: string }) => x.idea);
+    const ideas = rawIdeas.map((x) => {
+      const ev = norm(x.evidence);
+      return { ...x, covered: x.covered && ev.length >= 3 && hay.includes(` ${ev} `) };
+    });
+    const letters = (answer.match(/\p{L}/gu) ?? []).length;
+    const incorrect = list(parsed.incorrect);
+    const coveredCount = ideas.filter((x) => x.covered).length;
+    // Share of key ideas shown, less 15 points per wrong statement. An answer with almost no letters scores 0.
+    let score = ideas.length && letters >= 3 ? Math.round((coveredCount / ideas.length) * 100) - incorrect.length * 15 : 0;
+    score = Math.max(0, Math.min(100, score));
     const modelAnswer = String(card.answer || parsed.model_answer || "").slice(0, 2000);
     const result: RecallResult = {
       score,
       verdict: score >= 80 ? "strong" : score >= 50 ? "partial" : "weak",
-      included: list(parsed.included), missed: list(parsed.missed), incorrect: list(parsed.incorrect),
+      included: ideas.filter((x) => x.covered).map((x) => x.idea), missed: ideas.filter((x) => !x.covered).map((x) => x.idea), incorrect,
       tip: String(parsed.tip ?? "").slice(0, 240),
       modelAnswer,
     };

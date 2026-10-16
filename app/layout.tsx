@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import "./refresh.css";
+import "./polish.css";
+import "./flashcards.css";
 import { Toaster } from "@/components/Toaster";
 import { RoomProvider } from "@/components/RoomProvider";
 import { RoomDock } from "@/components/RoomDock";

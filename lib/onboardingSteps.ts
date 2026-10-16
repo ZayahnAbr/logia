@@ -9,6 +9,7 @@ export type TourStep = {
   closes?: boolean;
   click?: boolean;
   inSidebar?: boolean;
+  reveal?: boolean; // the element is hidden until hover: show it while it is spotlighted
 };
 
 export const onboardingSteps: TourStep[] = [
@@ -33,8 +34,8 @@ export const onboardingSteps: TourStep[] = [
   { element: '#cw-tab-text', click: true, popover: { title: "Text and headings", description: "Add a free text block for a heading, a goal or a reminder. Type right on the page." } },
   { element: '#cw-tab-sticky', click: true, popover: { title: "Sticky notes", description: "A paper note you can type on, in the colour you choose. Drag it anywhere on the page." } },
   { element: '#cw-tab-sticker', click: true, closes: true, popover: { title: "Stickers", description: "Cut a person or object out of a photo, or search for a sticker, and place it on your space." } },
-  { element: '.st-text', popover: { title: "Edit a heading", description: "Click the text to change it. Use the toolbar that appears below it to switch between heading and body size, align it, change its colour or remove it." } },
-  { element: '.st-text .st-resize', popover: { title: "Resize with the corner", description: "Drag the round handle at the corner to make a sticker bigger or smaller. The text grows with it." } },
+  { element: '.st-text', popover: { title: "Edit a heading", description: "Click the text to change it. Use the toolbar that appears above it to switch between heading and body size, align it, change its colour or remove it." } },
+  { element: '.st-resize.is-text-resize, .st-text .st-resize', reveal: true, popover: { title: "Resize with the corner", description: "Drag the round handle at the corner to make a sticker bigger or smaller. The text grows with it." } },
   { element: '.st-sticky', popover: { title: "Move a sticky note", description: "Drag a sticky note by its top edge. Click it to type, and use the dots to change its colour." } },
 
   { element: '[data-tour="settings"]', inSidebar: true, popover: { title: "Settings", description: "Change your theme, profile, connected school sites and plan here. You can run this tour again from Settings." } },

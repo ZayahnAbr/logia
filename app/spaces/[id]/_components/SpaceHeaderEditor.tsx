@@ -9,8 +9,8 @@ import { dropProps } from "@/lib/dropProps";
 import { COVER_COLORS } from "@/lib/coverColors";
 import { createClient } from "@/lib/supabase/client";
 import { uploadBlocked, checkUploaded } from "@/lib/uploadSafety";
-import { saveSpaceHeader } from "@/app/space-header-actions";
-import { HEADER_BUCKET, HEADER_SOURCE_MAX_BYTES, HEADER_TYPES, headerLook, type HeaderKind } from "@/lib/spaceHeader";
+import { saveSpaceHeader, saveSpaceHeaderStyle } from "@/app/space-header-actions";
+import { HEADER_BUCKET, HEADER_SOURCE_MAX_BYTES, HEADER_TYPES, headerLook, OVERLAY_MAX, type HeaderKind, type HeaderStyle } from "@/lib/spaceHeader";
 import { HeaderCropper, type CropHandle } from "./HeaderCropper";
 
 type Tab = "default" | "color" | "image";
@@ -48,8 +48,8 @@ function HeaderClone({ look, size, texts, scale }: { look: ReturnType<typeof hea
   );
 }
 
-export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
-  spaceId: string; kind: HeaderKind; color: string | null; imageUrl: string | null; texts: { eyebrow: string; name: string; sub: string };
+export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, style, texts }: {
+  spaceId: string; kind: HeaderKind; color: string | null; imageUrl: string | null; style: HeaderStyle; texts: { eyebrow: string; name: string; sub: string };
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -57,6 +57,8 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
   const [size, setSize] = useState({ w: 1000, h: 200 });
   const [draftColor, setDraftColor] = useState(color ?? COVER_COLORS[0]);
   const [file, setFile] = useState<File | null>(null);
+  const [overlay, setOverlay] = useState<number | null>(style.overlay);
+  const [tone, setTone] = useState<"light" | "dark" | null>(style.tone);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const crop = useRef<CropHandle | null>(null);
@@ -68,7 +70,7 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
   const openIt = () => {
     const el = openerRef.current?.closest<HTMLElement>("[data-sh-header]");
     if (el) { const r = el.getBoundingClientRect(); if (r.width > 0 && r.height > 0) setSize({ w: Math.round(r.width), h: Math.round(r.height) }); }
-    setTab(kind); setDraftColor(color ?? COVER_COLORS[0]); setFile(null); setErr(null); setOpen(true);
+    setTab(kind); setDraftColor(color ?? COVER_COLORS[0]); setOverlay(style.overlay); setTone(style.tone); setFile(null); setErr(null); setOpen(true);
   };
   const close = useCallback(() => { if (!busy) setOpen(false); }, [busy]);
   const onCropError = useCallback((m: string) => { setErr(m); setFile(null); }, []);
@@ -90,7 +92,7 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
   };
 
   const saveDefault = async () => { setBusy(true); setErr(null); await finish(await saveSpaceHeader(spaceId, "default", null, null), "Header set back to the default."); };
-  const saveColor = async () => { setBusy(true); setErr(null); await finish(await saveSpaceHeader(spaceId, "color", draftColor, null), "Header colour saved."); };
+  const saveColor = async () => { setBusy(true); setErr(null); await finish(await saveSpaceHeader(spaceId, "color", draftColor, null, draft), "Header colour saved."); };
   const saveImage = async () => {
     if (!file) return;
     setBusy(true); setErr(null);
@@ -107,7 +109,7 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
       return;
     }
     const checked = await checkUploaded(HEADER_BUCKET, path, "image");
-    await finish(await saveSpaceHeader(spaceId, "image", null, path), checked.message ?? "Header image saved.");
+    await finish(await saveSpaceHeader(spaceId, "image", null, path, draft), checked.message ?? "Header image saved.");
   };
 
   const onTabKey = (e: React.KeyboardEvent) => {
@@ -118,8 +120,31 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
     requestAnimationFrame(() => document.getElementById(`sh-tab-${TABS[n].id}`)?.focus());
   };
 
-  const colorLook = headerLook("color", draftColor, null);
-  const overlayLook = { className: "sh-band sh-image sh-tone-light", style: { ["--sh-img" as string]: "none" } as Record<string, string>, mesh: false };
+  const draft: HeaderStyle = { overlay, tone };
+  const saveLook = async () => { setBusy(true); setErr(null); await finish(await saveSpaceHeaderStyle(spaceId, draft), "Header look saved."); };
+  const colorLook = headerLook("color", draftColor, null, draft);
+  // The crop frame already shows the picture underneath, so the clone draws only the overlay and text.
+  const imgBase = headerLook("image", null, "x", draft);
+  const overlayLook = { ...imgBase, style: { ...imgBase.style, ["--sh-img" as string]: "none" } as Record<string, string> };
+  const looksChanged = overlay !== style.overlay || tone !== style.tone;
+  const lookControls = (
+    <div className="sh-look">
+      <div className="sh-look-row">
+        <label htmlFor="sh-overlay" className="sh-look-label">Dark overlay</label>
+        <input id="sh-overlay" type="range" className="sh-zoom" min={0} max={OVERLAY_MAX} step={5} value={overlay ?? 0}
+          aria-valuetext={overlay === null ? "Automatic" : overlay === 0 ? "None" : `${overlay} percent`} onChange={(e) => setOverlay(Number(e.target.value))} />
+        <span className="sh-look-val" aria-hidden="true">{overlay === null ? "Auto" : overlay === 0 ? "None" : `${overlay}%`}</span>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={overlay === null} onClick={() => setOverlay(null)}>Auto</button>
+      </div>
+      <div className="sh-look-row" role="group" aria-label="Text colour">
+        <span className="sh-look-label">Text</span>
+        <div className="sh-seg">
+          <button type="button" className="sh-seg-b" aria-pressed={tone !== "dark"} onClick={() => setTone("light")}>Light</button>
+          <button type="button" className="sh-seg-b" aria-pressed={tone === "dark"} onClick={() => setTone("dark")}>Dark</button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -154,7 +179,8 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
                     <span aria-hidden="true">Custom</span>
                   </label>
                 </div>
-                <p className="sh-help">Text switches between dark and light so it stays easy to read on any colour.</p>
+                {lookControls}
+                <p className="sh-help">Overlay darkens the colour behind the text. Choose None for the pure colour, and Dark text if it is pale.</p>
                 <div className="sh-actions">
                   <button type="button" className="btn" disabled={busy || kind === "default"} onClick={saveDefault}>Back to default</button>
                   <button type="button" className="btn btn-primary" disabled={busy} onClick={saveColor}>{busy ? "Saving..." : "Save colour"}</button>
@@ -168,7 +194,7 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
                     overlay={(fw) => <HeaderClone look={overlayLook} size={size} texts={texts} scale={fw / size.w} />} />
                 ) : (
                   <>
-                    {kind === "image" && imageUrl && <Preview look={headerLook("image", null, imageUrl)} size={size} texts={texts} />}
+                    {kind === "image" && imageUrl && <Preview look={headerLook("image", null, imageUrl, draft)} size={size} texts={texts} />}
                     <div className="sh-drop" {...dropProps((f) => pick(f))}>
                       <ImagePlus size={22} aria-hidden="true" />
                       <p>Drop a picture here, or</p>
@@ -179,10 +205,12 @@ export function SpaceHeaderEditor({ spaceId, kind, color, imageUrl, texts }: {
                 )}
                 <input ref={fileInput} type="file" accept={HEADER_TYPES.join(",")} className="sr-only" tabIndex={-1} aria-hidden="true"
                   onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
-                <p className="sh-help">A dark overlay is added behind the text so it stays readable on any picture.</p>
+                {(file || kind === "image") && lookControls}
+                <p className="sh-help">Automatic adds a dark overlay behind the text so it stays readable on any picture. Slide to None to show the picture as it is.</p>
                 <div className="sh-actions">
                   {kind !== "default" && <button type="button" className="btn" disabled={busy} onClick={saveDefault}>{kind === "image" ? "Remove image" : "Back to default"}</button>}
                   {file && <button type="button" className="btn" disabled={busy} onClick={() => { setFile(null); fileInput.current?.click(); }}>Choose another</button>}
+                  {!file && kind === "image" && <button type="button" className="btn btn-primary" disabled={busy || !looksChanged} onClick={saveLook}>{busy ? "Saving..." : "Save look"}</button>}
                   <button type="button" className="btn btn-primary" disabled={busy || !file} onClick={saveImage}>{busy ? "Saving..." : "Save image"}</button>
                 </div>
               </>

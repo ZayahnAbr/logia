@@ -6,7 +6,6 @@ import { AuthShell } from "@/components/AuthShell";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
-import { GoogleSignInButton } from "@/components/GoogleSignInButton";
 import { nextFromLocation, withNext } from "@/lib/safeNext";
 
 export default function SignInPage() {
@@ -55,8 +54,6 @@ export default function SignInPage() {
           </button>
         </form>
 
-        <div className="auth-divider">or</div>
-        <GoogleSignInButton />
 
         <div className="auth-alt">
           Don&apos;t have an account?{" "}

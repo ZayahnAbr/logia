@@ -29,6 +29,11 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
   const [heights, setHeights] = useState<Record<string, number>>({});
   const [focusedTextId, setFocusedTextId] = useState<string | null>(null);
   const [textRects, setTextRects] = useState<Record<string, { width: number; height: number }>>({});
+  // How far each text box may overhang the container on each side: the empty part of the box, i.e. its
+  // width minus the width of the text actually in it (depends on alignment). Without this a box that was
+  // resized wider than its text stops the text short of the edge, as if the page ended there.
+  const [slack, setSlack] = useState<Record<string, { l: number; r: number }>>({});
+  const measureCanvas = useRef<HTMLCanvasElement | null>(null);
   const [local, setLocal] = useState<Record<string, StickerPos>>({});
   const localRef = useRef(local);
   localRef.current = local;
@@ -79,10 +84,48 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     return () => ro.disconnect();
   }, [list, mobile]);
 
+  const measureSlack = useCallback(() => {
+    const el = root.current;
+    if (!el) return;
+    const ctx = (measureCanvas.current ??= document.createElement("canvas")).getContext("2d");
+    if (!ctx) return;
+    const next: Record<string, { l: number; r: number }> = {};
+    el.querySelectorAll<HTMLElement>(".st-text[data-sid]").forEach((n) => {
+      const ta = n.querySelector<HTMLTextAreaElement>("textarea.cw-text");
+      const id = n.dataset.sid;
+      if (!ta || !id) return;
+      const cs = getComputedStyle(ta);
+      ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const pad = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+      const widest = Math.max(0, ...ta.value.split(/\r?\n/).map((line) => ctx.measureText(line).width));
+      const ink = Math.max(60, Math.min(widest, ta.clientWidth - pad) + pad + 12);
+      const empty = Math.max(0, Math.floor(n.offsetWidth - ink));
+      const align = cs.textAlign;
+      next[id] = align === "right" || align === "end" ? { l: empty, r: 0 } : align === "center" ? { l: Math.floor(empty / 2), r: Math.floor(empty / 2) } : { l: 0, r: empty };
+    });
+    setSlack((cur) => {
+      const keys = Object.keys(next);
+      return keys.length === Object.keys(cur).length && keys.every((k) => cur[k]?.l === next[k].l && cur[k]?.r === next[k].r) ? cur : next;
+    });
+  }, []);
+
+  // Re-measure while typing or changing alignment (clicks on the toolbar), and on mount.
+  useEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    let raf = 0;
+    const later = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(measureSlack); };
+    el.addEventListener("input", later);
+    el.addEventListener("click", later);
+    later();
+    return () => { cancelAnimationFrame(raf); el.removeEventListener("input", later); el.removeEventListener("click", later); };
+  }, [list, mobile, measureSlack]);
+
   useEffect(() => {
     const el = root.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
+      measureSlack();
       setTextRects((cur) => {
         const next = { ...cur };
         let changed = false;
@@ -99,7 +142,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     });
     el.querySelectorAll<HTMLElement>("[data-sid] .cw-text").forEach((text) => ro.observe(text));
     return () => ro.disconnect();
-  }, [list, mobile]);
+  }, [list, mobile, measureSlack]);
 
   const merged = useCallback((s: Sticker): StickerPos => ({ ...(s.data as StickerPos), ...local[s.id] }), [local]);
 
@@ -119,12 +162,13 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
       let left: number, top: number;
       if (typeof p.x === "number" && typeof p.y === "number") { left = p.x * W; top = p.y; }
       else { left = Math.max(MARGIN, (W - w) / 2); top = cursor; cursor += h + GAP; }
-      left = clamp(left, 0, Math.max(0, W - w));
+      const sl = slack[s.id] ?? { l: 0, r: 0 };
+      left = clamp(left, -sl.l, Math.max(-sl.l, W - w + sl.r));
       top = clamp(top, 0, STICKER_MAX_Y);
       out[s.id] = { left, top, w, z: p.z ?? i };
     });
     return out;
-  }, [list, merged, W, heights]);
+  }, [list, merged, W, heights, slack]);
 
   const rank = useMemo(() => {
     const order = [...list].sort((a, b) => (geo[a.id]?.z ?? 0) - (geo[b.id]?.z ?? 0));
@@ -151,7 +195,8 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
     const g = geo[id];
     if (!g || !W) return;
     const w = clamp(patch.w ?? g.w, STICKER_MIN_W, Math.min(STICKER_MAX_W, W));
-    const left = clamp(patch.left ?? g.left, 0, Math.max(0, W - w));
+    const sl = slack[id] ?? { l: 0, r: 0 };
+    const left = clamp(patch.left ?? g.left, -sl.l, Math.max(-sl.l, W - w + sl.r));
     const top = clamp(patch.top ?? g.top, 0, STICKER_MAX_Y);
     geoRef.current = { ...geoRef.current, [id]: { ...g, left, top, w } };
     setLocal((cur) => ({ ...cur, [id]: { ...cur[id], x: left / W, y: top, w, z: zRef.current[id] ?? g.z } }));
@@ -313,7 +358,7 @@ export function StickerLayer({ spaceId, stickers, colors, children }: { spaceId:
             if (!g) return null;
             return (
               <button key={s.id} type="button" className={`st-resize${s.kind === "text" ? " is-text-resize" : ""}${focusedTextId === s.id ? " is-focused" : ""}${active?.id === s.id ? " is-active" : ""}`} aria-label="Resize. Drag, or focus the sticker and press plus or minus" title="Drag to resize"
-                style={{ left: g.left + g.w - rightInset - size, top: g.top + contentHeight - inset - size, right: "auto", bottom: "auto", width: size, height: size }}
+                style={{ left: Math.min(g.left + g.w - rightInset - size, Math.max(0, W - size)), top: g.top + contentHeight - inset - size, right: "auto", bottom: "auto", width: size, height: size }}
                 onPointerDown={(e) => begin(e, s.id, "resize")}><MoveDiagonal2 size={14} aria-hidden="true" /></button>
             );
           })}
