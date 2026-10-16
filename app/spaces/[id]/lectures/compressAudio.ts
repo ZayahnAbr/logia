@@ -3,18 +3,28 @@
 // Compress audio to 16kHz mono MP3 in-browser using lamejs
 export async function compressAudioFile(file: File): Promise<File> {
   const arrayBuffer = await file.arrayBuffer();
-  const audioContext = new AudioContext({ sampleRate: 16000 });
+  // Older iPhones (Safari before 14.5) only have webkitAudioContext and reject a custom sample rate.
+  // Fall back to the device rate: the code below resamples to 16kHz itself.
+  const Ctx: typeof AudioContext = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) throw new Error("This browser can't prepare recordings. Try Safari or Chrome.");
+  let audioContext: AudioContext;
+  try { audioContext = new Ctx({ sampleRate: 16000 }); } catch { audioContext = new Ctx(); }
   // Video files work too: the browser decodes the sound track and the picture is discarded,
   // so only the small audio file is ever uploaded.
   let audioBuffer: AudioBuffer;
   try {
-    audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+    // Safari's decodeAudioData is callback-based on older versions; wrap it so both forms work.
+    audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
+      const p = audioContext.decodeAudioData(arrayBuffer, resolve, reject);
+      if (p && typeof p.then === "function") p.then(resolve, reject);
+    });
   } catch {
     const isVideo = file.type.startsWith("video/") || /\.(mp4|mov|mkv|avi|webm|m4v)$/i.test(file.name);
     throw new Error(isVideo
       ? "This browser could not read the sound in that video. Try an MP4 or WebM recording, or save the audio on its own first."
       : "That file could not be read as a recording. Try an MP3, M4A, WAV or MP4 file.");
   }
+  void audioContext.close().catch(() => {}); // iPhones allow only a few open audio contexts
   if (!audioBuffer.length) throw new Error("That recording has no sound in it.");
 
   // mix down to mono at 16kHz

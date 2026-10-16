@@ -29,7 +29,7 @@ function FileDrop({ label, hint, icon: Icon, file, onFile, disabled }: {
       <span className="pp-drop-t">{label}</span>
       <span className="pp-drop-h">{file ? file.name : hint}</span>
       {!file && <span className="pp-drop-cta">Choose file</span>}
-      <input type="file" accept=".pdf,.docx,.txt,.md" className="sr-only" disabled={disabled}
+      <input type="file" accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown" className="sr-only" disabled={disabled}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); }} />
     </label>
   );

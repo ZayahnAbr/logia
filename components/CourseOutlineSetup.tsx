@@ -102,7 +102,7 @@ function OutlineDialog({ spaceId, files, courseId, onClose }: { spaceId: string;
           ) : (
             <>
               <label className="btn btn-primary co-upload" htmlFor={`${uid}-f`}><Upload size={14} aria-hidden="true" /> Upload a PDF, Word, PowerPoint or text file</label>
-              <input id={`${uid}-f`} className="sr-only" type="file" accept=".pdf,.docx,.pptx,.txt,.md" onChange={(e) => { fromUpload(e.target.files?.[0]); e.target.value = ""; }} />
+              <input id={`${uid}-f`} className="sr-only" type="file" accept=".pdf,.docx,.pptx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/markdown" onChange={(e) => { fromUpload(e.target.files?.[0]); e.target.value = ""; }} />
               <p className="co-hint">This file is read on your device and is not added to Files. Scans and photos aren&rsquo;t supported here; open them in Files and use Extract text first.</p>
               {files.some((f) => READABLE.test(f.name)) && (
                 <>

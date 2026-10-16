@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Download, Copy, Check, Loader2 } from "lucide-react";
 import { extractFileText } from "@/lib/extractText";
+import { compressAudioFile } from "@/app/spaces/[id]/lectures/compressAudio";
 import { tryGenerateFromText, tryTranscribeAudio, tryExportDocx, type TryResult } from "@/app/try-actions";
 import { Dialog } from "@/components/Dialog";
 import type { Block } from "@/lib/gdocBlocks";
@@ -120,8 +121,13 @@ export default function TryLogia() {
     reset();
     setBusy("Listening to your clip…");
     try {
-      const base64 = await fileToBase64(avFile);
-      const res = await tryTranscribeAudio({ base64, mime: avFile.type, filename: avFile.name });
+      // Phone recordings are often 5 to 15 MB, more than a server request can carry on the live site.
+      // Shrink to speech-quality MP3 in the browser first (about 0.25 MB a minute).
+      let send: File = avFile;
+      try { send = await compressAudioFile(avFile); } catch { /* fall back to the original */ }
+      if (send.size > 3.5 * 1024 * 1024) { setError("That clip is too long for the demo. Try one under about 12 minutes."); setBusy(null); return; }
+      const base64 = await fileToBase64(send);
+      const res = await tryTranscribeAudio({ base64, mime: send.type, filename: send.name });
       if ("error" in res) setError(res.error);
       else setResult({ kind: "transcript", transcript: res.transcript });
     } catch {

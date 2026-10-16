@@ -1,4 +1,5 @@
 "use client";
+import { loadPdfjs } from "@/lib/pdf/loadPdfjs";
 
 export interface TextBlock {
   text: string;
@@ -15,8 +16,7 @@ export interface ExtractResult {
 }
 
 export async function extractPdf(file: File): Promise<ExtractResult> {
-  const pdfjsLib = await import("pdfjs-dist");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  const pdfjsLib = await loadPdfjs();
 
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;

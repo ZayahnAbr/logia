@@ -1,4 +1,5 @@
 "use client";
+import { loadPdfjs } from "@/lib/pdf/loadPdfjs";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -73,8 +74,7 @@ export function BookReader({ bookId, title, initialPage, initialHighlights, init
       const res = await getBookFileUrl(bookId);
       if ("error" in res && res.error) { setLoadError(res.error); return; }
       try {
-        const pdfjs = await import("pdfjs-dist");
-        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+        const pdfjs = await loadPdfjs();
         const doc = await pdfjs.getDocument({ url: res.url! }).promise;
         if (cancelled) return;
         setPdf(doc);
@@ -117,7 +117,7 @@ export function BookReader({ bookId, title, initialPage, initialHighlights, init
 
       text.replaceChildren();
       text.style.setProperty("--total-scale-factor", String(scale));
-      const { TextLayer } = await import("pdfjs-dist");
+      const { TextLayer } = await loadPdfjs();
       const layer = new TextLayer({ textContentSource: pdfPage.streamTextContent(), container: text, viewport });
       await layer.render();
       if (!cancelled) setRendering(false);

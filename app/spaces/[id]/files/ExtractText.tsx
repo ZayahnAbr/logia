@@ -1,4 +1,5 @@
 "use client";
+import { loadPdfjs } from "@/lib/pdf/loadPdfjs";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,8 +13,7 @@ import { scanPagesToText, createNoteFromText, generateNotesFromText } from "@/ap
 // as a note or have Logia turn it into study notes. Text-based files are read on-device;
 // images and scanned PDFs (no text layer) are read with the vision model.
 async function pdfPagesAsImages(blob: Blob, max = 6) {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  const pdfjs = await loadPdfjs();
   const task = pdfjs.getDocument({ data: await blob.arrayBuffer() });
   const doc = await task.promise;
   const out: string[] = [];

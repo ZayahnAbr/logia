@@ -1,16 +1,17 @@
 "use client";
+import { loadPdfjs, withTimeout } from "@/lib/pdf/loadPdfjs";
 
 // Extract plain text from PDF, PowerPoint (.pptx, with speaker notes), Word (.docx), TXT or Markdown, in the browser.
 export async function extractFileText(file: File): Promise<string> {
   const name = file.name.toLowerCase();
 
   if (name.endsWith(".pdf")) {
-    const pdfjsLib = await import("pdfjs-dist");
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
-    const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+    const pdfjsLib = await loadPdfjs();
+    const stuck = "Reading that PDF is taking too long on this device. Try a smaller file, or upload it from a computer.";
+    const pdf = await withTimeout(pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise, 30_000, stuck);
     const parts: string[] = [];
     for (let p = 1; p <= pdf.numPages; p++) {
-      const content = await (await pdf.getPage(p)).getTextContent();
+      const content = await withTimeout((async () => (await pdf.getPage(p)).getTextContent())(), 20_000, stuck);
       // Rebuild lines from the glyph positions. Joining every item with a space loses the row
       // structure, which makes tables (course outline mark weightings, for example) unreadable.
       const rows = new Map<number, { x: number; s: string }[]>();

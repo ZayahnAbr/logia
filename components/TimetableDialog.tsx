@@ -40,13 +40,13 @@ export function TimetableDialog({ spaceId, onClose, onSaved }: { spaceId?: strin
   const [replace, setReplace] = useState(true);
   const camRef = useRef<HTMLInputElement>(null);
 
-  const addFiles = async (files: FileList | null) => {
-    if (!files) return;
+  const addFiles = async (files: File[] | null) => {
+    if (!files || !files.length) return;
     setError(null);
     try {
       const imgs: string[] = [];
       let text = "";
-      for (const f of [...files]) {
+      for (const f of files) {
         if (f.type.startsWith("image/")) imgs.push(await fileToJpeg(f));
         else if (f.name.toLowerCase().endsWith(".pdf")) {
           const t = await extractFileText(f);
@@ -88,9 +88,9 @@ export function TimetableDialog({ spaceId, onClose, onSaved }: { spaceId?: strin
           <p className="tt-note">Take a photo of your weekly timetable, upload a photo or PDF, or paste the text. Logia reads it and shows you the result to check before anything is saved.</p>
           <div className="tt-pick">
             <button type="button" className="btn btn-primary" onClick={() => camRef.current?.click()}><Camera size={14} aria-hidden="true" /> Take or choose a photo</button>
-            <input ref={camRef} type="file" accept="image/*" capture="environment" hidden aria-label="Take or choose a photo of your timetable" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+            <input ref={camRef} type="file" accept="image/*" capture="environment" hidden aria-label="Take or choose a photo of your timetable" onChange={(e) => { const picked = e.target.files; const list = picked ? [...picked] : []; e.target.value = ""; void addFiles(list); }} />
             <label className="btn tt-file"><FileUp size={14} aria-hidden="true" /> Upload photo or PDF
-              <input type="file" accept="image/*,application/pdf,.pdf" multiple className="sr-only" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+              <input type="file" accept="image/*,application/pdf,.pdf" multiple className="sr-only" onChange={(e) => { const picked = e.target.files; const list = picked ? [...picked] : []; e.target.value = ""; void addFiles(list); }} />
             </label>
           </div>
           {images.length > 0 && (

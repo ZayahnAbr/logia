@@ -1,8 +1,8 @@
+import { loadPdfjs } from "@/lib/pdf/loadPdfjs";
 // Renders page 1 of a PDF to a small JPEG (the "cover"), in the browser.
 // Accepts a local File (at upload time) or a signed URL (for books uploaded earlier).
 export async function renderPdfCover(source: File | string, width = 360): Promise<{ blob: Blob; pages: number } | null> {
-  const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+  const pdfjs = await loadPdfjs();
   const task = pdfjs.getDocument(
     typeof source === "string" ? { url: source, disableAutoFetch: true, disableStream: false } : { data: await source.arrayBuffer() },
   );

@@ -59,10 +59,13 @@ export function ScanCapture({ onText, onCancel, label = "Transcribe pages" }: {
     setPages((p) => [...p, toJpeg(v, v.videoWidth, v.videoHeight)]);
   };
 
-  const addFiles = async (files: FileList | null) => {
-    if (!files) return;
-    const imgs = await Promise.all([...files].filter((f) => f.type.startsWith("image/")).map(fileToJpeg));
-    setPages((p) => [...p, ...imgs]);
+  const addFiles = async (files: File[]) => {
+    if (!files.length) return;
+    setError(null);
+    try {
+      const imgs = await Promise.all(files.filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|webp|heic|heif)$/i.test(f.name)).map(fileToJpeg));
+      setPages((p) => [...p, ...imgs]);
+    } catch { setError("One of those photos couldn't be opened. Try a JPG or PNG, or take the photo again."); }
   };
 
   const transcribe = async () => {
@@ -92,7 +95,7 @@ export function ScanCapture({ onText, onCancel, label = "Transcribe pages" }: {
           <button type="button" className="btn btn-primary" onClick={startCamera}><Camera size={14} /> Use camera</button>
           <label className="btn" style={{ cursor: "pointer" }}>
             <ImagePlus size={14} /> Upload photos
-            <input type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+            <input type="file" accept="image/*" multiple hidden onChange={(e) => { const picked = e.target.files ? [...e.target.files] : []; e.target.value = ""; void addFiles(picked); }} />
           </label>
           {onCancel && <button type="button" className="btn btn-ghost" onClick={() => { stopCamera(); onCancel(); }}>Cancel</button>}
         </div>

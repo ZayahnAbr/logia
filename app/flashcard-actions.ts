@@ -93,7 +93,7 @@ export async function transcribeAnswer(form: FormData) {
     const audio = form.get("audio");
     if (!(audio instanceof Blob) || audio.size === 0) return { error: "No audio was recorded. Hold the button while you speak." };
     if (audio.size > 10 * 1024 * 1024) return { error: "That recording is too long. Keep spoken answers under about 2 minutes." };
-    const { text: raw } = await callAudio({ file: audio, filename: "answer.webm", purpose: "interactive", task: "transcribe an answer", supabase, userId: user.id, unmetered: isUnmetered(user.email), plan });
+    const { text: raw } = await callAudio({ file: audio, filename: `answer.${/mp4|m4a|aac/i.test(audio.type) ? "m4a" : /ogg/i.test(audio.type) ? "ogg" : /wav/i.test(audio.type) ? "wav" : /mpeg|mp3/i.test(audio.type) ? "mp3" : "webm"}`, purpose: "interactive", task: "transcribe an answer", supabase, userId: user.id, unmetered: isUnmetered(user.email), plan });
     const text = raw.trim();
     if (!text) return { error: "Couldn't hear any words. Try again a little closer to the microphone." };
     return { text };
